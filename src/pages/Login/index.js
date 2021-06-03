@@ -59,13 +59,13 @@ export default class Login extends Component {
                 <Form>
                     <FormGroup>
                         <Label for="email">Email</Label>
-                        <Input type="text" id="email" onChange={e => this.email = e.target.value} placeholder="Informe seu e-mail" />
+                        <Input type="text" id="email" onChange={e => this.email = e.target.value} placeholder="type your e-mail" />
                     </FormGroup>
                     <FormGroup>
-                        <Label for="password">Senha</Label>
-                        <Input type="password" id="password" onChange={e => this.password = e.target.value} placeholder="Informe a senha" />
+                        <Label for="password">Password</Label>
+                        <Input type="password" id="password" onChange={e => this.password = e.target.value} placeholder="type your password" />
                     </FormGroup>
-                    <Button color="primary" block onClick={this.signIn}> Entrar </Button>
+                    <Button color="primary" block onClick={this.signIn}> Sign In </Button>
                 </Form>
             </div>
         );

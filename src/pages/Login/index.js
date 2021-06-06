@@ -28,10 +28,9 @@ export default class Login extends Component {
         .then(response => {
             if(response.ok){
                 return response.json();
-            }else{
-                this.setState({ message: 'Invalid password'});
             }
-            throw new Error("Login Inválido...")
+
+            throw new Error("Login Inválido...");
         })
         .then(response => {
             if(typeof response.response.token === "undefined"){
@@ -43,7 +42,9 @@ export default class Login extends Component {
                 return;
             }
         })
-        .catch(e => {});
+        .catch(e => {
+            this.setState({ message: 'Invalid password'});
+        });
     }
 
     render(){

@@ -24,7 +24,7 @@ export default class Login extends Component {
             })
         };
 
-        fetch('http://api-doeobem/v1/login', requestInfo)
+        fetch('http://localhost:8009/public/v1/login', requestInfo)
         .then(response => {
             if(response.ok){
                 return response.json();
@@ -60,11 +60,11 @@ export default class Login extends Component {
                 <Form>
                     <FormGroup>
                         <Label for="email">Email</Label>
-                        <Input type="text" id="email" onChange={e => this.email = e.target.value} placeholder="type your e-mail" />
+                        <Input type="text" value="admin@user.com" id="email" onChange={e => this.email = e.target.value} placeholder="type your e-mail" />
                     </FormGroup>
                     <FormGroup>
                         <Label for="password">Password</Label>
-                        <Input type="password" id="password" onChange={e => this.password = e.target.value} placeholder="type your password" />
+                        <Input type="password" value="123" id="password" onChange={e => this.password = e.target.value} placeholder="type your password" />
                     </FormGroup>
                     <Button color="primary" block onClick={this.signIn}> Sign In </Button>
                 </Form>

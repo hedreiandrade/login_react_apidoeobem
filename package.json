@@ -29,7 +29,6 @@
     "since 2010" 
   ],
   "devDependencies": {
-    "@babel/core": "^7.24.4",
     "browserslist": "^4.23.0",
     "jquery": "^1.12.4",
     "popper.js": "^1.16.1",

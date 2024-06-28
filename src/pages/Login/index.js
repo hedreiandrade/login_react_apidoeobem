@@ -24,7 +24,7 @@ export default class Login extends Component {
             })
         };
 
-        if(data.email === '' && data.password === ''){
+        if(data.email === '' || data.password === ''){
             this.setState({ message: 'Please give me email and password'});
         }else{
             fetch('http://localhost:8009/public/v1/login', requestInfo)

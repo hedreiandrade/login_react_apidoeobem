@@ -30,9 +30,7 @@
   ],
   "devDependencies": {
     "browserslist": "^4.23.0",
-    "eslint": "^9.5.0",
-    "eslint-plugin-react": "^7.34.3",
-    "eslint-plugin-react-hooks": "^4.6.2",
+    "eslint": "^6.6.0",
     "jquery": "^1.12.4",
     "popper.js": "^1.16.1",
     "typescript": "^5.4.5"

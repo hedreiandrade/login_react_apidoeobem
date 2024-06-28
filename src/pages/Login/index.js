@@ -24,27 +24,32 @@ export default class Login extends Component {
             })
         };
 
-        fetch('http://localhost:8009/public/v1/login', requestInfo)
-        .then(response => {
-            if(response.ok){
-                return response.json();
-            }
+        if(data.email === '' && data.password === ''){
+            this.setState({ message: 'Please give me email and password'});
+        }else{
+            fetch('http://localhost:8009/public/v1/login', requestInfo)
+            .then(response => {
+                if(response.ok){
+                    return response.json();
+                }
+    
+                throw new Error("Login Inválido...");
+            })
+            .then(response => {
+                if(typeof response.response.token === "undefined"){
+                    this.setState({ message: response.response});
+                }else{
+                    localStorage.setItem('login_token', response.response.token);
+                    this.setState({ message: ''});
+                    this.props.history.push("/admin");
+                    return;
+                }
+            })
+            .catch(e => {
+                this.setState({ message: 'Invalid password'});
+            });
+        }
 
-            throw new Error("Login Inválido...");
-        })
-        .then(response => {
-            if(typeof response.response.token === "undefined"){
-                this.setState({ message: response.response});
-            }else{
-                localStorage.setItem('login_token', response.response.token);
-                this.setState({ message: ''});
-                this.props.history.push("/admin");
-                return;
-            }
-        })
-        .catch(e => {
-            this.setState({ message: 'Invalid password'});
-        });
     }
 
     render(){

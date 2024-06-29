@@ -46,7 +46,7 @@ export default class Login extends Component {
                 }
             })
             .catch(e => {
-                this.setState({ message: 'Invalid password'});
+                this.setState({ message: e.message});
             });
         }
 

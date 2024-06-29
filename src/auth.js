@@ -16,12 +16,7 @@ const PrivateRoute = ({component: Component, ...rest}) => {
             isAuth() ? (
                 <Component {...props} />
             ): (
-                <Redirect
-                    to={{
-                        pathname: '/',
-                        state: { message: 'User not authorized' }
-                    }}
-                />
+                <Redirect to={'/'} />
             )}
         />
     );

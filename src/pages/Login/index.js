@@ -13,9 +13,6 @@ export default class Login extends Component {
 
     signIn = () => {
         const data = { email: this.email, password: this.password };
-        if(typeof data.email === "undefined" && typeof data.password === "undefined"){
-            this.setState({ message: 'Email and Password is required'});
-        }
         const requestInfo = {
             method: 'POST',
             body: JSON.stringify(data),
@@ -23,7 +20,6 @@ export default class Login extends Component {
                 'Content-Type': 'application/json'
             })
         };
-
         fetch('http://localhost:8009/public/v1/login', requestInfo)
         .then(response => {
             if(response.ok){
@@ -45,7 +41,6 @@ export default class Login extends Component {
         .catch(e => {
             this.setState({ message: e.message});
         });
-
     }
 
     render(){

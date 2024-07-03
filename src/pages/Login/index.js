@@ -12,7 +12,7 @@ export default class Login extends Component {
         };
     }
 
-    signIn = async (e) => {
+    signIn = async () => {
         const data = { email: this.email, password: this.password };
         try{
             const response = await api.post('login', data);

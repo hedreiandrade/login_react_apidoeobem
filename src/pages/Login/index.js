@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import { Form, FormGroup, Label, Input, Button, Alert } from 'reactstrap';
 import Header from '../../components/Header';
+import {api} from '../../services/api';
 
 export default class Login extends Component {
 
@@ -11,36 +12,22 @@ export default class Login extends Component {
         };
     }
 
-    signIn = () => {
+    signIn = async (e) => {
         const data = { email: this.email, password: this.password };
-        const requestInfo = {
-            method: 'POST',
-            body: JSON.stringify(data),
-            headers: new Headers({
-                'Content-Type': 'application/json'
-            })
-        };
-        fetch('http://localhost:8009/public/v1/login', requestInfo)
-        .then(response => {
-            if(response.ok){
-                return response.json();
-            }
-
-            throw new Error("Login Inválido...");
-        })
-        .then(response => {
-            if(typeof response.response.token === "undefined"){
-                this.setState({ message: response.response});
+        try{
+            const response = await api.post('login', data);
+            if(typeof response.data.response.token === "undefined"){
+                this.setState({ message: response.data.response});
             }else{
-                localStorage.setItem('login_token', response.response.token);
+                localStorage.setItem('login_token', response.data.response.token);
                 this.setState({ message: ''});
                 this.props.history.push("/admin");
                 return;
             }
-        })
-        .catch(e => {
-            this.setState({ message: e.message});
-        });
+        }catch(err){
+            this.setState({ message: err});
+            return;
+        };
     }
 
     render(){

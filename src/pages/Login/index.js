@@ -14,20 +14,15 @@ export default class Login extends Component {
 
     signIn = async () => {
         const data = { email: this.email, password: this.password };
-        try{
-            const response = await api.post('login', data);
-            if(typeof response.data.response.token === "undefined"){
-                this.setState({ message: response.data.response});
-            }else{
-                localStorage.setItem('login_token', response.data.response.token);
-                this.setState({ message: ''});
-                this.props.history.push("/admin");
-                return;
-            }
-        }catch(err){
-            this.setState({ message: err});
+        const response = await api.post('login', data);
+        if(typeof response.data.response.token === "undefined"){
+            this.setState({ message: response.data.response});
+        }else{
+            localStorage.setItem('login_token', response.data.response.token);
+            this.setState({ message: ''});
+            this.props.history.push("/admin");
             return;
-        };
+        }
     }
 
     render(){

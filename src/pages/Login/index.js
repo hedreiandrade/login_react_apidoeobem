@@ -14,7 +14,7 @@ export default class Login extends Component {
 
     signIn = async () => {
         const data = { email: this.email, password: this.password };
-        const response = await api.post('login', data);
+        const response = await api.post('/login', data);
         if(typeof response.data.response.token === "undefined"){
             this.setState({ message: response.data.response});
         }else{

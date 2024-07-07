@@ -1,13 +1,12 @@
 ![alt text](image.png)
 
-
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
 First, RUN the project https://github.com/hedreiandrade/api-doeobem
 
-Node v14.17.5
-
 ## Run the Project
+
+Node v14.17.5
 
 In the project directory, run:
 

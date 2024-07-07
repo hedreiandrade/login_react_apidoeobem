@@ -3,7 +3,7 @@
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
-First, RUN the project [github.com/hedreiandrade/api-doeobeme]
+First, RUN the project https://github.com/hedreiandrade/api-doeobem
 
 Node v14.17.5
 

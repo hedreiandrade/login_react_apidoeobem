@@ -4,13 +4,13 @@ import {api} from './services/api';
 
 const isAuth = async () => {
     if(localStorage.getItem('login_token') !== null){
-            const param = {token: localStorage.getItem('login_token')};
-            const response = await api.post('/verifyTokenRedirect', param);
-            if (response.data.status === 200){
-                return true;
-            }else{
-                return false;
-            }
+        const param = {token: localStorage.getItem('login_token')};
+        const response = await api.post('/verifyTokenRedirect', param);
+        if (response.data.status === 200){
+            return true;
+        }else{
+            return false;
+        }
     }else{
         return false;
     }

@@ -10,8 +10,3 @@ export const getVerifyToken = async (token) =>{
         return false;
     }
 }
-
-export const getVerifyTokenSearch = async (token) =>{
-    const response = await api.post('/verifyTokenRedirect', {token});
-    return response.data.status !== 401;
-}

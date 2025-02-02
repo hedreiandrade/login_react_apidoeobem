@@ -25,6 +25,10 @@ export default class Login extends Component {
         }
     }
 
+    createAccount = async () => {
+        alert('aaa');
+    }
+
     render(){
         return (
             <div className="col-md-6">
@@ -44,7 +48,14 @@ export default class Login extends Component {
                         <Label for="password">Password</Label>
                         <Input type="password" id="password" name="password" onChange={e => this.password = e.target.value} placeholder="Type your password" />
                     </FormGroup>
-                    <Button color="primary" block onClick={this.signIn}> Sign In </Button>
+                    <div className="button-container">
+                        <Button color="primary" className="align-button" onClick={this.signIn}>
+                            Sign In
+                        </Button>
+                        <Button color="primary" className="align-button" onClick={this.createAccount}>
+                            Create Account
+                        </Button>
+                    </div>
                 </Form>
             </div>
         );

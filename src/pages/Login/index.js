@@ -99,7 +99,7 @@ export default class Login extends Component {
                                 Sign In
                             </Button>
                             <Button color="primary" className="align-button" onClick={this.toggleForm}>
-                                Create Account
+                                Register Account
                             </Button>
                         </div>
                     </Form>

@@ -71,7 +71,7 @@ export default class Login extends Component {
                             <Input type="password" id="password" name="password" onChange={(e) => (this.password = e.target.value)} placeholder="Type your password" />
                         </FormGroup>
                         <FormGroup>
-                            <Label for="password">Confirme Password</Label>
+                            <Label for="password">Confirm Password</Label>
                             <Input type="password" id="password_confirme" name="password" onChange={(e) => (this.password = e.target.value)} placeholder="Type your password" />
                         </FormGroup>
                         <div className="button-container">

@@ -90,7 +90,7 @@ export default class Login extends Component {
                 this.props.history.push("/admin");
             }
         } else {
-            this.setState({ message: 'Erro ao registrar a conta.' });
+            this.setState({ message: response.data.response });
         }
     };
 

@@ -90,7 +90,12 @@ export default class Login extends Component {
                 this.props.history.push("/admin");
             }
         } else {
-            this.setState({ message: response.data.response });
+            if(response.data.response){
+                this.setState({ message: response.data.response });
+            }
+            if(response.data.password[0]){   
+                this.setState({ message: response.data.password[0] }); 
+            }
         }
     };
 

@@ -118,7 +118,9 @@ export default class Login extends Component {
             }
         } else {
             if(response.data.password){
-                this.setState({ message: response.data.response || response.data.password[0] });
+                this.setState({ message: response.data.password[0] });
+            }else{
+                this.setState({ message: response.data.response});
             }
         }
     };

@@ -14,7 +14,9 @@ export default class Login extends Component {
                 name: '',
                 email: '',
                 password: '',
-                passwordConfirm: ''
+                passwordConfirm: '',
+                photo: null,
+                photoPreview: null
             }
         };
     }
@@ -31,6 +33,23 @@ export default class Login extends Component {
                 [name]: ''
             }
         }));
+    };
+
+    handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                this.setState({
+                    formData: {
+                        ...this.state.formData,
+                        photo: file,
+                        photoPreview: reader.result
+                    }
+                });
+            };
+            reader.readAsDataURL(file);
+        }
     };
 
     validateFields = () => {
@@ -78,10 +97,18 @@ export default class Login extends Component {
     createAccount = async () => {
         if (!this.validateFields()) return;
 
-        const { name, email, password } = this.state.formData;
-        const response = await api.post("/user", { name, email, password });
+        const formData = new FormData();
+        formData.append('name', this.state.formData.name);
+        formData.append('email', this.state.formData.email);
+        formData.append('password', this.state.formData.password);
+        formData.append('photo', this.state.formData.photo);
+
+        const response = await api.post("/user", formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+
         if (response.status === 201) {
-            const responseLogin = await api.post('/login', { email, password });
+            const responseLogin = await api.post('/login', { email: this.state.formData.email, password: this.state.formData.password });
             if (typeof responseLogin.data.response.token === "undefined") {
                 this.setState({ message: 'Erro ao gerar token após registrar.' });
             } else {
@@ -90,11 +117,8 @@ export default class Login extends Component {
                 this.props.history.push("/admin");
             }
         } else {
-            if(response.data.response){
-                this.setState({ message: response.data.response });
-            }
-            if(response.data.password){   
-                this.setState({ message: response.data.password[0] }); 
+            if(response.data.password){
+                this.setState({ message: response.data.response || response.data.password[0] });
             }
         }
     };
@@ -112,11 +136,22 @@ export default class Login extends Component {
 
                 <Form>
                     {this.state.isRegistering && (
-                        <FormGroup>
-                            <Label for="name">Name</Label>
-                            <Input type="text" id="name" name="name" value={this.state.formData.name} onChange={this.handleChange} placeholder="Type your name" />
-                            {this.state.errors.name && <Label className="text-danger">{this.state.errors.name}</Label>}
-                        </FormGroup>
+                        <>
+                            <FormGroup>
+                                <Label for="name">Name</Label>
+                                <Input type="text" id="name" name="name" value={this.state.formData.name} onChange={this.handleChange} placeholder="Type your name" />
+                                {this.state.errors.name && <Label className="text-danger">{this.state.errors.name}</Label>}
+                            </FormGroup>
+                            <FormGroup>
+                                <Label for="photo">Profile Photo</Label>
+                                <Input type="file" id="photo" name="photo" onChange={this.handleFileChange} />
+                                {this.state.formData.photoPreview && (
+                                    <div className="photo-preview-container">
+                                        <img src={this.state.formData.photoPreview} alt="Profile Preview" className="photo-preview" />
+                                    </div>
+                                )}
+                            </FormGroup>
+                        </>
                     )}
                     <FormGroup>
                         <Label for="email">Email</Label>

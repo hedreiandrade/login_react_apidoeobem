@@ -3,7 +3,6 @@ import Header from '../../components/Header';
 import '../../styles/Dashboard.css';
 import SocialHeader from '../../components/SocialHeader';
 import Footer from '../../components/Footer';
-import { Link } from 'react-router-dom';
 import { useExpireToken } from "../../hooks/expireToken";
 
 export default function Dashboard() {

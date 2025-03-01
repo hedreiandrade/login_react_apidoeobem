@@ -1,0 +1,30 @@
+.App {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 100px;
+}
+
+.button-container {
+  display: flex;
+  justify-content: center; 
+  gap: 10px;
+}
+
+.align-button {
+  width: 50%;
+}
+
+.photo-preview-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+.photo-preview {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #ccc;
+}

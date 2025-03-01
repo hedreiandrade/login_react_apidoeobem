@@ -89,6 +89,7 @@ export default class Login extends Component {
             this.setState({ message: response.data.response });
         } else {
             localStorage.setItem('login_token', response.data.response.token);
+            localStorage.setItem('photo', response.data.response.photo);
             this.setState({ message: '' });
             this.props.history.push("/admin");
         }

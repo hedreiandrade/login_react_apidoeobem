@@ -10,7 +10,7 @@ export default function Dashboard() {
     useExpireToken();
 
     const user = {
-        photo: "https://via.placeholder.com/40", // Aqui você pode substituir pela URL da foto real do usuário
+        photo: localStorage.getItem('photo')
     };
 
     return (

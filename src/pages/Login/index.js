@@ -131,7 +131,7 @@ export default class Login extends Component {
 
     render() {
         return (
-            <div className="col-md-6">
+            <div className="col-md-6 App">
                 <Header title={this.state.isRegistering ? "Register" : "ReactJS Login"} />
                 <hr className="my-3" />
                 {this.state.message && <Alert color="danger" className="text-center">{this.state.message}</Alert>}

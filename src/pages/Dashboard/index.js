@@ -18,7 +18,7 @@ export default function Dashboard() {
             <br/>
             <br/>
             <br/>
-            <Header title="Dashboard" />
+            <Header title="Feed" />
             <br/>
             <br/>
             <br/>

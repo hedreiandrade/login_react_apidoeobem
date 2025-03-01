@@ -16,10 +16,13 @@ export default function Dashboard() {
     return (
         <div>
             <SocialHeader user={user} />
+            <br/>
+            <br/>
+            <br/>
             <Header title="Dashboard" />
-            <div style={{ padding: "20px" }}>
-                <Link to="/logout" className="btn btn-outline-primary">LogOut</Link>
-            </div>
+            <br/>
+            <br/>
+            <br/>
             <Footer />
         </div>
     );

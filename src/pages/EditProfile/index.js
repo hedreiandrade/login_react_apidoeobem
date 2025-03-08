@@ -25,7 +25,17 @@ export default function EditProfile() {
     useEffect(() => {
         async function fetchUserData() {
             try {
-                const response = await api.get(`/user/${localStorage.getItem('user_id')}`);
+                const token = localStorage.getItem('login_token');
+                const userId = localStorage.getItem('user_id');
+                if (!token || !userId) {
+                    setMessage('Token or user ID not found');
+                    return;
+                }
+                const response = await api.get(`/user/${userId}`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                });
                 const { name, photo } = response.data;
                 setFormData({
                     name,
@@ -136,9 +146,9 @@ export default function EditProfile() {
                             Change password
                         </Button>
                     </div>
-                    <br/>
-                    <br/>
-                    <br/>
+                    <br />
+                    <br />
+                    <br />
                 </Form>
             </div>
             <Footer />

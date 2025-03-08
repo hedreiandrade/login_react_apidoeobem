@@ -128,12 +128,14 @@ export default function EditProfile() {
                             </div>
                         )}
                     </FormGroup>
-                    <Button color="primary" onClick={updateProfile} style={{ marginRight: "10px" }}>
-                        Update profile
-                    </Button>
-                    <Button color="secondary">
-                        Change password
-                    </Button>
+                    <div className="button-container">
+                        <Button color="primary" className="align-button" onClick={updateProfile} style={{ marginRight: "10px" }}>
+                            Update profile
+                        </Button>
+                        <Button color="secondary" className="align-button">
+                            Change password
+                        </Button>
+                    </div>
                     <br/>
                     <br/>
                     <br/>

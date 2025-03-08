@@ -91,20 +91,25 @@ export default function EditProfile() {
 
     const updateProfile = async () => {
         if (!validateFields()) return;
-
+        const token = localStorage.getItem('login_token');
+        const userId = localStorage.getItem('user_id');
         const data = new FormData();
         data.append('name', formData.name);
         if (formData.photo) {
             data.append('photo', formData.photo);
         }
-
         try {
-            const response = await api.put(`/user/${localStorage.getItem('user_id')}`, data, {
-                headers: { 'Content-Type': 'multipart/form-data' }
+            const response = await api.put(`/user/${userId}`, data, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                    Authorization: `Bearer ${token}`
+                }
             });
-            setMessage('Profile updated successfully!');
-            localStorage.setItem('photo', response.data.photo);
+            //setMessage('Profile updated successfully!');
+            //localStorage.setItem('photo', response.data.photo);
+            console.log(response);
         } catch (error) {
+            console.log(error);
             setMessage('Error updating profile');
         }
     };

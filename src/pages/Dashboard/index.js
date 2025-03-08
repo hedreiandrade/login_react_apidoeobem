@@ -15,10 +15,9 @@ export default function Dashboard() {
     return (
         <div>
             <SocialHeader user={user} />
-            <br/>
-            <br/>
-            <br/>
-            <Header title="Feed" />
+            <div className="col-md-6 App">
+                <Header title="Feed" />
+            </div>
             <br/>
             <br/>
             <br/>

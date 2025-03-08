@@ -113,6 +113,7 @@ export default class Login extends Component {
             if (typeof responseLogin.data.response.token === "undefined") {
                 this.setState({ message: 'Erro ao gerar token após registrar.' });
             } else {
+                localStorage.setItem('photo', responseLogin.data.response.photo);
                 localStorage.setItem('login_token', responseLogin.data.response.token);
                 this.setState({ message: '' });
                 this.props.history.push("/admin");

@@ -153,6 +153,9 @@ export default function ChangePassword() {
                     </div>
                 </Form>
             </div>
+            <br />
+            <br />
+            <br />
             <Footer />
         </div>
     );

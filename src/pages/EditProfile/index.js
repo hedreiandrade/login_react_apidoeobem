@@ -39,7 +39,7 @@ export default function EditProfile() {
                 const { name, photo } = response.data;
                 setFormData({
                     name,
-                    photo: null, //photo ... testar
+                    photo: null,
                     photoPreview: photo
                 });
             } catch (error) {

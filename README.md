@@ -10,7 +10,7 @@
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
-This project is a Social Midia interface but first, RUN the project https://github.com/hedreiandrade/api-doeobem
+This project is a Social Midia interface, but first, RUN the project https://github.com/hedreiandrade/api-doeobem
 
 ## Run the Project
 

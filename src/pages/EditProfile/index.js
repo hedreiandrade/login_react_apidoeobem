@@ -106,7 +106,7 @@ export default function EditProfile() {
                 }
             });
             localStorage.setItem('photo', response.data.photo);
-            console.log(response);
+            window.location.reload();
         } catch (error) {
             console.log(error);
             setMessage('Error updating profile');

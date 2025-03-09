@@ -2,6 +2,12 @@
 
 ![alt text](register.png)
 
+![alt text](feed.png)
+
+![alt text](editprofile.png)
+
+![alt text](changepassword.png)
+
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
 First, RUN the project https://github.com/hedreiandrade/api-doeobem

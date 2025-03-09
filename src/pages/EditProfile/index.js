@@ -39,7 +39,7 @@ export default function EditProfile() {
                 const { name, photo } = response.data;
                 setFormData({
                     name,
-                    photo: null,
+                    photo: null, //photo ... testar
                     photoPreview: photo
                 });
             } catch (error) {
@@ -99,15 +99,14 @@ export default function EditProfile() {
             data.append('photo', formData.photo);
         }
         try {
-            const response = await api.put(`/user/${userId}`, data, {
+            const response = await api.post(`/user/${userId}`, data, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                     Authorization: `Bearer ${token}`
                 }
             });
-            //setMessage('Profile updated successfully!');
-            //localStorage.setItem('photo', response.data.photo);
-            console.log(response);
+            localStorage.setItem('photo', response.data.photo);
+            window.location.reload();
         } catch (error) {
             console.log(error);
             setMessage('Error updating profile');

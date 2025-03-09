@@ -6,9 +6,17 @@ import '../../styles/EditProfile.css';
 import { useExpireToken } from "../../hooks/expireToken";
 import SocialHeader from '../../components/SocialHeader';
 import Footer from '../../components/Footer';
+import { useHistory  } from 'react-router-dom';
 
 export default function EditProfile() {
     useExpireToken();
+
+    const history = useHistory(); // Use useHistory em vez de useNavigate
+
+    // Função para redirecionar
+    const redirectToChangePassword = () => {
+        history.push('/change-password'); // Navega para a página change-password
+    };
 
     const user = {
         photo: localStorage.getItem('photo')
@@ -146,7 +154,7 @@ export default function EditProfile() {
                         <Button color="primary" className="align-button" onClick={updateProfile} style={{ marginRight: "10px" }}>
                             Update profile
                         </Button>
-                        <Button color="secondary" className="align-button">
+                        <Button color="secondary" className="align-button" onClick={redirectToChangePassword}>
                             Change password
                         </Button>
                     </div>

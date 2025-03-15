@@ -142,7 +142,7 @@ export default function EditProfile() {
                         {errors.name && <Label className="text-danger">{errors.name}</Label>}
                     </FormGroup>
                     <FormGroup>
-                        <Label for="photo">Profile Photo</Label>
+                        <Label for="photo">Profile photo</Label>
                         <Input type="file" id="photo" name="photo" onChange={handleFileChange} />
                         {formData.photoPreview && (
                             <div className="photo-preview-container">

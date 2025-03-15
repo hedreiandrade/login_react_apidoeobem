@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Form, FormGroup, Label, Input, Button, Alert } from 'reactstrap';
 import Header from '../../components/Header';
 import { api } from '../../services/api';
@@ -6,15 +6,14 @@ import '../../styles/EditProfile.css';
 import { useExpireToken } from "../../hooks/expireToken";
 import SocialHeader from '../../components/SocialHeader';
 import Footer from '../../components/Footer';
-import { useHistory  } from 'react-router-dom';
+import { useHistory } from 'react-router-dom';
 
 export default function ChangePassword() {
     useExpireToken();
-
-    const history = useHistory(); 
+    const history = useHistory();
 
     const redirectToEdit = () => {
-        history.push('/edit-profile'); 
+        history.push('/edit-profile');
     };
 
     const user = {
@@ -24,7 +23,8 @@ export default function ChangePassword() {
     const [message, setMessage] = useState('');
     const [errors, setErrors] = useState({});
     const [formData, setFormData] = useState({
-        currentPassword: '',
+        email: '',
+        password: '',
         newPassword: '',
         confirmNewPassword: ''
     });
@@ -45,8 +45,13 @@ export default function ChangePassword() {
         let errors = {};
         let isValid = true;
 
-        if (!formData.currentPassword) {
-            errors.currentPassword = 'Current password is required';
+        if (!formData.email) {
+            errors.email = 'Current email is required';
+            isValid = false;
+        }
+
+        if (!formData.password) {
+            errors.password = 'Current password is required';
             isValid = false;
         }
 
@@ -75,11 +80,10 @@ export default function ChangePassword() {
         if (!validateFields()) return;
 
         const token = localStorage.getItem('login_token');
-        const userId = localStorage.getItem('user_id');
-
         try {
-            const response = await api.post(`/user/${userId}/change-password`, {
-                currentPassword: formData.currentPassword,
+            const response = await api.post(`/changePassword`, {
+                email: formData.email,
+                password: formData.password,
                 newPassword: formData.newPassword
             }, {
                 headers: {
@@ -87,12 +91,14 @@ export default function ChangePassword() {
                 }
             });
 
-            setMessage('Password updated successfully!');
-            setFormData({
-                currentPassword: '',
-                newPassword: '',
-                confirmNewPassword: ''
-            });
+            if (response.status === 201) {
+                setMessage('Password updated successfully');
+                setTimeout(() => {
+                    history.push("/edit-profile");
+                }, 2000); // Redireciona após 2 segundos
+            } else {
+                setMessage(response.data.response || 'Error updating password');
+            }
         } catch (error) {
             console.log(error);
             setMessage('Error updating password');
@@ -108,16 +114,28 @@ export default function ChangePassword() {
                 {message && <Alert color={message.includes('successfully') ? 'success' : 'danger'} className="text-center" fade={false}>{message}</Alert>}
                 <Form onSubmit={handleSubmit}>
                     <FormGroup>
-                        <Label for="currentPassword">Current Password</Label>
+                        <Label for="email">Current Email</Label>
+                        <Input
+                            type="email"
+                            id="email"
+                            name="email"
+                            value={formData.email}
+                            onChange={handleChange}
+                            placeholder="Type your current email"
+                        />
+                        {errors.email && <Label className="text-danger">{errors.email}</Label>}
+                    </FormGroup>
+                    <FormGroup>
+                        <Label for="password">Current Password</Label>
                         <Input
                             type="password"
-                            id="currentPassword"
-                            name="currentPassword"
-                            value={formData.currentPassword}
+                            id="password"
+                            name="password"
+                            value={formData.password}
                             onChange={handleChange}
                             placeholder="Type your current password"
                         />
-                        {errors.currentPassword && <Label className="text-danger">{errors.currentPassword}</Label>}
+                        {errors.password && <Label className="text-danger">{errors.password}</Label>}
                     </FormGroup>
                     <FormGroup>
                         <Label for="newPassword">New Password</Label>
@@ -147,7 +165,7 @@ export default function ChangePassword() {
                         <Button color="primary" className="align-button" type="submit">
                             Update password
                         </Button>
-                        <Button color="secondary" className="align-button" type="submit" onClick={redirectToEdit}>
+                        <Button color="secondary" className="align-button" onClick={redirectToEdit}>
                             Back to edit
                         </Button>
                     </div>

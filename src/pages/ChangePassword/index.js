@@ -114,7 +114,7 @@ export default function ChangePassword() {
                 {message && <Alert color={message.includes('successfully') ? 'success' : 'danger'} className="text-center" fade={false}>{message}</Alert>}
                 <Form onSubmit={handleSubmit}>
                     <FormGroup>
-                        <Label for="email">Current Email</Label>
+                        <Label for="email">Current email</Label>
                         <Input
                             type="email"
                             id="email"
@@ -126,7 +126,7 @@ export default function ChangePassword() {
                         {errors.email && <Label className="text-danger">{errors.email}</Label>}
                     </FormGroup>
                     <FormGroup>
-                        <Label for="password">Current Password</Label>
+                        <Label for="password">Current password</Label>
                         <Input
                             type="password"
                             id="password"
@@ -138,7 +138,7 @@ export default function ChangePassword() {
                         {errors.password && <Label className="text-danger">{errors.password}</Label>}
                     </FormGroup>
                     <FormGroup>
-                        <Label for="newPassword">New Password</Label>
+                        <Label for="newPassword">New password</Label>
                         <Input
                             type="password"
                             id="newPassword"
@@ -150,7 +150,7 @@ export default function ChangePassword() {
                         {errors.newPassword && <Label className="text-danger">{errors.newPassword}</Label>}
                     </FormGroup>
                     <FormGroup>
-                        <Label for="confirmNewPassword">Confirm New Password</Label>
+                        <Label for="confirmNewPassword">Confirm new password</Label>
                         <Input
                             type="password"
                             id="confirmNewPassword"

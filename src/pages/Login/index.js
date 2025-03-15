@@ -74,6 +74,13 @@ export default class Login extends Component {
                 errors.passwordConfirm = "Field is required";
                 isValid = false;
             }
+            if (!passwordConfirm) {
+                errors.confirmNewPassword = 'Confirm new password is required';
+                isValid = false;
+            } else if (password !== passwordConfirm) {
+                errors.passwordConfirm = 'Passwords do not match';
+                isValid = false;
+            }
         }
 
         this.setState({ errors });

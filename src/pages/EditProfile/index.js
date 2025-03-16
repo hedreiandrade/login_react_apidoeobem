@@ -27,7 +27,8 @@ export default function EditProfile() {
     const [formData, setFormData] = useState({
         name: '',
         photo: null,
-        photoPreview: null
+        photoPreview: null,
+        email: '',
     });
 
     useEffect(() => {
@@ -44,11 +45,12 @@ export default function EditProfile() {
                         Authorization: `Bearer ${token}`
                     }
                 });
-                const { name, photo } = response.data;
+                const { name, photo, email } = response.data;
                 setFormData({
                     name,
                     photo: null,
-                    photoPreview: photo
+                    photoPreview: photo,
+                    email,
                 });
             } catch (error) {
                 setMessage('Error fetching user data');
@@ -93,6 +95,11 @@ export default function EditProfile() {
             isValid = false;
         }
 
+        if (!formData.email) {
+            errors.email = 'Field is required';
+            isValid = false;
+        }
+
         setErrors(errors);
         return isValid;
     };
@@ -103,6 +110,7 @@ export default function EditProfile() {
         const userId = localStorage.getItem('user_id');
         const data = new FormData();
         data.append('name', formData.name);
+        data.append('email', formData.email);
         if (formData.photo) {
             data.append('photo', formData.photo);
         }
@@ -149,6 +157,18 @@ export default function EditProfile() {
                                 <img src={formData.photoPreview} alt="Profile Preview" className="photo-preview" />
                             </div>
                         )}
+                    </FormGroup>
+                    <FormGroup>
+                        <Label for="name">Email</Label>
+                        <Input
+                            type="text"
+                            id="email"
+                            name="email"
+                            value={formData.email}
+                            onChange={handleChange}
+                            placeholder="Type your email"
+                        />
+                        {errors.email && <Label className="text-danger">{errors.email}</Label>}
                     </FormGroup>
                     <div className="button-container">
                         <Button color="primary" className="align-button" onClick={updateProfile} style={{ marginRight: "10px" }}>

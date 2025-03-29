@@ -44,25 +44,35 @@ export default function ChangePassword() {
     const validateFields = () => {
         let errors = {};
         let isValid = true;
-
+    
         if (!formData.email) {
             errors.email = 'Current email is required';
             isValid = false;
         }
-
+    
         if (!formData.password) {
             errors.password = 'Current password is required';
             isValid = false;
         }
-
+    
         if (!formData.newPassword) {
             errors.newPassword = 'New password is required';
             isValid = false;
-        } else if (formData.newPassword.length < 6) {
-            errors.newPassword = 'Password must be at least 6 characters';
+        } else if (formData.newPassword.length < 8) {
+            errors.newPassword = 'Password must be at least 8 characters';
             isValid = false;
+        } else {
+            const hasNumber = /\d/.test(formData.newPassword);
+            const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(formData.newPassword); 
+            if (!hasNumber) {
+                errors.newPassword = 'Enter a stronger password, with uppercase letters, lowercase letters, numbers and a special character.';
+                isValid = false;
+            } else if (!hasSpecialChar) {
+                errors.newPassword = 'Enter a stronger password, with uppercase letters, lowercase letters, numbers and a special character.';
+                isValid = false;
+            }
         }
-
+    
         if (!formData.confirmNewPassword) {
             errors.confirmNewPassword = 'Confirm new password is required';
             isValid = false;
@@ -70,7 +80,7 @@ export default function ChangePassword() {
             errors.confirmNewPassword = 'Passwords do not match';
             isValid = false;
         }
-
+    
         setErrors(errors);
         return isValid;
     };

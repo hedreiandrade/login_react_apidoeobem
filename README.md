@@ -1,9 +1,14 @@
-![alt text](socialmidia.gif)
-![alt text](login.png)
-![alt text](register.png)
-![alt text](feed.png)
-![alt text](editprofile.png)
-![alt text](changepassword.png)
+<div align="center">
+  <img src="socialmidia.gif" alt="GIF Demonstração">
+</div>
+
+<div align="center">
+  <img src="login.png" alt="Tela de Login">
+  <img src="register.png" alt="Tela de Registro">
+  <img src="feed.png" alt="Feed">
+  <img src="editprofile.png" alt="Editar Perfil">
+  <img src="changepassword.png" alt="Mudar Senha">
+</div>
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 

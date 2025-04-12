@@ -124,8 +124,7 @@ export default function EditProfile() {
             localStorage.setItem('photo', response.data.photo);
             window.location.reload();
         } catch (error) {
-            console.log(error);
-            setMessage('Error updating profile');
+            setMessage('There is an account for this e-mail, try to recover your password.');
         }
     };
 

@@ -121,10 +121,14 @@ export default function EditProfile() {
                     Authorization: `Bearer ${token}`
                 }
             });
-            localStorage.setItem('photo', response.data.photo);
-            window.location.reload();
+            if (response.status === 203) {
+                setMessage('There is an account for this e-mail, try to recover your password.');
+            }else{
+                localStorage.setItem('photo', response.data.photo);
+                window.location.reload();
+            }
         } catch (error) {
-            setMessage('There is an account for this e-mail, try to recover your password.');
+            setMessage('Update profile have error');
         }
     };
 

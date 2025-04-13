@@ -94,7 +94,8 @@ export default function ChangePassword() {
             const response = await api.post(`/changePassword`, {
                 email: formData.email,
                 password: formData.password,
-                newPassword: formData.newPassword
+                newPassword: formData.newPassword,
+                confirmNewPassword: formData.confirmNewPassword
             }, {
                 headers: {
                     Authorization: `Bearer ${token}`

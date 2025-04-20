@@ -167,7 +167,7 @@ export default class Login extends Component {
                         <>
                             <FormGroup>
                                 <Label for="name">Name</Label>
-                                <Input type="text" id="name" name="name" value={this.state.formData.name} onChange={this.handleChange} placeholder="Type your name" />
+                                <Input type="text" id="name" name="name" value={this.state.formData.name} onChange={this.handleChange} placeholder="Type your name" autoFocus/>
                                 {this.state.errors.name && <Label className="text-danger">{this.state.errors.name}</Label>}
                             </FormGroup>
                             <FormGroup>
@@ -183,7 +183,7 @@ export default class Login extends Component {
                     )}
                     <FormGroup>
                         <Label for="email">Email</Label>
-                        <Input type="email" id="email" name="email" value={this.state.formData.email} onChange={this.handleChange} placeholder="Type your e-mail" />
+                        <Input type="email" id="email" name="email" value={this.state.formData.email} onChange={this.handleChange} placeholder="Type your e-mail" autoFocus/>
                         {this.state.errors.email && <Label className="text-danger">{this.state.errors.email}</Label>}
                     </FormGroup>
                     <FormGroup>

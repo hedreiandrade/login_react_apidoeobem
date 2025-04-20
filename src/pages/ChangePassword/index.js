@@ -133,6 +133,7 @@ export default function ChangePassword() {
                             value={formData.email}
                             onChange={handleChange}
                             placeholder="Type your current email"
+                            autoFocus
                         />
                         {errors.email && <Label className="text-danger">{errors.email}</Label>}
                     </FormGroup>

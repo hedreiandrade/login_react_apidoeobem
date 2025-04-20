@@ -149,6 +149,7 @@ export default function EditProfile() {
                             value={formData.name}
                             onChange={handleChange}
                             placeholder="Type your name"
+                            autoFocus
                         />
                         {errors.name && <Label className="text-danger">{errors.name}</Label>}
                     </FormGroup>

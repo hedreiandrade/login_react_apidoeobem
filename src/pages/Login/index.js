@@ -158,7 +158,7 @@ export default class Login extends Component {
     render() {
         return (
             <div className="col-md-6 App">
-                <Header title={this.state.isRegistering ? "Register" : "H Midia"} />
+                <Header title={this.state.isRegistering ? "Register" : "H Media"} />
                 <hr className="my-3" />
                 {this.state.message && <Alert color="danger" className="text-center" fade={false}>{this.state.message}</Alert>}
 

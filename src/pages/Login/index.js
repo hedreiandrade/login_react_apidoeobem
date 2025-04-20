@@ -10,6 +10,7 @@ export default class Login extends Component {
             message: this.props.location.state ? this.props.location.state.message : '',
             isRegistering: false,
             errors: {},
+            tabCount: 0,
             formData: {
                 name: '',
                 email: '',
@@ -140,6 +141,21 @@ export default class Login extends Component {
         this.setState({ isRegistering: !this.state.isRegistering, message: "", errors: {} });
     };
 
+    handleKeyPress = (event) => {
+        if (event.key === 'Tab') {
+            this.setState(prevState => ({tabCount: prevState.tabCount + 1}));
+        }
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            if (this.state.tabCount === 2) {
+                this.signIn();
+            } 
+            if (this.state.tabCount === 3) {
+                this.toggleForm();
+            } 
+        }
+    };
+
     render() {
         return (
             <div className="col-md-6 App">
@@ -147,7 +163,7 @@ export default class Login extends Component {
                 <hr className="my-3" />
                 {this.state.message && <Alert color="danger" className="text-center" fade={false}>{this.state.message}</Alert>}
 
-                <Form>
+                <Form onKeyDown={this.handleKeyPress}>
                     {this.state.isRegistering && (
                         <>
                             <FormGroup>

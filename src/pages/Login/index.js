@@ -141,29 +141,28 @@ export default class Login extends Component {
         this.setState({ isRegistering: !this.state.isRegistering, message: "", errors: {} });
     };
 
-    handleKeyPress = (event) => {
-        if (event.key === 'Tab') {
-            this.setState(prevState => ({tabCount: prevState.tabCount + 1}));
-        }
+    enterFormSignIn = (event) => {
         if (event.key === 'Enter') {
             event.preventDefault();
-            if (this.state.tabCount === 2) {
-                this.signIn();
-            } 
-            if (this.state.tabCount === 3) {
-                this.toggleForm();
-            } 
+            this.signIn();
+        }
+    };
+    
+    enterFormRegister = (event) => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            this.toggleForm();
         }
     };
 
     render() {
         return (
             <div className="col-md-6 App">
-                <Header title={this.state.isRegistering ? "Register" : "ReactJS Login"} />
+                <Header title={this.state.isRegistering ? "Register" : "H Midia"} />
                 <hr className="my-3" />
                 {this.state.message && <Alert color="danger" className="text-center" fade={false}>{this.state.message}</Alert>}
 
-                <Form onKeyDown={this.handleKeyPress}>
+                <Form>
                     {this.state.isRegistering && (
                         <>
                             <FormGroup>
@@ -200,10 +199,10 @@ export default class Login extends Component {
                         </FormGroup>
                     )}
                     <div className="button-container">
-                        <Button color="primary" className="align-button" onClick={this.state.isRegistering ? this.createAccount : this.signIn}>
+                        <Button color="primary" className="align-button" onClick={this.state.isRegistering ? this.createAccount : this.signIn} onBlur={this.enterFormSignIn}>
                             {this.state.isRegistering ? "Register" : "Sign in"}
                         </Button>
-                        <Button color="secondary" className="align-button" onClick={this.toggleForm}>
+                        <Button color="secondary" className="align-button" onClick={this.toggleForm} onBlur={this.enterFormRegister}>
                             {this.state.isRegistering ? "Back to Login" : "Register account"}
                         </Button>
                     </div>

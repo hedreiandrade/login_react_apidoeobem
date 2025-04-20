@@ -67,31 +67,33 @@ export default function FollowersList() {
     return (
         <div>
             <SocialHeader user={user} />
-            <div className="followers-container">
-                <Header title="Followers" />
-                <hr className="my-3" />
-                {followers.map((follower, index) => {
-                    const isLastItem = index === followers.length - 1;
-                    return (
-                        <div
-                            key={follower.follower_id}
-                            ref={isLastItem ? lastFollowerRef : null}
-                            className="follower-item"
-                        >
-                            <img
-                                src={follower.photo}
-                                alt={follower.name}
-                                className="follower-photo"
-                            />
-                            <span className="follower-name">{follower.name}</span>
-                        </div>
-                    );
-                })}
-                {loading && <Spinner color="primary" className="d-block mx-auto my-3" />}
-                {error && <Alert color="danger" className="text-center">{error}</Alert>}
-                {!hasMore && <p className="text-center text-muted">No more followers</p>}
+            <div className="col-md-6 App">
+                <div className="followers-container">
+                    <Header title="Followers" />
+                    <hr className="my-3" />
+                    {followers.map((follower, index) => {
+                        const isLastItem = index === followers.length - 1;
+                        return (
+                            <div
+                                key={follower.follower_id}
+                                ref={isLastItem ? lastFollowerRef : null}
+                                className="follower-item"
+                            >
+                                <img
+                                    src={follower.photo}
+                                    alt={follower.name}
+                                    className="follower-photo"
+                                />
+                                <span className="follower-name">{follower.name}</span>
+                            </div>
+                        );
+                    })}
+                    {loading && <Spinner color="primary" className="d-block mx-auto my-3" />}
+                    {error && <Alert color="danger" className="text-center">{error}</Alert>}
+                    {!hasMore && <p className="text-center text-muted">No more followers</p>}
+                </div>
+                <Footer />
             </div>
-            <Footer />
         </div>
     );
 }

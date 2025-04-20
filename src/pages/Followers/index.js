@@ -16,7 +16,6 @@ export default function FollowersList() {
     const user = {
         photo: localStorage.getItem('photo')
     };
-    const userId = localStorage.getItem('user_id');
 
     const lastFollowerRef = useCallback(
         node => {
@@ -37,16 +36,20 @@ export default function FollowersList() {
             setLoading(true);
             setError('');
             try {
-                const token = localStorage.getItem('login_token');
                 const userId = localStorage.getItem('user_id');
+                const token = localStorage.getItem('login_token');
                 const response = await apiFeed.get(`/followers/${userId}/${page}/5`, {
                     headers: {
                         Authorization: `Bearer ${token}`
                     }
                 });
                 if (response.data.data.length > 0) {
-                    setFollowers(prev => [...prev, ...response.data.data]);
-                }
+                    setFollowers(prev => {
+                        const existingIds = new Set(prev.map(f => f.follower_id));
+                        const newUniqueFollowers = response.data.data.filter(f => !existingIds.has(f.follower_id));
+                        return [...prev, ...newUniqueFollowers];
+                    });
+                }                             
                 if (page >= response.data.last_page) {
                     setHasMore(false);
                 }
@@ -59,7 +62,7 @@ export default function FollowersList() {
         if (hasMore) {
             fetchFollowers();
         }
-    }, [page]);
+    }, [page, hasMore]);
 
     return (
         <div>

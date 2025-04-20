@@ -5,8 +5,11 @@ import Footer from '../../components/Footer';
 import { Spinner, Alert } from 'reactstrap';
 import { apiFeed } from '../../services/api';
 import '../../styles/FollowersList.css';
+import { useExpireToken } from "../../hooks/expireToken";
 
 export default function FollowersList() {
+    useExpireToken();
+
     const [followers, setFollowers] = useState([]);
     const [page, setPage] = useState(1);
     const [loading, setLoading] = useState(false);

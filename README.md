@@ -5,9 +5,7 @@
 <div align="center">
   <img src="login.png" alt="Tela de Login">
   <img src="register.png" alt="Tela de Registro">
-  <img src="feed.png" alt="Feed">
-  <img src="editprofile.png" alt="Editar Perfil">
-  <img src="changepassword.png" alt="Mudar Senha">
+    <img src="followers.png" alt="Tela de Seguidores">
 </div>
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).

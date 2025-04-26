@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import SocialHeader from '../../components/SocialHeader';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
-import { Spinner, Alert } from 'reactstrap';
+import { Alert } from 'reactstrap';
 import { apiFeed } from '../../services/api';
 import '../../styles/FollowersList.css';
 import { useExpireToken } from "../../hooks/expireToken";
@@ -91,12 +91,11 @@ export default function FollowersList() {
                             </div>
                         );
                     })}
-                    {loading && <Spinner color="primary" className="d-block mx-auto my-3" />}
                     {error && <Alert color="danger" className="text-center">{error}</Alert>}
                     {!hasMore && <p className="text-center text-muted">No more followers</p>}
                 </div>
-                <Footer />
             </div>
+            <Footer />
         </div>
     );
 }

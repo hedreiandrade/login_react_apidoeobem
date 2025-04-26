@@ -99,6 +99,7 @@ export default class Login extends Component {
             localStorage.setItem('login_token', response.data.response.token);
             localStorage.setItem('user_id', response.data.response.user_id);
             localStorage.setItem('photo', response.data.response.photo);
+            localStorage.setItem('name', response.data.response.name);
             this.setState({ message: '' });
             this.props.history.push("/admin");
         }
@@ -123,6 +124,7 @@ export default class Login extends Component {
                 this.setState({ message: 'Erro ao gerar token após registrar.' });
             } else {
                 localStorage.setItem('photo', responseLogin.data.response.photo);
+                localStorage.setItem('name', responseLogin.data.response.name);
                 localStorage.setItem('user_id', responseLogin.data.response.user_id);
                 localStorage.setItem('login_token', responseLogin.data.response.token);
                 this.setState({ message: '' });

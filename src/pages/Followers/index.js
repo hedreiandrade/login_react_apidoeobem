@@ -6,7 +6,7 @@ import { Alert } from 'reactstrap';
 import { apiFeed } from '../../services/api';
 import '../../styles/FollowersList.css';
 import { useExpireToken } from "../../hooks/expireToken";
-import {getInitialsImage} from "../../ultils/initialsImage";
+import { getInitialsImage } from "../../ultils/initialsImage";
 
 export default function FollowersList() {
     useExpireToken();
@@ -61,7 +61,7 @@ export default function FollowersList() {
                         const newUniqueFollowers = response.data.data.filter(f => !existingIds.has(f.follower_id));
                         return [...prev, ...newUniqueFollowers];
                     });
-                }                             
+                }
                 if (page >= response.data.last_page) {
                     setHasMore(false);
                 }
@@ -85,6 +85,9 @@ export default function FollowersList() {
                     <hr className="my-3" />
                     {followers.map((follower, index) => {
                         const isLastItem = index === followers.length - 1;
+                        const followerPhoto = isValidPhoto(follower.photo)
+                            ? follower.photo
+                            : getInitialsImage(follower.name);
                         return (
                             <div
                                 key={follower.follower_id}
@@ -92,7 +95,7 @@ export default function FollowersList() {
                                 className="follower-item"
                             >
                                 <img
-                                    src={follower.photo}
+                                    src={followerPhoto}
                                     alt={follower.name}
                                     className="follower-photo"
                                 />

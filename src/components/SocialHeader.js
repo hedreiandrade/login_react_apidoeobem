@@ -33,7 +33,7 @@ export default function SocialHeader({ user }) {
             <Link to="/admin" style={{ color: "#fff", textDecoration: "none" }}><h4>H Media</h4></Link>
             <div style={{ display: "flex", alignItems: "center" }}>
                 <Link to="/followers" className="btn btn-outline-primary" style={{ color: "#fff", textDecoration: "none" }}>
-                    {loading ? "Loading followers..." : `${followersCount} Followers`}
+                    <h5>{loading ? "Loading followers..." : `${followersCount} Followers`}</h5>
                 </Link>
                 <img src={user.photo} alt="User" style={{ width: "40px", height: "40px", borderRadius: "50%", margin: "0 10px" }} />
                 <Link to="/edit-profile" style={{ color: "#fff", textDecoration: "none", marginRight: "10px" }}>Edit</Link>

@@ -1,6 +1,4 @@
 export const getInitialsImage = (name) => {
-    console.log('getInitialsImage hedrei');
-    console.log(name);
     const initials = name.split(' ')
         .map(word => word[0])
         .join('')

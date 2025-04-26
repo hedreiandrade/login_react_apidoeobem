@@ -3,7 +3,6 @@
 </div>
 
 <div align="center">
-  <img src="login.png" alt="Tela de Login">
   <img src="register.png" alt="Tela de Registro">
     <img src="followers.png" alt="Tela de Seguidores">
 </div>

@@ -1,10 +1,10 @@
-// src/components/SocialHeader.js
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiFeed } from "../services/api";
 
 export default function SocialHeader({ user }) {
-    const [followersCount, setFollowersCount] = useState(0);
+    const [followersCount, setFollowersCount] = useState(null); // Inicialmente null
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         async function fetchFollowersCount() {
@@ -21,6 +21,8 @@ export default function SocialHeader({ user }) {
                 }
             } catch (error) {
                 console.error('Failed to fetch followers count', error);
+            } finally {
+                setLoading(false);
             }
         }
         fetchFollowersCount();
@@ -31,7 +33,7 @@ export default function SocialHeader({ user }) {
             <Link to="/admin" style={{ color: "#fff", textDecoration: "none" }}><h4>H Media</h4></Link>
             <div style={{ display: "flex", alignItems: "center" }}>
                 <Link to="/followers" className="btn btn-outline-primary" style={{ color: "#fff", textDecoration: "none" }}>
-                    {followersCount} Followers
+                    {loading ? "Loading followers..." : `${followersCount} Followers`}
                 </Link>
                 <img src={user.photo} alt="User" style={{ width: "40px", height: "40px", borderRadius: "50%", margin: "0 10px" }} />
                 <Link to="/edit-profile" style={{ color: "#fff", textDecoration: "none", marginRight: "10px" }}>Edit</Link>

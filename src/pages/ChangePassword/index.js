@@ -7,6 +7,7 @@ import { useExpireToken } from "../../hooks/expireToken";
 import SocialHeader from '../../components/SocialHeader';
 import Footer from '../../components/Footer';
 import { useHistory } from 'react-router-dom';
+import {getInitialsImage} from "../../ultils/initialsImage";
 
 export default function ChangePassword() {
     useExpireToken();
@@ -16,8 +17,15 @@ export default function ChangePassword() {
         history.push('/edit-profile');
     };
 
+    const name = localStorage.getItem('name') || 'User';
+    const rawPhoto = localStorage.getItem('photo');
+
+    const isValidPhoto = (photo) => {
+        return photo && photo.trim() !== '' && photo !== 'null' && photo !== 'undefined';
+    };
+
     const user = {
-        photo: localStorage.getItem('photo')
+        photo: isValidPhoto(rawPhoto) ? rawPhoto : getInitialsImage(name)
     };
 
     const [message, setMessage] = useState('');

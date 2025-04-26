@@ -4,12 +4,20 @@ import '../../styles/Dashboard.css';
 import SocialHeader from '../../components/SocialHeader';
 import Footer from '../../components/Footer';
 import { useExpireToken } from "../../hooks/expireToken";
+import {getInitialsImage} from "../../ultils/initialsImage";
 
 export default function Dashboard() {
     useExpireToken();
 
+    const name = localStorage.getItem('name') || 'User';
+    const rawPhoto = localStorage.getItem('photo');
+
+    const isValidPhoto = (photo) => {
+        return photo && photo.trim() !== '' && photo !== 'null' && photo !== 'undefined';
+    };
+
     const user = {
-        photo: localStorage.getItem('photo')
+        photo: isValidPhoto(rawPhoto) ? rawPhoto : getInitialsImage(name)
     };
 
     return (

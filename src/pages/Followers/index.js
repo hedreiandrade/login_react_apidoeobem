@@ -6,6 +6,7 @@ import { Alert } from 'reactstrap';
 import { apiFeed } from '../../services/api';
 import '../../styles/FollowersList.css';
 import { useExpireToken } from "../../hooks/expireToken";
+import {getInitialsImage} from "../../ultils/initialsImage";
 
 export default function FollowersList() {
     useExpireToken();
@@ -16,8 +17,16 @@ export default function FollowersList() {
     const [hasMore, setHasMore] = useState(true);
     const [error, setError] = useState('');
     const observer = useRef();
+
+    const name = localStorage.getItem('name') || 'User';
+    const rawPhoto = localStorage.getItem('photo');
+
+    const isValidPhoto = (photo) => {
+        return photo && photo.trim() !== '' && photo !== 'null' && photo !== 'undefined';
+    };
+
     const user = {
-        photo: localStorage.getItem('photo')
+        photo: isValidPhoto(rawPhoto) ? rawPhoto : getInitialsImage(name)
     };
 
     const lastFollowerRef = useCallback(

@@ -6,17 +6,16 @@ import '../../styles/EditProfile.css';
 import { useExpireToken } from "../../hooks/expireToken";
 import SocialHeader from '../../components/SocialHeader';
 import Footer from '../../components/Footer';
-import { useHistory  } from 'react-router-dom';
-import {getInitialsImage} from "../../ultils/initialsImage";
+import { useHistory } from 'react-router-dom';
+import { getInitialsImage } from "../../ultils/initialsImage";
 
 export default function EditProfile() {
     useExpireToken();
 
-    const history = useHistory(); // Use useHistory em vez de useNavigate
+    const history = useHistory();
 
-    // Função para redirecionar
     const redirectToChangePassword = () => {
-        history.push('/change-password'); // Navega para a página change-password
+        history.push('/change-password');
     };
 
     const name = localStorage.getItem('name') || 'User';
@@ -54,10 +53,11 @@ export default function EditProfile() {
                     }
                 });
                 const { name, photo, email } = response.data;
+
                 setFormData({
                     name,
                     photo: null,
-                    photoPreview: photo,
+                    photoPreview: isValidPhoto(photo) ? photo : getInitialsImage(name),
                     email,
                 });
             } catch (error) {
@@ -131,7 +131,7 @@ export default function EditProfile() {
             });
             if (response.status === 203) {
                 setMessage('There is an account for this e-mail, try to recover your password.');
-            }else{
+            } else {
                 localStorage.setItem('photo', response.data.photo);
                 window.location.reload();
             }
@@ -171,7 +171,7 @@ export default function EditProfile() {
                         )}
                     </FormGroup>
                     <FormGroup>
-                        <Label for="name">Email</Label>
+                        <Label for="email">Email</Label>
                         <Input
                             type="text"
                             id="email"

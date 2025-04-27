@@ -205,7 +205,7 @@ export default class Login extends Component {
                             {this.state.isRegistering ? "Register" : "Sign in"}
                         </Button>
                         <Button color="secondary" className="align-button" onClick={this.toggleForm} onBlur={this.enterFormRegister}>
-                            {this.state.isRegistering ? "Back to Login" : "Register account"}
+                            {this.state.isRegistering ? "Back to sign in" : "Register account"}
                         </Button>
                     </div>
                 </Form>

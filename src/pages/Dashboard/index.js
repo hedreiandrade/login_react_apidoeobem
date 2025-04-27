@@ -25,6 +25,7 @@ export default function Dashboard() {
             <SocialHeader user={user} />
             <div className="col-md-6 App">
                 <Header title="Feed" />
+                <hr className="my-3" />
             </div>
             <br/>
             <br/>

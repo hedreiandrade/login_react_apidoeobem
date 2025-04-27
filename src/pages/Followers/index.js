@@ -104,7 +104,10 @@ export default function FollowersList() {
                         );
                     })}
                     {error && <Alert color="danger" className="text-center">{error}</Alert>}
+                    <br/>
+                    <br/>
                     {!hasMore && <p className="text-center text-muted">No more followers</p>}
+                    <br/>
                 </div>
             </div>
             <Footer />

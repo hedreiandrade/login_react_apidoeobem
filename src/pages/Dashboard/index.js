@@ -21,7 +21,7 @@ export default function FeedPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const observer = useRef();
-
+    const [resetFeedTrigger, setResetFeedTrigger] = useState(0);
     const userId = localStorage.getItem('user_id');
     const name = localStorage.getItem('name') || 'User';
     const rawPhoto = localStorage.getItem('photo');
@@ -61,13 +61,13 @@ export default function FeedPage() {
         } finally {
             setLoading(false);
         }
-    }, [userId, token, page]);
+    }, [userId, token, page]);    
 
     useEffect(() => {
         if (hasMore) {
             fetchFeed();
         }
-    }, [fetchFeed, hasMore, page]);
+    }, [fetchFeed, hasMore, resetFeedTrigger]);
 
     const lastPostRef = useCallback(node => {
         if (loading) return;
@@ -89,16 +89,14 @@ export default function FeedPage() {
 
     const handlePost = async () => {
         if (!description.trim() && !mediaFile) return;
-
+    
         setPosting(true);
         try {
             let mediaLink = '';
-
-            // Simulando upload da mídia (substitua com lógica real de upload, ex: para S3)
             if (mediaFile) {
                 mediaLink = previewUrl;
             }
-
+    
             await apiFeed.post('/posts', {
                 user_id: userId,
                 description,
@@ -108,19 +106,20 @@ export default function FeedPage() {
                     Authorization: `Bearer ${token}`
                 }
             });
-
+    
             setDescription('');
             setMediaFile(null);
             setPreviewUrl(null);
-            setPage(1);
-            setFeed([]);
-            setHasMore(true);
+            setFeed([]);           
+            setPage(1);             
+            setHasMore(true);       
+            setResetFeedTrigger(prev => prev + 1); 
         } catch (err) {
             setError('Failed to create post');
         } finally {
             setPosting(false);
         }
-    };
+    };    
 
     const renderMedia = (url) => {
         if (!url || typeof url !== 'string') return null;

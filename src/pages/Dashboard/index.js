@@ -189,6 +189,7 @@ export default function FeedPage() {
                         );
                     })}
                     {loading && <p className="text-center">Loading...</p>}
+                    <br/>
                     {!hasMore && <p className="text-center text-muted">No more posts</p>}
                 </div>
             </div>

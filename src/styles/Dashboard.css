@@ -53,3 +53,63 @@ html {
     color: #fff;
     font-weight: bold;
 }
+
+.feed-container {
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 12px;
+    box-shadow: 0 0 12px rgba(0, 0, 0, 0.05);
+}
+
+.create-post {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.post-user-photo {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.post-input {
+    resize: none;
+    min-height: 80px;
+}
+
+.post-item {
+    border-top: 1px solid #eee;
+    padding-top: 15px;
+    margin-top: 15px;
+}
+
+.post-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.post-user-name {
+    font-weight: 600;
+}
+
+.post-description {
+    margin-top: 10px;
+}
+
+.post-file-input {
+    margin-top: 10px;
+}
+
+.preview-container {
+    margin-top: 10px;
+}
+
+.post-media {
+    max-width: 100%;
+    max-height: 400px;
+    border-radius: 10px;
+    margin-top: 10px;
+}

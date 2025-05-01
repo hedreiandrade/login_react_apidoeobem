@@ -106,14 +106,17 @@ export default function FeedPage() {
 
     const handlePost = async () => {
         if (!description.trim() && !mediaFile) return;
-    
         setPosting(true);
         try {
             let mediaLink = '';
             if (mediaFile) {
                 mediaLink = previewUrl;
             }
-    
+            const isValid = await getVerifyToken(token);
+            if (!isValid) {
+                window.location.href = "/";
+                return;
+            }
             await apiFeed.post('/posts', {
                 user_id: userId,
                 description,
@@ -123,7 +126,6 @@ export default function FeedPage() {
                     Authorization: `Bearer ${token}`
                 }
             });
-    
             setDescription('');
             setMediaFile(null);
             setPreviewUrl(null);

@@ -8,6 +8,7 @@ import '../../styles/FollowersList.css';
 import { useExpireToken } from "../../hooks/expireToken";
 import { getInitialsImage } from "../../ultils/initialsImage";
 import { useHistory } from 'react-router-dom';
+import { getVerifyToken } from "../../ultils/verifyToken";
 
 export default function FollowersList() {
     const history = useHistory();
@@ -58,6 +59,11 @@ export default function FollowersList() {
             try {
                 const userId = localStorage.getItem('user_id');
                 const token = localStorage.getItem('login_token');
+                const isValid = await getVerifyToken(token);
+                if (!isValid) {
+                    window.location.href = "/";
+                    return;
+                }
                 const response = await apiFeed.get(`/followers/${userId}/${page}/5`, {
                     headers: {
                         Authorization: `Bearer ${token}`

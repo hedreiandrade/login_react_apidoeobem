@@ -7,6 +7,7 @@ import { apiFeed } from '../../services/api';
 import '../../styles/Dashboard.css';
 import { useExpireToken } from "../../hooks/expireToken";
 import { getInitialsImage } from "../../ultils/initialsImage";
+import { getVerifyToken } from "../../ultils/verifyToken";
 
 export default function FeedPage() {
     useExpireToken();
@@ -42,6 +43,11 @@ export default function FeedPage() {
             if (isMounted)setLoading(true);
             if (isMounted) setError('');
             try {
+                const isValid = await getVerifyToken(token);
+                if (!isValid) {
+                    window.location.href = "/";
+                    return;
+                }
                 const response = await apiFeed.get(`/feed/${userId}/${page}/5`, {
                     headers: {
                         Authorization: `Bearer ${token}`

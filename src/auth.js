@@ -1,15 +1,15 @@
 import React from 'react';
 import { Route, Redirect } from 'react-router-dom';
-import {api} from './services/api';
+import { getVerifyToken } from "./ultils/verifyToken";
 
 const isAuth = async () => {
     if(localStorage.getItem('login_token') !== null){
-        const param = {token: localStorage.getItem('login_token')};
-        const response = await api.post('/verifyTokenRedirect', param);
-        if (response.data.status === 200){
-            return true;
-        }else{
+        const isValid = await getVerifyToken(localStorage.getItem('login_token'));
+        if (!isValid) {
+            window.location.href = "/";
             return false;
+        }else{
+            return true;
         }
     }else{
         return false;

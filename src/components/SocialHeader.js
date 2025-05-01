@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiFeed } from "../services/api";
 import { useExpireToken } from "../hooks/expireToken";
+import { getVerifyToken } from "../ultils/verifyToken";
 
 export default function SocialHeader({ user }) {
     useExpireToken();
@@ -14,6 +15,11 @@ export default function SocialHeader({ user }) {
             try {
                 const userId = localStorage.getItem('user_id');
                 const token = localStorage.getItem('login_token');
+                const isValid = await getVerifyToken(token);
+                if (!isValid) {
+                    window.location.href = "/";
+                    return;
+                }
                 const response = await apiFeed.get(`/followers/${userId}/1/5`, {
                     headers: {
                         Authorization: `Bearer ${token}`

@@ -8,6 +8,7 @@ import SocialHeader from '../../components/SocialHeader';
 import Footer from '../../components/Footer';
 import { useHistory } from 'react-router-dom';
 import {getInitialsImage} from "../../ultils/initialsImage";
+import { getVerifyToken } from "../../ultils/verifyToken";
 
 export default function ChangePassword() {
     useExpireToken();
@@ -99,6 +100,11 @@ export default function ChangePassword() {
 
         const token = localStorage.getItem('login_token');
         try {
+            const isValid = await getVerifyToken(token);
+            if (!isValid) {
+                window.location.href = "/";
+                return;
+            }
             const response = await api.post(`/changePassword`, {
                 email: formData.email,
                 password: formData.password,

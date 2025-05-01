@@ -8,6 +8,7 @@ import SocialHeader from '../../components/SocialHeader';
 import Footer from '../../components/Footer';
 import { useHistory } from 'react-router-dom';
 import { getInitialsImage } from "../../ultils/initialsImage";
+import { getVerifyToken } from "../../ultils/verifyToken";
 
 export default function EditProfile() {
     const history = useHistory();
@@ -135,6 +136,11 @@ export default function EditProfile() {
             data.append('photo', formData.photo);
         }
         try {
+            const isValid = await getVerifyToken(token);
+            if (!isValid) {
+                window.location.href = "/";
+                return;
+            }
             const response = await api.post(`/user/${userId}`, data, {
                 headers: {
                     'Content-Type': 'multipart/form-data',

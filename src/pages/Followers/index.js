@@ -7,8 +7,14 @@ import { apiFeed } from '../../services/api';
 import '../../styles/FollowersList.css';
 import { useExpireToken } from "../../hooks/expireToken";
 import { getInitialsImage } from "../../ultils/initialsImage";
+import { useHistory } from 'react-router-dom';
 
 export default function FollowersList() {
+    const history = useHistory();
+
+    if(localStorage.getItem('login_token') === null || localStorage.getItem('login_token') === ''){
+        history.push("/");
+    }
     useExpireToken();
 
     const [followers, setFollowers] = useState([]);
@@ -44,6 +50,8 @@ export default function FollowersList() {
     );
 
     useEffect(() => {
+        let isMounted = true;
+
         const fetchFollowers = async () => {
             setLoading(true);
             setError('');
@@ -55,25 +63,28 @@ export default function FollowersList() {
                         Authorization: `Bearer ${token}`
                     }
                 });
-                if (response.data.data.length > 0) {
+                if (isMounted && response.data.data.length > 0) {
                     setFollowers(prev => {
                         const existingIds = new Set(prev.map(f => f.follower_id));
                         const newUniqueFollowers = response.data.data.filter(f => !existingIds.has(f.follower_id));
                         return [...prev, ...newUniqueFollowers];
                     });
                 }
-                if (page >= response.data.last_page) {
+                if (isMounted && page >= response.data.last_page) {
                     setHasMore(false);
                 }
             } catch (err) {
-                setError('Failed to load followers');
+                if (isMounted) setError('Failed to load followers');
             } finally {
-                setLoading(false);
+                if (isMounted) setLoading(false);
             }
         };
-        if (hasMore) {
+        if (isMounted && hasMore) {
             fetchFollowers();
         }
+        return () => {
+            isMounted = false;
+        };
     }, [page, hasMore]);
 
     return (
@@ -103,7 +114,7 @@ export default function FollowersList() {
                             </div>
                         );
                     })}
-                    {error && <Alert color="danger" className="text-center">{error}</Alert>}
+                    {error && <Alert color="danger" fade={false} className="text-center" >{error}</Alert>}
                     <br/>
                     <br/>
                     {!hasMore && <p className="text-center text-muted">No more followers</p>}

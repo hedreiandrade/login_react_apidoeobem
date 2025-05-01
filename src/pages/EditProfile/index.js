@@ -10,9 +10,12 @@ import { useHistory } from 'react-router-dom';
 import { getInitialsImage } from "../../ultils/initialsImage";
 
 export default function EditProfile() {
-    useExpireToken();
-
     const history = useHistory();
+    if(localStorage.getItem('login_token') === null || localStorage.getItem('login_token') === ''){
+        history.push("/");
+    }
+
+    useExpireToken();
 
     const redirectToChangePassword = () => {
         history.push('/change-password');
@@ -39,12 +42,14 @@ export default function EditProfile() {
     });
 
     useEffect(() => {
+        let isMounted = true;
+    
         async function fetchUserData() {
             try {
                 const token = localStorage.getItem('login_token');
                 const userId = localStorage.getItem('user_id');
                 if (!token || !userId) {
-                    setMessage('Token or user ID not found');
+                    if (isMounted) setMessage('Token or user ID not found');
                     return;
                 }
                 const response = await api.get(`/user/${userId}`, {
@@ -53,19 +58,26 @@ export default function EditProfile() {
                     }
                 });
                 const { name, photo, email } = response.data;
-
-                setFormData({
-                    name,
-                    photo: null,
-                    photoPreview: isValidPhoto(photo) ? photo : getInitialsImage(name),
-                    email,
-                });
+    
+                if (isMounted) {
+                    setFormData({
+                        name,
+                        photo: null,
+                        photoPreview: isValidPhoto(photo) ? photo : getInitialsImage(name),
+                        email,
+                    });
+                }
             } catch (error) {
-                setMessage('Error fetching user data');
+                if (isMounted) setMessage('Error fetching user data');
             }
         }
+    
         fetchUserData();
-    }, []);
+    
+        return () => {
+            isMounted = false;
+        };
+    }, []);    
 
     const handleChange = (e) => {
         const { name, value } = e.target;

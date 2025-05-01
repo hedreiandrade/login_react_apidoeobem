@@ -35,37 +35,48 @@ export default function FeedPage() {
         photo: isValidPhoto(rawPhoto) ? rawPhoto : getInitialsImage(name)
     };
 
-    const fetchFeed = useCallback(async () => {
-        setLoading(true);
-        setError('');
-        try {
-            const response = await apiFeed.get(`/feed/${userId}/${page}/5`, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+    const fetchFeed = useCallback(() => {
+        let isMounted = true;
     
-            if (response.data.data.length > 0) {
-                setFeed(prev => {
-                    const existingIds = new Set(prev.map(post => post.post_id));
-                    const newPosts = response.data.data.filter(post => !existingIds.has(post.post_id));
-                    return [...prev, ...newPosts];
+        const fetchData = async () => {
+            if (isMounted)setLoading(true);
+            if (isMounted) setError('');
+            try {
+                const response = await apiFeed.get(`/feed/${userId}/${page}/5`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
                 });
-            }
     
-            if (page >= response.data.last_page) {
-                setHasMore(false);
+                if (isMounted && response.data.data.length > 0) {
+                    setFeed(prev => {
+                        const existingIds = new Set(prev.map(post => post.post_id));
+                        const newPosts = response.data.data.filter(post => !existingIds.has(post.post_id));
+                        return [...prev, ...newPosts];
+                    });
+                }
+    
+                if (isMounted && page >= response.data.last_page) {
+                    setHasMore(false);
+                }
+            } catch (err) {
+                if (isMounted) setError('Failed to load feed');
+            } finally {
+                if (isMounted) setLoading(false);
             }
-        } catch (err) {
-            setError('Failed to load feed');
-        } finally {
-            setLoading(false);
-        }
-    }, [userId, token, page]);    
-
+        };
+    
+        fetchData();
+    
+        return () => {
+            isMounted = false;
+        };
+    }, [userId, token, page]);
+    
     useEffect(() => {
         if (hasMore) {
-            fetchFeed();
+            const cleanup = fetchFeed();
+            return cleanup;
         }
     }, [fetchFeed, hasMore, resetFeedTrigger]);
 
@@ -167,7 +178,7 @@ export default function FeedPage() {
                         </Button>
                     </div>
                     <hr />
-                    {error && <Alert color="danger" className="text-center">{error}</Alert>}
+                    {error && <Alert color="danger" fade={false} className="text-center">{error}</Alert>}
                     {feed.map((post, index) => {
                         const isLast = index === feed.length - 1;
                         const photo = isValidPhoto(post.photo)

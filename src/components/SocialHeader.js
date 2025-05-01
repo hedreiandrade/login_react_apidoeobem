@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiFeed } from "../services/api";
+import { useExpireToken } from "../hooks/expireToken";
 
 export default function SocialHeader({ user }) {
+    useExpireToken();
     const [followersCount, setFollowersCount] = useState(null); // Inicialmente null
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        let isMounted = true;
         async function fetchFollowersCount() {
             try {
                 const userId = localStorage.getItem('user_id');
@@ -16,16 +19,19 @@ export default function SocialHeader({ user }) {
                         Authorization: `Bearer ${token}`
                     }
                 });
-                if (response.data && typeof response.data.total === 'number') {
+                if (isMounted && response.data && typeof response.data.total === 'number') {
                     setFollowersCount(response.data.total);
                 }
             } catch (error) {
-                console.error('Failed to fetch followers count', error);
+                if (isMounted) console.error('Failed to fetch followers count', error);
             } finally {
-                setLoading(false);
+                if (isMounted) setLoading(false);
             }
         }
         fetchFollowersCount();
+        return () => {
+            isMounted = false;
+        };
     }, []);
 
     return (

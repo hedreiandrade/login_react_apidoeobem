@@ -28,7 +28,7 @@ export default function SocialHeader({ user }) {
                 if (isMounted) setLoading(false);
             }
         }
-        fetchFollowersCount();
+        if (isMounted) fetchFollowersCount();
         return () => {
             isMounted = false;
         };

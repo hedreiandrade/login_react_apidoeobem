@@ -1,23 +1,22 @@
-import {useEffect, useRef} from "react";
-import {getVerifyToken} from "../ultils/verifyToken";
-import {useHistory} from "react-router-dom";
+import { useEffect } from "react";
+import { useHistory } from "react-router-dom";
 import useToken from "./userToken";
+import { getVerifyToken } from "../ultils/verifyToken";
 
-export function useExpireToken()  {
+export function useExpireToken() {
     const history = useHistory();
     const token = useToken();
-    const componentMounted = useRef(true);
 
     useEffect(() => {
-        const logged = Promise.resolve(getVerifyToken(token));
-        logged.then(re => {
-            if(!re){
+        if (!token) {
+            history.push("/");
+            return;
+        }
+        const isValid = getVerifyToken(token);
+        Promise.resolve(isValid).then(valid => {
+            if (!valid) {
                 history.push("/");
             }
         });
-
-        return () => { // This code runs when component is unmounted
-            componentMounted.current = false;
-        }
-    }, [history, token]);
+    }, [token, history]);
 }

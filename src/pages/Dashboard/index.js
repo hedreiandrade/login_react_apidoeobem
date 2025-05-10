@@ -23,6 +23,7 @@ export default function FeedPage() {
     const [error, setError] = useState('');
     const observer = useRef();
     const [resetFeedTrigger, setResetFeedTrigger] = useState(0);
+    const fileInputRef = useRef(null);
     const userId = localStorage.getItem('user_id');
     const name = localStorage.getItem('name') || 'User';
     const rawPhoto = localStorage.getItem('photo');
@@ -38,7 +39,7 @@ export default function FeedPage() {
 
     const fetchFeed = useCallback(() => {
         let isMounted = true;
-    
+
         const fetchData = async () => {
             if (isMounted)setLoading(true);
             if (isMounted) setError('');
@@ -53,7 +54,7 @@ export default function FeedPage() {
                         Authorization: `Bearer ${token}`
                     }
                 });
-    
+
                 if (isMounted && response.data.data.length > 0) {
                     setFeed(prev => {
                         const existingIds = new Set(prev.map(post => post.post_id));
@@ -61,7 +62,7 @@ export default function FeedPage() {
                         return [...prev, ...newPosts];
                     });
                 }
-    
+
                 if (isMounted && page >= response.data.last_page) {
                     setHasMore(false);
                 }
@@ -71,14 +72,14 @@ export default function FeedPage() {
                 if (isMounted) setLoading(false);
             }
         };
-    
+
         fetchData();
-    
+
         return () => {
             isMounted = false;
         };
     }, [userId, token, page]);
-    
+
     useEffect(() => {
         if (hasMore) {
             const cleanup = fetchFeed();
@@ -107,45 +108,51 @@ export default function FeedPage() {
     const handlePost = async () => {
         if (!description.trim() && !mediaFile) return;
         setPosting(true);
+
         try {
-            let mediaLink = '';
-            if (mediaFile) {
-                mediaLink = previewUrl;
-            }
             const isValid = await getVerifyToken(token);
             if (!isValid) {
                 window.location.href = "/";
                 return;
             }
-            await apiFeed.post('/posts', {
-                user_id: userId,
-                description,
-                media_link: mediaLink
-            }, {
+
+            const formData = new FormData();
+            formData.append('user_id', userId);
+            formData.append('description', description);
+            if (mediaFile) {
+                formData.append('media_link', mediaFile);
+            }
+
+            await apiFeed.post('/posts', formData, {
                 headers: {
-                    Authorization: `Bearer ${token}`
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'multipart/form-data'
                 }
             });
+
             setDescription('');
             setMediaFile(null);
             setPreviewUrl(null);
-            setFeed([]);           
-            setPage(1);             
-            setHasMore(true);       
-            setResetFeedTrigger(prev => prev + 1); 
+            if (fileInputRef.current) {                      // ADICIONADO
+                fileInputRef.current.value = '';             // ADICIONADO
+            }                                                 // ADICIONADO
+            setFeed([]);
+            setPage(1);
+            setHasMore(true);
+            setResetFeedTrigger(prev => prev + 1);
         } catch (err) {
             setError('Failed to create post');
         } finally {
             setPosting(false);
         }
-    };    
+    };
 
     const renderMedia = (url) => {
         if (!url || typeof url !== 'string') return null;
-    
+
         const isVideo = url.toLowerCase().match(/\.(mp4|webm|ogg)$/);
         const isImage = url.toLowerCase().match(/\.(jpeg|jpg|gif|png)$/);
-    
+
         if (isVideo) {
             return <video src={url} controls className="post-media" />;
         } else if (isImage) {
@@ -175,6 +182,7 @@ export default function FeedPage() {
                             accept="image/*,video/*"
                             onChange={handleMediaChange}
                             className="post-file-input"
+                            innerRef={fileInputRef}
                         />
                         {previewUrl && (
                             <div className="preview-container">

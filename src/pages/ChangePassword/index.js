@@ -32,6 +32,7 @@ export default function ChangePassword() {
     const [message, setMessage] = useState('');
     const [errors, setErrors] = useState({});
     const [formData, setFormData] = useState({
+        id: '',
         email: '',
         password: '',
         newPassword: '',
@@ -99,6 +100,8 @@ export default function ChangePassword() {
         if (!validateFields()) return;
 
         const token = localStorage.getItem('login_token');
+        const userId = localStorage.getItem('user_id');
+
         try {
             const isValid = await getVerifyToken(token);
             if (!isValid) {
@@ -106,6 +109,7 @@ export default function ChangePassword() {
                 return;
             }
             const response = await api.post(`/changePassword`, {
+                id: userId,
                 email: formData.email,
                 password: formData.password,
                 newPassword: formData.newPassword,

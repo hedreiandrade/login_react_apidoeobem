@@ -101,7 +101,7 @@ export default class Login extends Component {
             localStorage.setItem('photo', response.data.response.photo);
             localStorage.setItem('name', response.data.response.name);
             this.setState({ message: '' });
-            this.props.history.push("/admin");
+            this.props.history.push("/feed");
         }
     };
 
@@ -128,7 +128,7 @@ export default class Login extends Component {
                 localStorage.setItem('user_id', responseLogin.data.response.user_id);
                 localStorage.setItem('login_token', responseLogin.data.response.token);
                 this.setState({ message: '' });
-                this.props.history.push("/admin");
+                this.props.history.push("/feed");
             }
         } else {
             if(response.data.password){

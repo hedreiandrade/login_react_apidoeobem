@@ -58,7 +58,7 @@ export default function SocialHeader({ user }) {
 
     return (
         <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px", background: "#007bff", color: "#fff", position: "relative" }}>
-            <Link to="/admin" style={{ color: "#fff", textDecoration: "none" }}><h4>H Media</h4></Link>
+            <Link to="/feed" style={{ color: "#fff", textDecoration: "none" }}><h4>H Media</h4></Link>
 
             <div style={{ display: "flex", alignItems: "center" }}>
                 {/* Contador de seguidores (visível) */}

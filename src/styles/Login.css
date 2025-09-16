@@ -12,6 +12,13 @@
   margin: 0 auto;
 }
 
+.App-profile {
+  align-items: center;
+  justify-content: center;
+  margin-top: 82px !important;
+  margin: 0 auto;
+}
+
 .button-container {
   display: flex;
   justify-content: center; 

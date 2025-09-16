@@ -2,30 +2,25 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 import SocialHeader from '../../components/SocialHeader';
-import { Alert, Button, Input } from 'reactstrap';
+import { Alert } from 'reactstrap';
 import { apiFeed } from '../../services/api';
 import '../../styles/Dashboard.css';
 import { useExpireToken } from "../../hooks/expireToken";
 import { getInitialsImage } from "../../ultils/initialsImage";
 import { getVerifyToken } from "../../ultils/verifyToken";
-import { Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 
 export default function FeedPage() {
     useExpireToken();
 
-    const [description, setDescription] = useState('');
-    const [mediaFile, setMediaFile] = useState(null);
-    const [previewUrl, setPreviewUrl] = useState(null);
-    const [posting, setPosting] = useState(false);
     const [feed, setFeed] = useState([]);
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const observer = useRef();
-    const [resetFeedTrigger, setResetFeedTrigger] = useState(0);
-    const fileInputRef = useRef(null);
-    const userId = localStorage.getItem('user_id');
+    const [resetFeedTrigger] = useState(0);
+    const { id } = useParams();
     const name = localStorage.getItem('name') || 'User';
     const rawPhoto = localStorage.getItem('photo');
     const token = localStorage.getItem('login_token');
@@ -50,7 +45,7 @@ export default function FeedPage() {
                     window.location.href = "/";
                     return;
                 }
-                const response = await apiFeed.get(`/feed/${userId}/${page}/5`, {
+                const response = await apiFeed.get(`/profile/${id}/${page}/5`, {
                     headers: {
                         Authorization: `Bearer ${token}`
                     }
@@ -79,7 +74,7 @@ export default function FeedPage() {
         return () => {
             isMounted = false;
         };
-    }, [userId, token, page]);
+    }, [id, token, page]);
 
     useEffect(() => {
         if (hasMore) {
@@ -99,55 +94,6 @@ export default function FeedPage() {
         if (node) observer.current.observe(node);
     }, [loading, hasMore]);
 
-    const handleMediaChange = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        setMediaFile(file);
-        setPreviewUrl(URL.createObjectURL(file));
-    };
-
-    const handlePost = async () => {
-        if (!description.trim() && !mediaFile) return;
-        setPosting(true);
-
-        try {
-            const isValid = await getVerifyToken(token);
-            if (!isValid) {
-                window.location.href = "/";
-                return;
-            }
-
-            const formData = new FormData();
-            formData.append('user_id', userId);
-            formData.append('description', description);
-            if (mediaFile) {
-                formData.append('media_link', mediaFile);
-            }
-
-            await apiFeed.post('/posts', formData, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    'Content-Type': 'multipart/form-data'
-                }
-            });
-
-            setDescription('');
-            setMediaFile(null);
-            setPreviewUrl(null);
-            if (fileInputRef.current) {                      // ADICIONADO
-                fileInputRef.current.value = '';             // ADICIONADO
-            }                                                 // ADICIONADO
-            setFeed([]);
-            setPage(1);
-            setHasMore(true);
-            setResetFeedTrigger(prev => prev + 1);
-        } catch (err) {
-            setError('Failed to create post');
-        } finally {
-            setPosting(false);
-        }
-    };
-
     const renderMedia = (url) => {
         if (!url || typeof url !== 'string') return null;
 
@@ -165,36 +111,9 @@ export default function FeedPage() {
     return (
         <div>
             <SocialHeader user={user} />
-            <div className="col-md-6 App-feed">
+            <div className="col-md-6 App-profile">
                 <div className="feed-container">
-                    <Header title="Feed" />
-                    <hr className="my-3" />
-                    <div className="create-post">
-                        <img src={user.photo} alt="User" className="post-user-photo" />
-                        <Input
-                            type="textarea"
-                            value={description}
-                            onChange={e => setDescription(e.target.value)}
-                            placeholder="What's on your mind?"
-                            className="post-input"
-                        />
-                        <Input
-                            type="file"
-                            accept="image/*,video/*"
-                            onChange={handleMediaChange}
-                            className="post-file-input"
-                            innerRef={fileInputRef}
-                        />
-                        {previewUrl && (
-                            <div className="preview-container">
-                                {renderMedia(previewUrl)}
-                            </div>
-                        )}
-                        <Button color="primary" onClick={handlePost} disabled={posting}>
-                            {posting ? 'Posting...' : 'Post'}
-                        </Button>
-                    </div>
-                    <hr />
+                    <Header title="Profile" />
                     {error && <Alert color="danger" fade={false} className="text-center">{error}</Alert>}
                     {feed.map((post, index) => {
                         const isLast = index === feed.length - 1;
@@ -208,9 +127,7 @@ export default function FeedPage() {
                                 className="post-item"
                             >
                                 <div className="post-header">
-                                    <Link to={`/profile/${post.user_id}`}>
-                                        <img src={photo} alt={post.name} className="post-user-photo" />
-                                    </Link>
+                                    <img src={photo} alt={post.name} className="post-user-photo" />
                                     <strong className="post-user-name">{post.name}</strong>
                                 </div>
                                 <p className="post-description">{post.description}</p>

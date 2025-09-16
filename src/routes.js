@@ -7,6 +7,7 @@ import Logout from './pages/Logout';
 import EditProfile from './pages/EditProfile';
 import ChangePassword from './pages/ChangePassword';
 import Followers from './pages/Followers';
+import Profile from './pages/Profile';
 
 const Routes = () => (
     <Router>
@@ -16,6 +17,7 @@ const Routes = () => (
             <PrivateRoute path="/edit-profile" component={EditProfile} />
             <PrivateRoute path="/change-password" component={ChangePassword} />
             <PrivateRoute path="/followers" component={Followers} />
+            <PrivateRoute path="/profile/:id" component={Profile} />
             <Route exact path="/logout" component={Logout} />
         </Switch>
     </Router>

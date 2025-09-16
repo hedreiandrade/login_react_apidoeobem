@@ -7,7 +7,7 @@ import { apiFeed } from '../../services/api';
 import '../../styles/FollowersList.css';
 import { useExpireToken } from "../../hooks/expireToken";
 import { getInitialsImage } from "../../ultils/initialsImage";
-import { useHistory } from 'react-router-dom';
+import { useHistory, Link } from 'react-router-dom';
 import { getVerifyToken } from "../../ultils/verifyToken";
 
 export default function FollowersList() {
@@ -111,11 +111,13 @@ export default function FollowersList() {
                                 ref={isLastItem ? lastFollowerRef : null}
                                 className="follower-item"
                             >
-                                <img
-                                    src={followerPhoto}
-                                    alt={follower.name}
-                                    className="follower-photo"
-                                />
+                                <Link to={`/profile/${follower.follower_id}`}>
+                                    <img
+                                        src={followerPhoto}
+                                        alt={follower.name}
+                                        className="follower-photo"
+                                    />
+                                </Link>
                                 <span className="follower-name">{follower.name}</span>
                             </div>
                         );

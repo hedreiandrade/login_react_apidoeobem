@@ -98,9 +98,14 @@ export default function SocialHeader({ user }) {
                             padding: "10px 0"
                         }}>
                             <div style={{ display: "flex", alignItems: "center", padding: "10px", borderBottom: "1px solid #eee" }}>
-                                <Link to={`/profile/${localStorage.getItem('user_id')}`}>
-                                    <img src={user.photo} alt="User" style={{ width: "40px", height: "40px", borderRadius: "50%", marginRight: "10px" }} />
-                                </Link>
+                                <img 
+                                    src={user.photo} 
+                                    alt="User" 
+                                    style={{ width: "40px", height: "40px", borderRadius: "50%", marginRight: "10px", cursor: "pointer" }}
+                                    onClick={() => {
+                                        window.location.href = `/profile/${localStorage.getItem('user_id')}`;
+                                    }}
+                                />
                                 <span style={{ color: "#333", fontWeight: "bold" }}>{user.name}</span>
                             </div>
                             <div style={{ padding: "10px" }}>

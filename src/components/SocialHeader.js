@@ -7,6 +7,7 @@ import { getVerifyToken } from "../ultils/verifyToken";
 export default function SocialHeader({ user }) {
     useExpireToken();
     const [followersCount, setFollowersCount] = useState(null);
+    const [followingCount, setFollowingCount] = useState(null);
     const [loading, setLoading] = useState(true);
     const [menuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef(null);
@@ -36,9 +37,37 @@ export default function SocialHeader({ user }) {
                 if (isMounted) setLoading(false);
             }
         }
-        if (isMounted) fetchFollowersCount();
+        let isMountedFollowing = true;
+        async function fetchFollowingCount() {
+            try {
+                const userId = localStorage.getItem('user_id');
+                const token = localStorage.getItem('login_token');
+                const isValid = await getVerifyToken(token);
+                if (!isValid) {
+                    window.location.href = "/";
+                    return;
+                }
+                const response = await apiFeed.get(`/following/${userId}/1/5`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                });
+                if (isMountedFollowing && response.data && typeof response.data.total === 'number') {
+                    setFollowingCount(response.data.total);
+                }
+            } catch (error) {
+                if (isMountedFollowing) console.error('Failed to fetch following count', error);
+            } finally {
+                if (isMountedFollowing) setLoading(false);
+            }
+        }
+        if (isMounted && isMountedFollowing){
+            fetchFollowersCount();
+            fetchFollowingCount();
+        } 
         return () => {
             isMounted = false;
+            isMountedFollowing = false;
         };
     }, []);
 
@@ -64,6 +93,10 @@ export default function SocialHeader({ user }) {
                 {/* Contador de seguidores (visível) */}
                 <Link to="/followers" className="btn btn-outline-primary" style={{ color: "#fff", textDecoration: "none", marginRight: "15px" }}>
                     <h5 style={{ margin: 0 }}>{loading ? "Loading..." : `${followersCount} Followers`}</h5>
+                </Link>
+
+                <Link to="/following" className="btn btn-outline-primary" style={{ color: "#fff", textDecoration: "none", marginRight: "15px" }}>
+                    <h5 style={{ margin: 0 }}>{loading ? "Loading..." : `${followingCount} Following`}</h5>
                 </Link>
 
                 {/* Menu de três pontos */}

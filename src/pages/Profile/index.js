@@ -4,7 +4,7 @@ import Footer from '../../components/Footer';
 import SocialHeader from '../../components/SocialHeader';
 import { Alert } from 'reactstrap';
 import { apiFeed } from '../../services/api';
-import '../../styles/Dashboard.css';
+import '../../styles/Profile.css';
 import { useExpireToken } from "../../hooks/expireToken";
 import { getInitialsImage } from "../../ultils/initialsImage";
 import { getVerifyToken } from "../../ultils/verifyToken";
@@ -114,6 +114,7 @@ export default function FeedPage() {
             <div className="col-md-6 App-profile">
                 <div className="feed-container">
                     <Header title="Profile" />
+                    <hr className="my-3" />
                     {error && <Alert color="danger" fade={false} className="text-center">{error}</Alert>}
                     {feed.map((post, index) => {
                         const isLast = index === feed.length - 1;

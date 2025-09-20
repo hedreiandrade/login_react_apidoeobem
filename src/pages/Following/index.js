@@ -133,7 +133,6 @@ export default function FollowingList() {
                     {error && <Alert color="danger" fade={false} className="text-center" >{error}</Alert>}
                     <br/>
                     <br/>
-                    {loading && <p className="text-center text-muted">Loading more...</p>}
                     {!hasMore && following.length > 0 && <p className="text-center text-muted">No more following</p>}
                     {!hasMore && following.length === 0 && <p className="text-center text-muted">No following found</p>}
                     <br/>

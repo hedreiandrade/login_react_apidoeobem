@@ -18,12 +18,15 @@ export default function FeedPage() {
     const [hasMore, setHasMore] = useState(true);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [isFollowed, setIsFollowed] = useState(false);
+    const [followLoading, setFollowLoading] = useState(false);
     const observer = useRef();
     const [resetFeedTrigger] = useState(0);
     const { id } = useParams();
     const name = localStorage.getItem('name') || 'User';
     const rawPhoto = localStorage.getItem('photo');
     const token = localStorage.getItem('login_token');
+    const userId = localStorage.getItem('user_id');
 
     const isValidPhoto = (photo) => {
         return photo && photo.trim() !== '' && photo !== 'null' && photo !== 'undefined';
@@ -31,6 +34,64 @@ export default function FeedPage() {
 
     const user = {
         photo: isValidPhoto(rawPhoto) ? rawPhoto : getInitialsImage(name)
+    };
+
+    // Função para verificar se já segue o usuário
+    const checkIsFollowed = useCallback(async () => {
+        try {
+            const response = await apiFeed.post('/isFollowed', {
+                user_id: parseInt(id),
+                follower_id: parseInt(userId)
+            }, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+            
+            setIsFollowed(response.data.is_followed);
+        } catch (err) {
+            console.error('Error checking follow status:', err);
+        }
+    }, [id, userId, token]);
+
+    // Função para seguir usuário
+    const followUser = async () => {
+        setFollowLoading(true);
+        try {
+            await apiFeed.post('/follow', {
+                user_id: parseInt(id),
+                follower_id: parseInt(userId)
+            }, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+            setIsFollowed(true);
+        } catch (err) {
+            setError('Failed to follow user');
+        } finally {
+            setFollowLoading(false);
+        }
+    };
+
+    // Função para deixar de seguir usuário
+    const unfollowUser = async () => {
+        setFollowLoading(true);
+        try {
+            await apiFeed.post('/unFollow', {
+                user_id: parseInt(id),
+                follower_id: parseInt(userId)
+            }, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+            setIsFollowed(false);
+        } catch (err) {
+            setError('Failed to unfollow user');
+        } finally {
+            setFollowLoading(false);
+        }
     };
 
     const fetchFeed = useCallback(() => {
@@ -83,6 +144,13 @@ export default function FeedPage() {
         }
     }, [fetchFeed, hasMore, resetFeedTrigger]);
 
+    useEffect(() => {
+        // Verificar status de follow quando o componente montar ou o ID mudar
+        if (id && userId && token) {
+            checkIsFollowed();
+        }
+    }, [id, userId, token, checkIsFollowed]);
+
     const lastPostRef = useCallback(node => {
         if (loading) return;
         if (observer.current) observer.current.disconnect();
@@ -116,13 +184,51 @@ export default function FeedPage() {
         return null;
     };
 
+    // Renderizar botão Follow/Following
+    const renderFollowButton = () => {
+        if (parseInt(userId) === parseInt(id)) {
+            return null; // Não mostrar botão se for o próprio perfil
+        }
+
+        if (followLoading) {
+            return (
+                <button className="btn btn-secondary btn-sm ms-3" disabled>
+                    {isFollowed ? 'Unfollowing...' : 'Following...'}
+                </button>
+            );
+        }
+
+        if (isFollowed) {
+            return (
+                <button 
+                    className="btn btn-secondary btn-sm ms-3" 
+                    onClick={unfollowUser}
+                >
+                    Following
+                </button>
+            );
+        } else {
+            return (
+                <button 
+                    className="btn btn-primary btn-sm ms-3" 
+                    onClick={followUser}
+                >
+                    Follow
+                </button>
+            );
+        }
+    };
+
     return (
         <div>
             <SocialHeader user={user} />
             <br/>
             <div className="col-md-6 App-profile">
                 <div className="profile-container">
-                    <Header title="Profile" />
+                    <div className="d-flex justify-content-between align-items-center">
+                        <Header title="Profile" />
+                        {renderFollowButton()}
+                    </div>
                     <hr className="my-3" />
                     {error && <Alert color="danger" fade={false} className="text-center">{error}</Alert>}
                     {feed.map((post, index) => {

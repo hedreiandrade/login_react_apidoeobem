@@ -20,6 +20,7 @@ export default function FeedPage() {
     const [error, setError] = useState('');
     const [isFollowed, setIsFollowed] = useState(false);
     const [followLoading, setFollowLoading] = useState(false);
+    const [checkingFollowStatus, setCheckingFollowStatus] = useState(true); // Novo estado
     const observer = useRef();
     const [resetFeedTrigger] = useState(0);
     const { id } = useParams();
@@ -39,6 +40,7 @@ export default function FeedPage() {
     // Função para verificar se já segue o usuário
     const checkIsFollowed = useCallback(async () => {
         try {
+            setCheckingFollowStatus(true);
             const response = await apiFeed.post('/isFollowed', {
                 user_id: parseInt(id),
                 follower_id: parseInt(userId)
@@ -51,6 +53,8 @@ export default function FeedPage() {
             setIsFollowed(response.data.is_followed);
         } catch (err) {
             console.error('Error checking follow status:', err);
+        } finally {
+            setCheckingFollowStatus(false);
         }
     }, [id, userId, token]);
 
@@ -188,6 +192,15 @@ export default function FeedPage() {
     const renderFollowButton = () => {
         if (parseInt(userId) === parseInt(id)) {
             return null; // Não mostrar botão se for o próprio perfil
+        }
+
+        // Mostrar loading enquanto verifica o status inicial
+        if (checkingFollowStatus) {
+            return (
+                <button className="btn btn-secondary btn-sm ms-3" disabled>
+                    Loading...
+                </button>
+            );
         }
 
         if (followLoading) {

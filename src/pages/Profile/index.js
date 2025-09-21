@@ -37,7 +37,7 @@ export default function FeedPage() {
         let isMounted = true;
 
         const fetchData = async () => {
-            if (isMounted)setLoading(true);
+            if (isMounted) setLoading(true);
             if (isMounted) setError('');
             try {
                 const isValid = await getVerifyToken(token);
@@ -101,9 +101,17 @@ export default function FeedPage() {
         const isImage = url.toLowerCase().match(/\.(jpeg|jpg|gif|png)$/);
 
         if (isVideo) {
-            return <video src={url} controls className="post-media" />;
+            return (
+                <div className="media-container">
+                    <video src={url} controls className="post-media" />
+                </div>
+            );
         } else if (isImage) {
-            return <img src={url} alt="Post media" className="post-media" />;
+            return (
+                <div className="media-container">
+                    <img src={url} alt="Post media" className="post-media" />
+                </div>
+            );
         }
         return null;
     };
@@ -111,8 +119,9 @@ export default function FeedPage() {
     return (
         <div>
             <SocialHeader user={user} />
+            <br/>
             <div className="col-md-6 App-profile">
-                <div className="feed-container">
+                <div className="profile-container">
                     <Header title="Profile" />
                     <hr className="my-3" />
                     {error && <Alert color="danger" fade={false} className="text-center">{error}</Alert>}
@@ -125,7 +134,7 @@ export default function FeedPage() {
                             <div
                                 key={post.post_id}
                                 ref={isLast ? lastPostRef : null}
-                                className="post-item"
+                                className="profile-item"
                             >
                                 <div className="post-header">
                                     <img src={photo} alt={post.name} className="post-user-photo" />

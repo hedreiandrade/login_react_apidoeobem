@@ -143,6 +143,20 @@ export default function SocialHeader({ user }) {
                             </div>
                             <div style={{ padding: "10px" }}>
                                 <Link
+                                    to="/search"
+                                    style={{
+                                        color: "#007bff",
+                                        textDecoration: "none",
+                                        display: "block",
+                                        padding: "8px 10px",
+                                        borderRadius: "4px"
+                                    }}
+                                    onMouseOver={(e) => e.target.style.background = "#f0f0f0"}
+                                    onMouseOut={(e) => e.target.style.background = "transparent"}
+                                >
+                                    Search
+                                </Link>
+                                <Link
                                     to="/edit-profile"
                                     style={{
                                         color: "#007bff",

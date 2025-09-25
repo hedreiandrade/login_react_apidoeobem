@@ -113,3 +113,53 @@ html {
     border-radius: 10px;
     margin-top: 10px;
 }
+
+/* Estilos para a área de likes e ações do post */
+.post-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #eee;
+}
+
+.likes-count {
+    font-size: 14px;
+    color: #666;
+}
+
+.likes-text {
+    font-weight: 500;
+}
+
+.like-button {
+    min-width: 80px;
+    font-size: 12px;
+}
+
+.post-user-info {
+    display: flex;
+    flex-direction: column;
+    margin-left: 10px;
+}
+
+.post-date {
+    font-size: 12px;
+    color: #999;
+    margin-top: 2px;
+}
+
+.post-item {
+    background: white;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.post-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}

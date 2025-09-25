@@ -22,10 +22,11 @@ export default function FeedPage() {
     const [hasMore, setHasMore] = useState(true);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [likingPosts, setLikingPosts] = useState({}); // Estado para controlar loading por post
     const observer = useRef();
     const [resetFeedTrigger, setResetFeedTrigger] = useState(0);
     const fileInputRef = useRef(null);
-    const userId = localStorage.getItem('user_id');
+    const userId = parseInt(localStorage.getItem('user_id'));
     const name = localStorage.getItem('name') || 'User';
     const rawPhoto = localStorage.getItem('photo');
     const token = localStorage.getItem('login_token');
@@ -42,7 +43,7 @@ export default function FeedPage() {
         let isMounted = true;
 
         const fetchData = async () => {
-            if (isMounted)setLoading(true);
+            if (isMounted) setLoading(true);
             if (isMounted) setError('');
             try {
                 const isValid = await getVerifyToken(token);
@@ -134,9 +135,9 @@ export default function FeedPage() {
             setDescription('');
             setMediaFile(null);
             setPreviewUrl(null);
-            if (fileInputRef.current) {                      // ADICIONADO
-                fileInputRef.current.value = '';             // ADICIONADO
-            }                                                 // ADICIONADO
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
             setFeed([]);
             setPage(1);
             setHasMore(true);
@@ -145,6 +146,55 @@ export default function FeedPage() {
             setError('Failed to create post');
         } finally {
             setPosting(false);
+        }
+    };
+
+    // Função para curtir post - CORRIGIDA
+    const handleLike = async (postId, currentLikes, isCurrentlyLiked) => {
+        // Verifica se já está processando like para este post específico
+        if (likingPosts[postId]) return;
+        
+        // Seta loading apenas para este post
+        setLikingPosts(prev => ({ ...prev, [postId]: true }));
+        
+        try {
+            const isValid = await getVerifyToken(token);
+            if (!isValid) {
+                window.location.href = "/";
+                return;
+            }
+
+            const endpoint = isCurrentlyLiked ? '/unLike' : '/like';
+            const data = {
+                post_id: postId,
+                user_id: userId
+            };
+
+            await apiFeed.post(endpoint, data, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            // Atualiza o estado local do feed
+            setFeed(prevFeed => 
+                prevFeed.map(post => 
+                    post.post_id === postId 
+                        ? { 
+                            ...post, 
+                            number_likes: isCurrentlyLiked ? currentLikes - 1 : currentLikes + 1,
+                            user_has_liked: !isCurrentlyLiked
+                        } 
+                        : post
+                )
+            );
+
+        } catch (err) {
+            setError(`Failed to ${isCurrentlyLiked ? 'unlike' : 'like'} post`);
+        } finally {
+            // Remove loading apenas para este post
+            setLikingPosts(prev => ({ ...prev, [postId]: false }));
         }
     };
 
@@ -160,6 +210,10 @@ export default function FeedPage() {
             return <img src={url} alt="Post media" className="post-media" />;
         }
         return null;
+    };
+
+    const userHasLiked = (post) => {
+        return post.user_has_liked === 1 || post.user_has_liked === true;
     };
 
     return (
@@ -196,11 +250,15 @@ export default function FeedPage() {
                     </div>
                     <hr />
                     {error && <Alert color="danger" fade={false} className="text-center">{error}</Alert>}
+                    
                     {feed.map((post, index) => {
                         const isLast = index === feed.length - 1;
                         const photo = isValidPhoto(post.photo)
                             ? post.photo
                             : getInitialsImage(post.name);
+                        const hasLiked = userHasLiked(post);
+                        const isLiking = likingPosts[post.post_id] || false; // Loading específico por post
+                        
                         return (
                             <div
                                 key={post.post_id}
@@ -211,10 +269,32 @@ export default function FeedPage() {
                                     <Link to={`/profile/${post.user_id}`}>
                                         <img src={photo} alt={post.name} className="post-user-photo" />
                                     </Link>
-                                    <strong className="post-user-name">{post.name}</strong>
+                                    <div className="post-user-info">
+                                        <strong className="post-user-name">{post.name}</strong>
+                                        <span className="post-date">{new Date(post.created_at).toLocaleDateString()}</span>
+                                    </div>
                                 </div>
                                 <p className="post-description">{post.description}</p>
                                 {renderMedia(post.media_link)}
+                                
+                                <div className="post-actions">
+                                    <div className="likes-count">
+                                        {post.number_likes > 0 && (
+                                            <span className="likes-text">
+                                                {post.number_likes} {post.number_likes === 1 ? 'like' : 'likes'}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <Button 
+                                        color={hasLiked ? "primary" : "secondary"}
+                                        size="sm"
+                                        onClick={() => handleLike(post.post_id, post.number_likes, hasLiked)}
+                                        disabled={isLiking} // Desabilita apenas este botão
+                                        className="like-button"
+                                    >
+                                        {isLiking ? '...' : (hasLiked ? 'Curtido' : 'Curtir')}
+                                    </Button>
+                                </div>
                             </div>
                         );
                     })}

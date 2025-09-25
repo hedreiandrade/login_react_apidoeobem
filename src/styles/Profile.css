@@ -30,24 +30,6 @@ html {
     margin: 0 auto;
 }
 
-.user-container {
-    display: flex;
-    align-items: center;
-}
-
-.user-container img {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    margin-right: 10px;
-}
-
-.user-container a {
-    color: #fff;
-    text-decoration: none;
-    font-weight: bold;
-}
-
 .footer {
     width: 100%;
     background-color: #0069D9;
@@ -135,30 +117,12 @@ html {
     height: auto;
 }
 
-.profile-photo {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    object-fit: cover;
-}
-
-.profile-name {
-    font-weight: 500;
-    font-size: 1.1rem;
-}
-
 .text-center {
     text-align: center;
 }
 
 .text-muted {
     color: #6c757d !important;
-}
-
-/* Loading states */
-.loading {
-    opacity: 0.7;
-    pointer-events: none;
 }
 
 /* Responsividade */

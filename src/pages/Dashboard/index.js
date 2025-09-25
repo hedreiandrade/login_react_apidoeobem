@@ -149,7 +149,7 @@ export default function FeedPage() {
         }
     };
 
-    // Função para curtir post - CORRIGIDA
+    // Função para Like post - CORRIGIDA
     const handleLike = async (postId, currentLikes, isCurrentlyLiked) => {
         // Verifica se já está processando like para este post específico
         if (likingPosts[postId]) return;
@@ -292,7 +292,7 @@ export default function FeedPage() {
                                         disabled={isLiking} // Desabilita apenas este botão
                                         className="like-button"
                                     >
-                                        {isLiking ? '...' : (hasLiked ? 'Curtido' : 'Curtir')}
+                                        {isLiking ? '...' : (hasLiked ? 'Liked' : 'Like')}
                                     </Button>
                                 </div>
                             </div>

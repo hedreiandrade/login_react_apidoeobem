@@ -163,3 +163,207 @@ html {
     align-items: center;
     margin-bottom: 10px;
 }
+
+/* Estilos para comentários estilo TikTok */
+.post-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+    padding: 10px 0;
+    border-top: 1px solid #f0f0f0;
+}
+
+.post-stats {
+    display: flex;
+    gap: 15px;
+}
+
+.likes-text, .comments-text {
+    font-size: 0.9em;
+    color: #666;
+    font-weight: 500;
+}
+
+.post-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.like-button, .comment-button {
+    font-size: 0.8em;
+    padding: 6px 12px;
+    border-radius: 20px;
+}
+
+/* Seção de comentários */
+.comments-section {
+    margin-top: 15px;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 10px;
+    border: 1px solid #e9ecef;
+}
+
+.comments-list {
+    max-height: 300px;
+    overflow-y: auto;
+    margin-bottom: 15px;
+}
+
+.comment-item {
+    padding: 10px;
+    margin-bottom: 8px;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.comment-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.comment-user-photo {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.comment-content {
+    flex: 1;
+}
+
+.comment-user-name {
+    font-size: 0.9em;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 4px;
+    display: block;
+}
+
+.comment-text {
+    font-size: 0.9em;
+    color: #555;
+    margin: 0;
+    line-height: 1.4;
+    word-wrap: break-word;
+}
+
+.comment-date {
+    color: #999;
+    font-size: 0.8em;
+}
+
+.comment-delete-btn {
+    color: #dc3545;
+    padding: 2px 6px;
+    font-size: 1.2em;
+    line-height: 1;
+    min-width: auto;
+}
+
+.comment-delete-btn:hover {
+    background-color: #ffe6e6;
+    border-radius: 50%;
+}
+
+.no-comments {
+    padding: 20px;
+    font-style: italic;
+}
+
+/* Formulário de adicionar comentário */
+.add-comment-form {
+    border-top: 1px solid #e9ecef;
+    padding-top: 15px;
+}
+
+.comment-input-container {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+}
+
+.comment-input {
+    flex: 1;
+    resize: none;
+    min-height: 40px;
+    max-height: 100px;
+    font-size: 0.9em;
+}
+
+.comment-submit-btn {
+    height: 40px;
+    min-width: 60px;
+    border-radius: 20px;
+}
+
+/* Scrollbar personalizada */
+.comments-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.comments-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.comments-list::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+.comments-list::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+/* Animações suaves */
+.comment-item {
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .post-actions {
+        flex-direction: column;
+        gap: 10px;
+        align-items: flex-start;
+    }
+    
+    .post-stats {
+        order: 2;
+    }
+    
+    .post-buttons {
+        order: 1;
+        width: 100%;
+        justify-content: space-between;
+    }
+    
+    .comments-section {
+        padding: 10px;
+    }
+    
+    .comment-input-container {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .comment-submit-btn {
+        align-self: flex-end;
+    }
+}

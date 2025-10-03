@@ -534,11 +534,13 @@ export default function FeedPage() {
                                                         return (
                                                             <div key={comment.id} className="comment-item">
                                                                 <div className="comment-header">
-                                                                    <img 
-                                                                        src={commentUserPhoto} 
-                                                                        alt={comment.name} 
-                                                                        className="comment-user-photo"
-                                                                    />
+                                                                    <Link to={`/profile/${comment.user_id}`}>
+                                                                        <img 
+                                                                            src={commentUserPhoto} 
+                                                                            alt={comment.name} 
+                                                                            className="comment-user-photo"
+                                                                        />
+                                                                    </Link>
                                                                     <div className="comment-content">
                                                                         <strong className="comment-user-name">{comment.name}</strong>
                                                                         <p className="comment-text">{comment.comment}</p>

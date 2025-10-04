@@ -28,6 +28,7 @@ export default function FeedPage() {
     const [commentsData, setCommentsData] = useState({});
     const [commentTexts, setCommentTexts] = useState({});
     const [commentsLoading, setCommentsLoading] = useState({});
+    const [deletingPosts, setDeletingPosts] = useState({});
     
     const observer = useRef();
     const commentsEndRefs = useRef({});
@@ -103,6 +104,36 @@ export default function FeedPage() {
         });
         if (node) observer.current.observe(node);
     }, [loading, hasMore]);
+
+    // Função para excluir post
+    const handleDeletePost = async (postId) => {
+        if (deletingPosts[postId]) return;
+
+        setDeletingPosts(prev => ({ ...prev, [postId]: true }));
+
+        try {
+            const isValid = await getVerifyToken(token);
+            if (!isValid) {
+                window.location.href = "/";
+                return;
+            }
+
+            await apiFeed.delete(`/posts/${postId}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            // Remove o post da lista localmente
+            setFeed(prevFeed => prevFeed.filter(post => post.post_id !== postId));
+
+        } catch (err) {
+            setError('Failed to delete post');
+        } finally {
+            setDeletingPosts(prev => ({ ...prev, [postId]: false }));
+        }
+    };
 
     // Função para carregar comentários de um post - SIMPLIFICADA
     const fetchComments = async (postId, pageNum = 1) => {
@@ -471,6 +502,8 @@ export default function FeedPage() {
                         const currentCommentText = commentTexts[post.post_id] || '';
                         const isCommentsLoading = commentsLoading[post.post_id] || false;
                         const hasMoreComments = commentsData[post.post_id]?.hasMore || false;
+                        const isDeleting = deletingPosts[post.post_id] || false;
+                        const isPostOwner = parseInt(post.user_id) === userId;
                         
                         return (
                             <div
@@ -486,6 +519,39 @@ export default function FeedPage() {
                                         <strong className="post-user-name">{post.name}</strong>
                                         <span className="post-date">{new Date(post.created_at).toLocaleDateString()}</span>
                                     </div>
+                                    
+                                    {/* Botão de excluir post - apenas para o dono do post */}
+                                    {isPostOwner && (
+                                        <Button 
+                                            color="link" 
+                                            size="sm"
+                                            className="post-delete-btn"
+                                            onClick={() => handleDeletePost(post.post_id)}
+                                            disabled={isDeleting}
+                                            title="Delete post"
+                                        >
+                                            {isDeleting ? (
+                                                <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                            ) : (
+                                                <svg 
+                                                    width="16" 
+                                                    height="16" 
+                                                    viewBox="0 0 24 24" 
+                                                    fill="none" 
+                                                    stroke="currentColor" 
+                                                    strokeWidth="2" 
+                                                    strokeLinecap="round" 
+                                                    strokeLinejoin="round"
+                                                >
+                                                    <path d="M3 6h18"></path>
+                                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
+                                                    <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                                                    <line x1="14" y1="11" x2="14" y2="17"></line>
+                                                </svg>
+                                            )}
+                                        </Button>
+                                    )}
                                 </div>
                                 <p className="post-description">{post.description}</p>
                                 {renderMedia(post.media_link)}

@@ -605,7 +605,7 @@ export default function ProfilePage() {
                                                                         </small>
                                                                     </div>
                                                                     {/* Botão de excluir - APENAS para comentários do usuário logado */}
-                                                                    {parseInt(comment.user_id) === userId && (
+                                                                    {(parseInt(comment.user_id) === userId || parseInt(post.user_id) === userId) && (
                                                                         <Button 
                                                                             color="link" 
                                                                             size="sm"

@@ -548,7 +548,7 @@ export default function FeedPage() {
                                                                             {new Date(comment.created_at).toLocaleString()}
                                                                         </small>
                                                                     </div>
-                                                                    {comment.user_id === userId && (
+                                                                    {(parseInt(comment.user_id) === userId || parseInt(post.user_id) === userId) && (
                                                                         <Button 
                                                                             color="link" 
                                                                             size="sm"

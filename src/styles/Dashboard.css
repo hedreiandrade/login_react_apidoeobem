@@ -325,6 +325,55 @@ html {
     animation: slideIn 0.3s ease-out;
 }
 
+/* Estilos para o botão de excluir post */
+.post-header {
+    display: flex;
+    align-items: flex-start;
+    position: relative;
+}
+
+.post-user-info {
+    flex: 1;
+    margin-left: 10px;
+}
+
+.post-delete-btn {
+    color: #dc3545 !important;
+    padding: 4px 8px;
+    border: none;
+    background: transparent !important;
+    transition: all 0.3s ease;
+    margin-left: auto;
+    align-self: flex-start;
+}
+
+.post-delete-btn:hover {
+    color: #c82333 !important;
+    background-color: rgba(220, 53, 69, 0.1) !important;
+    border-radius: 4px;
+    transform: scale(1.1);
+}
+
+.post-delete-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.post-delete-btn svg {
+    vertical-align: middle;
+}
+
+/* Garantir que o header do post tenha espaço suficiente */
+.post-user-name {
+    display: block;
+    margin-bottom: 2px;
+}
+
+.post-date {
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+
 @keyframes slideIn {
     from {
         opacity: 0;

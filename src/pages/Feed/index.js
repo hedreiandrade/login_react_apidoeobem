@@ -39,9 +39,9 @@ export default function FeedPage() {
     const rawPhoto = localStorage.getItem('photo');
     const token = localStorage.getItem('login_token');
 
-    const isValidPhoto = (photo) => {
+    const isValidPhoto = useCallback((photo) => {
         return photo && photo.trim() !== '' && photo !== 'null' && photo !== 'undefined';
-    };
+    }, []);
 
     const user = {
         photo: isValidPhoto(rawPhoto) ? rawPhoto : getInitialsImage(name)
@@ -86,7 +86,7 @@ export default function FeedPage() {
         return () => {
             isMounted = false;
         };
-    }, [userId, token]);
+    }, [token, page, userId]); // userId necessário aqui pois é usado na URL da API
 
     useEffect(() => {
         if (hasMore) {
@@ -106,7 +106,7 @@ export default function FeedPage() {
     }, [loading, hasMore]);
 
     // Função para excluir post
-    const handleDeletePost = async (postId) => {
+    const handleDeletePost = useCallback(async (postId) => {
         if (deletingPosts[postId]) return;
 
         setDeletingPosts(prev => ({ ...prev, [postId]: true }));
@@ -133,10 +133,10 @@ export default function FeedPage() {
         } finally {
             setDeletingPosts(prev => ({ ...prev, [postId]: false }));
         }
-    };
+    }, [token, deletingPosts]); // Removido userId desnecessário
 
     // Função para carregar comentários de um post - SIMPLIFICADA
-    const fetchComments = async (postId, pageNum = 1) => {
+    const fetchComments = useCallback(async (postId, pageNum = 1) => {
         if (commentsLoading[postId]) return;
         
         setCommentsLoading(prev => ({ ...prev, [postId]: true }));
@@ -171,10 +171,10 @@ export default function FeedPage() {
         } finally {
             setCommentsLoading(prev => ({ ...prev, [postId]: false }));
         }
-    };
+    }, [token, commentsLoading]); // Removido userId desnecessário
 
     // Função para expandir/recolher comentários - CORRIGIDA
-    const toggleComments = async (postId) => {
+    const toggleComments = useCallback(async (postId) => {
         if (expandedComments[postId]) {
             // Fechar comentários
             setExpandedComments(prev => ({
@@ -195,10 +195,10 @@ export default function FeedPage() {
             
             await fetchComments(postId, 1);
         }
-    };
+    }, [expandedComments, fetchComments]);
 
     // Observer simples para comentários - NOVA ABORDAGEM
-    const setupCommentsObserver = (postId) => {
+    const setupCommentsObserver = useCallback((postId) => {
         if (!commentsEndRefs.current[postId]) return;
 
         const observer = new IntersectionObserver(
@@ -216,7 +216,7 @@ export default function FeedPage() {
 
         observer.observe(commentsEndRefs.current[postId]);
         return observer;
-    };
+    }, [commentsData, commentsLoading, fetchComments]);
 
     // Effect para configurar observer quando comentários mudam
     useEffect(() => {
@@ -233,10 +233,10 @@ export default function FeedPage() {
                 if (observer) observer.disconnect();
             });
         };
-    }, [expandedComments, commentsData, commentsLoading]);
+    }, [expandedComments, commentsData, commentsLoading, setupCommentsObserver]);
 
     // Função para adicionar comentário - CORRIGIDA
-    const handleAddComment = async (postId) => {
+    const handleAddComment = useCallback(async (postId) => {
         const commentText = commentTexts[postId] || '';
         if (!commentText.trim()) return;
 
@@ -288,10 +288,10 @@ export default function FeedPage() {
         } finally {
             setCommentingPosts(prev => ({ ...prev, [postId]: false }));
         }
-    };
+    }, [token, commentTexts, fetchComments, userId]); // userId necessário aqui pois é usado no corpo da requisição
 
     // Função para excluir comentário
-    const handleDeleteComment = async (postId, commentId) => {
+    const handleDeleteComment = useCallback(async (postId, commentId) => {
         try {
             const isValid = await getVerifyToken(token);
             if (!isValid) {
@@ -331,16 +331,16 @@ export default function FeedPage() {
         } catch (err) {
             setError('Failed to delete comment');
         }
-    };
+    }, [token, userId]); // userId necessário aqui pois é usado no corpo da requisição
 
-    const handleMediaChange = (e) => {
+    const handleMediaChange = useCallback((e) => {
         const file = e.target.files[0];
         if (!file) return;
         setMediaFile(file);
         setPreviewUrl(URL.createObjectURL(file));
-    };
+    }, []);
 
-    const handlePost = async () => {
+    const handlePost = useCallback(async () => {
         if (!description.trim() && !mediaFile) return;
         setPosting(true);
 
@@ -382,10 +382,10 @@ export default function FeedPage() {
         } finally {
             setPosting(false);
         }
-    };
+    }, [description, mediaFile, token, userId]); // userId necessário aqui pois é usado no FormData
 
     // Função para Like post
-    const handleLike = async (postId, currentLikes, isCurrentlyLiked) => {
+    const handleLike = useCallback(async (postId, currentLikes, isCurrentlyLiked) => {
         if (likingPosts[postId]) return;
         
         setLikingPosts(prev => ({ ...prev, [postId]: true }));
@@ -427,9 +427,9 @@ export default function FeedPage() {
         } finally {
             setLikingPosts(prev => ({ ...prev, [postId]: false }));
         }
-    };
+    }, [token, likingPosts, userId]); // userId necessário aqui pois é usado no corpo da requisição
 
-    const renderMedia = (url) => {
+    const renderMedia = useCallback((url) => {
         if (!url || typeof url !== 'string') return null;
 
         const isVideo = url.toLowerCase().match(/\.(mp4|webm|ogg)$/);
@@ -441,18 +441,18 @@ export default function FeedPage() {
             return <img src={url} alt="Post media" className="post-media" />;
         }
         return null;
-    };
+    }, []);
 
-    const userHasLiked = (post) => {
+    const userHasLiked = useCallback((post) => {
         return post.user_has_liked === 1 || post.user_has_liked === true;
-    };
+    }, []);
 
-    const handleCommentTextChange = (postId, text) => {
+    const handleCommentTextChange = useCallback((postId, text) => {
         setCommentTexts(prev => ({
             ...prev,
             [postId]: text
         }));
-    };
+    }, []);
 
     return (
         <div>

@@ -42,3 +42,90 @@
   object-fit: cover;
   border: 2px solid #ccc;
 }
+
+.social-login-container {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #dee2e6;
+}
+
+.social-button {
+    margin-bottom: 1rem;
+    padding: 0.75rem 1rem;
+    border: 2px solid #dee2e6;
+    background: white;
+    color: #495057;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease-in-out;
+    height: auto;
+    min-height: 48px;
+}
+
+.social-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    background: white !important;
+    color: #495057 !important;
+    border-color: #dee2e6 !important;
+}
+
+.google-button:hover {
+    border-color: #4285F4 !important;
+}
+
+.facebook-button:hover {
+    border-color: #1877F2 !important;
+}
+
+.social-button-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    gap: 0.75rem; /* Espaçamento reduzido mas não colado */
+}
+
+.social-icon {
+    flex-shrink: 0;
+    margin: 0;
+}
+
+.social-button-text {
+    white-space: nowrap;
+    opacity: 1 !important;
+    visibility: visible !important;
+    color: inherit !important;
+}
+
+.button-container {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.align-button {
+    flex: 1;
+}
+
+.photo-preview-container {
+    margin-top: 0.5rem;
+    text-align: center;
+}
+
+.photo-preview {
+    max-width: 100px;
+    max-height: 100px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #dee2e6;
+}
+
+/* Garantir que o texto não desapareça no hover */
+.social-button:hover .social-button-text {
+    opacity: 1 !important;
+    visibility: visible !important;
+    color: inherit !important;
+}

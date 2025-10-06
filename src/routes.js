@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Switch, Route } from 'react-router-dom';
 import PrivateRoute from './auth';
 import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
+import Feed from './pages/Feed';
 import Logout from './pages/Logout';
 import EditProfile from './pages/EditProfile';
 import ChangePassword from './pages/ChangePassword';
@@ -15,7 +15,7 @@ const Routes = () => (
     <Router>
         <Switch>
             <Route exact path="/" component={Login} />
-            <PrivateRoute path="/feed" component={Dashboard} />
+            <PrivateRoute path="/feed" component={Feed} />
             <PrivateRoute path="/edit-profile" component={EditProfile} />
             <PrivateRoute path="/change-password" component={ChangePassword} />
             <PrivateRoute path="/followers" component={Followers} />

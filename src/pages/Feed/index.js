@@ -4,7 +4,7 @@ import Footer from '../../components/Footer';
 import SocialHeader from '../../components/SocialHeader';
 import { Alert, Button, Input } from 'reactstrap';
 import { apiFeed } from '../../services/api';
-import '../../styles/Dashboard.css';
+import '../../styles/Feed.css';
 import { useExpireToken } from "../../hooks/expireToken";
 import { getInitialsImage } from "../../ultils/initialsImage";
 import { getVerifyToken } from "../../ultils/verifyToken";

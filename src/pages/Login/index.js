@@ -94,8 +94,9 @@ export default class Login extends Component {
     handleGoogleLogin = () => {
         console.log('Iniciando login com Google...');
         
-        const clientId = '803878883863-79qhscegft31lcdk8145kn03oi49luh6.apps.googleusercontent.com';
-        const redirectUri = 'http://localhost:3000';
+        // Use as variáveis de ambiente
+        const clientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
+        const redirectUri = process.env.REACT_APP_GOOGLE_REDIRECT_URI;
         
         const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
             `client_id=${clientId}` +

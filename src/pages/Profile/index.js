@@ -9,6 +9,8 @@ import { useExpireToken } from "../../hooks/expireToken";
 import { getInitialsImage } from "../../ultils/initialsImage";
 import { getVerifyToken } from "../../ultils/verifyToken";
 import { useParams, Link } from 'react-router-dom';
+import { AiFillHeart } from "react-icons/ai";
+import { FaTrash, FaCommentDots } from "react-icons/fa";
 
 export default function ProfilePage() {
     useExpireToken();
@@ -27,6 +29,7 @@ export default function ProfilePage() {
     const [commentsData, setCommentsData] = useState({});
     const [commentTexts, setCommentTexts] = useState({});
     const [commentsLoading, setCommentsLoading] = useState({});
+    const [deletingPosts, setDeletingPosts] = useState({});
     
     const observer = useRef();
     const commentsEndRefs = useRef({});
@@ -105,6 +108,35 @@ export default function ProfilePage() {
             setFollowLoading(false);
         }
     };
+
+    // Função para excluir post
+    const handleDeletePost = useCallback(async (postId) => {
+        if (deletingPosts[postId]) return;
+
+        setDeletingPosts(prev => ({ ...prev, [postId]: true }));
+
+        try {
+            const isValid = await getVerifyToken(token);
+            if (!isValid) {
+                window.location.href = "/";
+                return;
+            }
+
+            await apiFeed.delete(`/posts/${postId}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            setFeed(prevFeed => prevFeed.filter(post => post.post_id !== postId));
+
+        } catch (err) {
+            setError('Failed to delete post');
+        } finally {
+            setDeletingPosts(prev => ({ ...prev, [postId]: false }));
+        }
+    }, [token, deletingPosts]);
 
     const fetchFeed = useCallback(() => {
         let isMounted = true;
@@ -527,6 +559,8 @@ export default function ProfilePage() {
                         const currentCommentText = commentTexts[post.post_id] || '';
                         const isCommentsLoading = commentsLoading[post.post_id] || false;
                         const hasMoreComments = commentsData[post.post_id]?.hasMore || false;
+                        const isDeleting = deletingPosts[post.post_id] || false;
+                        const isPostOwner = parseInt(post.user_id) === userId;
                         
                         return (
                             <div
@@ -542,6 +576,24 @@ export default function ProfilePage() {
                                         <strong className="post-user-name">{post.name}</strong>
                                         <span className="post-date">{new Date(post.created_at).toLocaleDateString()}</span>
                                     </div>
+                                    
+                                    {/* Botão de excluir post - apenas para o dono do post */}
+                                    {isPostOwner && (
+                                        <Button 
+                                            color="link" 
+                                            size="sm"
+                                            className="post-delete-btn"
+                                            onClick={() => handleDeletePost(post.post_id)}
+                                            disabled={isDeleting}
+                                            title="Delete post"
+                                        >
+                                            {isDeleting ? (
+                                                <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                            ) : (
+                                                <FaTrash size={16} />
+                                            )}
+                                        </Button>
+                                    )}
                                 </div>
                                 <p className="post-description">{post.description}</p>
                                 {renderMedia(post.media_link)}
@@ -563,7 +615,20 @@ export default function ProfilePage() {
                                             disabled={isLiking}
                                             className="like-button"
                                         >
-                                            {isLiking ? '...' : (hasLiked ? '❤️ Liked' : '🤍 Like')}
+                                            {isLiking ? (
+                                                '...'
+                                            ) : (
+                                                <>
+                                                    <AiFillHeart 
+                                                        size={16} 
+                                                        style={{ 
+                                                            marginRight: '5px',
+                                                            color: hasLiked ? '#dc3545' : '#6c757d'
+                                                        }} 
+                                                    />
+                                                    {hasLiked ? 'Liked' : 'Like'}
+                                                </>
+                                            )}
                                         </Button>
                                         <Button 
                                             color="info"
@@ -571,7 +636,8 @@ export default function ProfilePage() {
                                             onClick={() => toggleComments(post.post_id)}
                                             className="comment-button"
                                         >
-                                            💬 Comment
+                                            <FaCommentDots size={14} style={{ marginRight: '5px' }} />
+                                            Comment
                                         </Button>
                                     </div>
                                 </div>

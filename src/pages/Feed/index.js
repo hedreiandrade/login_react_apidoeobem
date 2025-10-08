@@ -9,6 +9,8 @@ import { useExpireToken } from "../../hooks/expireToken";
 import { getInitialsImage } from "../../ultils/initialsImage";
 import { getVerifyToken } from "../../ultils/verifyToken";
 import { Link } from 'react-router-dom';
+import { AiFillHeart } from "react-icons/ai";
+import { FaTrash, FaCommentDots } from "react-icons/fa";
 
 export default function FeedPage() {
     useExpireToken();
@@ -86,7 +88,7 @@ export default function FeedPage() {
         return () => {
             isMounted = false;
         };
-    }, [token, page, userId]); // userId necessário aqui pois é usado na URL da API
+    }, [token, page, userId]);
 
     useEffect(() => {
         if (hasMore) {
@@ -105,7 +107,6 @@ export default function FeedPage() {
         if (node) observer.current.observe(node);
     }, [loading, hasMore]);
 
-    // Função para excluir post
     const handleDeletePost = useCallback(async (postId) => {
         if (deletingPosts[postId]) return;
 
@@ -125,7 +126,6 @@ export default function FeedPage() {
                 }
             });
 
-            // Remove o post da lista localmente
             setFeed(prevFeed => prevFeed.filter(post => post.post_id !== postId));
 
         } catch (err) {
@@ -133,9 +133,8 @@ export default function FeedPage() {
         } finally {
             setDeletingPosts(prev => ({ ...prev, [postId]: false }));
         }
-    }, [token, deletingPosts]); // Removido userId desnecessário
+    }, [token, deletingPosts]);
 
-    // Função para carregar comentários de um post - SIMPLIFICADA
     const fetchComments = useCallback(async (postId, pageNum = 1) => {
         if (commentsLoading[postId]) return;
         
@@ -171,24 +170,20 @@ export default function FeedPage() {
         } finally {
             setCommentsLoading(prev => ({ ...prev, [postId]: false }));
         }
-    }, [token, commentsLoading]); // Removido userId desnecessário
+    }, [token, commentsLoading]);
 
-    // Função para expandir/recolher comentários - CORRIGIDA
     const toggleComments = useCallback(async (postId) => {
         if (expandedComments[postId]) {
-            // Fechar comentários
             setExpandedComments(prev => ({
                 ...prev,
                 [postId]: false
             }));
         } else {
-            // Abrir comentários - SEMPRE recarregar da página 1
             setExpandedComments(prev => ({
                 ...prev,
                 [postId]: true
             }));
             
-            // Resetar observer quando abrir
             if (commentsEndRefs.current[postId]) {
                 commentsEndRefs.current[postId] = null;
             }
@@ -197,7 +192,6 @@ export default function FeedPage() {
         }
     }, [expandedComments, fetchComments]);
 
-    // Observer simples para comentários - NOVA ABORDAGEM
     const setupCommentsObserver = useCallback((postId) => {
         if (!commentsEndRefs.current[postId]) return;
 
@@ -218,7 +212,6 @@ export default function FeedPage() {
         return observer;
     }, [commentsData, commentsLoading, fetchComments]);
 
-    // Effect para configurar observer quando comentários mudam
     useEffect(() => {
         const observers = {};
         
@@ -235,7 +228,6 @@ export default function FeedPage() {
         };
     }, [expandedComments, commentsData, commentsLoading, setupCommentsObserver]);
 
-    // Função para adicionar comentário - CORRIGIDA
     const handleAddComment = useCallback(async (postId) => {
         const commentText = commentTexts[postId] || '';
         if (!commentText.trim()) return;
@@ -262,16 +254,13 @@ export default function FeedPage() {
                 }
             });
 
-            // Recarregar comentários da página 1 para mostrar o novo comentário no topo
             await fetchComments(postId, 1);
             
-            // Limpar texto
             setCommentTexts(prev => ({
                 ...prev,
                 [postId]: ''
             }));
 
-            // Atualizar contador no feed
             setFeed(prevFeed => 
                 prevFeed.map(post => 
                     post.post_id === postId 
@@ -288,9 +277,8 @@ export default function FeedPage() {
         } finally {
             setCommentingPosts(prev => ({ ...prev, [postId]: false }));
         }
-    }, [token, commentTexts, fetchComments, userId]); // userId necessário aqui pois é usado no corpo da requisição
+    }, [token, commentTexts, fetchComments, userId]);
 
-    // Função para excluir comentário
     const handleDeleteComment = useCallback(async (postId, commentId) => {
         try {
             const isValid = await getVerifyToken(token);
@@ -307,7 +295,6 @@ export default function FeedPage() {
                 }
             });
 
-            // Remover comentário localmente
             setCommentsData(prev => ({
                 ...prev,
                 [postId]: {
@@ -316,7 +303,6 @@ export default function FeedPage() {
                 }
             }));
 
-            // Atualizar contador
             setFeed(prevFeed => 
                 prevFeed.map(post => 
                     post.post_id === postId 
@@ -331,7 +317,7 @@ export default function FeedPage() {
         } catch (err) {
             setError('Failed to delete comment');
         }
-    }, [token, userId]); // userId necessário aqui pois é usado no corpo da requisição
+    }, [token, userId]);
 
     const handleMediaChange = useCallback((e) => {
         const file = e.target.files[0];
@@ -382,9 +368,8 @@ export default function FeedPage() {
         } finally {
             setPosting(false);
         }
-    }, [description, mediaFile, token, userId]); // userId necessário aqui pois é usado no FormData
+    }, [description, mediaFile, token, userId]);
 
-    // Função para Like post
     const handleLike = useCallback(async (postId, currentLikes, isCurrentlyLiked) => {
         if (likingPosts[postId]) return;
         
@@ -427,7 +412,7 @@ export default function FeedPage() {
         } finally {
             setLikingPosts(prev => ({ ...prev, [postId]: false }));
         }
-    }, [token, likingPosts, userId]); // userId necessário aqui pois é usado no corpo da requisição
+    }, [token, likingPosts, userId]);
 
     const renderMedia = useCallback((url) => {
         if (!url || typeof url !== 'string') return null;
@@ -520,7 +505,6 @@ export default function FeedPage() {
                                         <span className="post-date">{new Date(post.created_at).toLocaleDateString()}</span>
                                     </div>
                                     
-                                    {/* Botão de excluir post - apenas para o dono do post */}
                                     {isPostOwner && (
                                         <Button 
                                             color="link" 
@@ -533,22 +517,7 @@ export default function FeedPage() {
                                             {isDeleting ? (
                                                 <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
                                             ) : (
-                                                <svg 
-                                                    width="16" 
-                                                    height="16" 
-                                                    viewBox="0 0 24 24" 
-                                                    fill="none" 
-                                                    stroke="currentColor" 
-                                                    strokeWidth="2" 
-                                                    strokeLinecap="round" 
-                                                    strokeLinejoin="round"
-                                                >
-                                                    <path d="M3 6h18"></path>
-                                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
-                                                    <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                                    <line x1="10" y1="11" x2="10" y2="17"></line>
-                                                    <line x1="14" y1="11" x2="14" y2="17"></line>
-                                                </svg>
+                                                <FaTrash size={16} />
                                             )}
                                         </Button>
                                     )}
@@ -573,7 +542,20 @@ export default function FeedPage() {
                                             disabled={isLiking}
                                             className="like-button"
                                         >
-                                            {isLiking ? '...' : (hasLiked ? '❤️ Liked' : '🤍 Like')}
+                                            {isLiking ? (
+                                                '...'
+                                            ) : (
+                                                <>
+                                                    <AiFillHeart 
+                                                        size={16} 
+                                                        style={{ 
+                                                            marginRight: '5px',
+                                                            color: hasLiked ? '#dc3545' : '#6c757d'
+                                                        }} 
+                                                    />
+                                                    {hasLiked ? 'Liked' : 'Like'}
+                                                </>
+                                            )}
                                         </Button>
                                         <Button 
                                             color="info"
@@ -581,12 +563,12 @@ export default function FeedPage() {
                                             onClick={() => toggleComments(post.post_id)}
                                             className="comment-button"
                                         >
-                                            💬 Comment
+                                            <FaCommentDots size={14} style={{ marginRight: '5px' }} />
+                                            Comment
                                         </Button>
                                     </div>
                                 </div>
 
-                                {/* Área de Comentários */}
                                 {isCommentsExpanded && (
                                     <div className="comments-section">
                                         <div className="comments-list">
@@ -630,7 +612,6 @@ export default function FeedPage() {
                                                         );
                                                     })}
                                                     
-                                                    {/* Elemento para observar o final */}
                                                     {hasMoreComments && (
                                                         <div 
                                                             ref={el => commentsEndRefs.current[post.post_id] = el}
@@ -646,7 +627,6 @@ export default function FeedPage() {
                                             )}
                                         </div>
 
-                                        {/* Input para adicionar comentário */}
                                         <div className="add-comment-form">
                                             <div className="comment-input-container">
                                                 <Input

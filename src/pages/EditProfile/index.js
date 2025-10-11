@@ -40,6 +40,7 @@ export default function EditProfile() {
         photo: null,
         photoPreview: null,
         email: '',
+        auth_provider: null,
     });
 
     useEffect(() => {
@@ -58,7 +59,7 @@ export default function EditProfile() {
                         Authorization: `Bearer ${token}`
                     }
                 });
-                const { name, photo, email } = response.data;
+                const { name, photo, email, auth_provider } = response.data;
     
                 if (isMounted) {
                     setFormData({
@@ -66,6 +67,7 @@ export default function EditProfile() {
                         photo: null,
                         photoPreview: isValidPhoto(photo) ? photo : getInitialsImage(name),
                         email,
+                        auth_provider
                     });
                 }
             } catch (error) {
@@ -204,9 +206,11 @@ export default function EditProfile() {
                         <Button color="primary" className="align-button" onClick={updateProfile} style={{ marginRight: "10px" }}>
                             Update profile
                         </Button>
+                    {formData.auth_provider === 'local' && (
                         <Button color="secondary" className="align-button" onClick={redirectToChangePassword}>
                             Change password
                         </Button>
+                    )}
                     </div>
                     <br />
                     <br />

@@ -206,17 +206,7 @@ export default class Login extends Component {
         });
 
         if (response.status === 201) {
-            const responseLogin = await api.post('/login', { email: this.state.formData.email, password: this.state.formData.password });
-            if (typeof responseLogin.data.response.token === "undefined") {
-                this.setState({ message: 'Erro ao gerar token após registrar.' });
-            } else {
-                localStorage.setItem('photo', responseLogin.data.response.photo);
-                localStorage.setItem('name', responseLogin.data.response.name);
-                localStorage.setItem('user_id', responseLogin.data.response.user_id);
-                localStorage.setItem('login_token', responseLogin.data.response.token);
-                this.setState({ message: '' });
-                this.props.history.push("/feed");
-            }
+            this.setState({ message: 'This email needs a check confirmation in your email' });
         } else {
             if(response.data.password){
                 this.setState({ message: response.data.password[0] });

@@ -5,7 +5,6 @@ import { api } from '../../services/api';
 import '../../styles/Login.css';
 import { BsFacebook, BsGoogle } from "react-icons/bs";
 
-
 export default class Login extends Component {
     constructor(props) {
         super(props);
@@ -22,22 +21,36 @@ export default class Login extends Component {
                 photo: null,
                 photoPreview: null
             },
-            processingGoogleLogin: false // NOVO ESTADO PARA CONTROLAR
+            processingGoogleLogin: false,
+            processingFacebookLogin: false // NOVO: estado para Facebook
         };
     }
 
     componentDidMount() {
-        this.checkForGoogleToken();
+        this.checkForSocialTokens(); // ALTERADO: verifica ambos
     }
 
-    checkForGoogleToken = () => {
+    // CORREÇÃO: Agora verifica tanto Google quanto Facebook no HASH
+    checkForSocialTokens = () => {
         const hash = window.location.hash;
-        console.log('URL atual:', window.location.href);
+        const urlParams = new URLSearchParams(window.location.search);
         
         if (hash && hash.includes('access_token')) {
-            console.log('Token do Google encontrado! Processando...');
-            this.setState({ processingGoogleLogin: true });
-            this.processGoogleTokenFromRedirect();
+            // CORREÇÃO: Verificar se é Facebook pelo state parameter
+            const hashParams = new URLSearchParams(hash.substring(1));
+            const state = hashParams.get('state');
+            if (state && state.includes('facebook')) {
+                this.setState({ processingFacebookLogin: true });
+                this.processFacebookTokenFromRedirect();
+            } else {
+                this.setState({ processingGoogleLogin: true });
+                this.processGoogleTokenFromRedirect();
+            }
+        }
+        // Mantém verificação na query string por segurança
+        else if (urlParams.has('access_token')) {
+            this.setState({ processingFacebookLogin: true });
+            this.processFacebookTokenFromRedirect();
         }
     };
 
@@ -56,8 +69,6 @@ export default class Login extends Component {
                 const response = await api.post('/loginGoogle', {
                     token: accessToken
                 });
-
-                console.log('Resposta do backend:', response);
 
                 if (response.data.response && response.data.response.token) {
                     const userData = response.data.response;
@@ -84,7 +95,6 @@ export default class Login extends Component {
                 }
             }
         } catch (error) {
-            console.error('Error:', error);
             this.setState({ 
                 message: error.response?.data?.response || 'Erro no servidor',
                 processingGoogleLogin: false 
@@ -93,8 +103,85 @@ export default class Login extends Component {
         }
     };
 
+    // NOVO: Método para processar token do Facebook
+    processFacebookTokenFromRedirect = async () => {
+        try {
+            // CORREÇÃO: Buscar token tanto do hash quanto da query string
+            let accessToken;
+            const hash = window.location.hash.substring(1);
+            const urlParams = new URLSearchParams(window.location.search);
+            
+            if (hash) {
+                const hashParams = new URLSearchParams(hash);
+                accessToken = hashParams.get('access_token');
+            } else {
+                accessToken = urlParams.get('access_token');
+            }
+            
+            if (accessToken) {
+                this.setState({ 
+                    message: 'Processando login com Facebook...',
+                    processingFacebookLogin: true 
+                });
+                
+                const response = await api.post('/loginFacebook', {
+                    token: accessToken
+                });
+
+                // CORREÇÃO: Parsear a resposta manualmente
+                let responseData;
+                
+                if (typeof response.data === 'string') {
+                    // Extrair o JSON da string que contém HTML + JSON
+                    const jsonMatch = response.data.match(/\{"response":\{[^]+\}\}/);
+                    if (jsonMatch) {
+                        try {
+                            responseData = JSON.parse(jsonMatch[0]);
+                            console.log('JSON parseado:', responseData);
+                        } catch (parseError) {
+                            console.error('Erro ao parsear JSON:', parseError);
+                        }
+                    }
+                } else {
+                    responseData = response.data;
+                }
+                // Agora acessar os dados corretamente
+                const userData = responseData?.response || responseData;
+
+                if (userData && userData.token) {
+                    const token = typeof userData.token === 'object' ? JSON.stringify(userData.token) : String(userData.token);
+                    localStorage.setItem('login_token', token);
+                    localStorage.setItem('user_id', userData.user_id);
+                    localStorage.setItem('photo', userData.photo || '');
+                    localStorage.setItem('name', userData.name);
+                    localStorage.setItem('auth_provider', userData.auth_provider);
+                    // Limpar a URL
+                    window.history.replaceState({}, document.title, "/");
+                    
+                    this.setState({ 
+                        message: '',
+                        processingFacebookLogin: false 
+                    });
+                    this.props.history.push("/feed");
+                } else {
+                    this.setState({ 
+                        message: response.data.response || 'Erro no login com Facebook',
+                        processingFacebookLogin: false 
+                    });
+                    window.history.replaceState({}, document.title, "/");
+                }
+            }
+        } catch (error) {
+            console.error('Error Facebook:', error);
+            this.setState({ 
+                message: error.response?.data?.response || 'Erro no servidor',
+                processingFacebookLogin: false 
+            });
+            window.history.replaceState({}, document.title, "/");
+        }
+    };
+
     handleGoogleLogin = () => {
-        console.log('Iniciando login com Google...');
         // Use as variáveis de ambiente
         const clientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
         const redirectUri = process.env.REACT_APP_GOOGLE_REDIRECT_URI;
@@ -103,9 +190,22 @@ export default class Login extends Component {
             `&redirect_uri=${redirectUri}` +
             `&response_type=token` +
             `&scope=email%20profile` +
-            `&prompt=select_account`;
-        
-        console.log('Redirecionando para Google OAuth...');
+            `&prompt=select_account` +
+            `&state=google_${Math.random().toString(36).substring(7)}`; // CORREÇÃO: Adiciona identificador
+        window.location.href = authUrl;
+    };
+
+    handleFacebookLogin = () => {
+        const clientIdFb = process.env.REACT_APP_FACEBOOK_APP_ID;
+        const redirectUriFb = process.env.REACT_APP_FACEBOOK_REDIRECT_URI;
+        // SOLICITAR permissão de email (requer App Review)
+        const authUrl = `https://www.facebook.com/v19.0/dialog/oauth?` +
+            `client_id=${clientIdFb}` +
+            `&redirect_uri=${encodeURIComponent(redirectUriFb)}` +
+            `&response_type=token` +
+            `&scope=email,public_profile` + // INCLUIR email
+            `&auth_type=rerequest` + // Importantíssimo para re-solicitar permissões
+            `&state=facebook_${Math.random().toString(36).substring(7)}`; // CORREÇÃO: Adiciona identificador
         window.location.href = authUrl;
     };
 
@@ -238,12 +338,9 @@ export default class Login extends Component {
         }
     };
 
-    handleFacebookLogin = () => {
-        console.log('Login com Facebook');
-    };
-
     render() {
-        const { processingGoogleLogin } = this.state;
+        const { processingGoogleLogin, processingFacebookLogin } = this.state;
+        const processingAnyLogin = processingGoogleLogin || processingFacebookLogin; // ALTERADO
 
         return (
             <div className="col-md-6 App">
@@ -261,13 +358,16 @@ export default class Login extends Component {
                     </Alert>
                 )}
 
-                {/* MOSTRAR LOADING APENAS QUANDO ESTÁ PROCESSANDO GOOGLE LOGIN */}
-                {processingGoogleLogin ? (
+                {/* ALTERADO: MOSTRAR LOADING PARA AMBOS */}
+                {processingAnyLogin ? (
                     <div className="text-center">
                         <div className="spinner-border text-primary" role="status">
                             <span className="sr-only">Processando login...</span>
                         </div>
-                        <p>Processando login com Google...</p>
+                        <p>
+                            {processingGoogleLogin && 'Processando login com Google...'}
+                            {processingFacebookLogin && 'Processando login com Facebook...'}
+                        </p>
                     </div>
                 ) : (
                     /* SEMPRE MOSTRAR FORMULÁRIO QUANDO NÃO ESTÁ PROCESSANDO */

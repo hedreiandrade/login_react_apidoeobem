@@ -444,7 +444,14 @@ export default function FeedPage() {
             <SocialHeader user={user} />
             <div className="col-md-6 App-feed">
                 <div className="feed-container">
-                    <Header title="Feed" />
+                    <div className="feed-header-container">
+                        <div className="user-info-header">
+                            <img src={user.photo} alt="User" className="header-user-photo" />
+                            <div className="header-user-details">
+                                <h4 className="header-user-name">{name}</h4>
+                            </div>
+                        </div>
+                    </div>
                     <hr className="my-3" />
                     <div className="create-post">
                         <img src={user.photo} alt="User" className="post-user-photo" />

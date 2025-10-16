@@ -550,12 +550,15 @@ export default function ProfilePage() {
         ? (isValidPhoto(profileUser.photo) ? profileUser.photo : getInitialsImage(profileUser.name))
         : (feed.length > 0 
             ? (isValidPhoto(feed[0].photo) ? feed[0].photo : getInitialsImage(feed[0].name))
-            : user.photo
+            : null
           );
     
     const profileName = profileUser 
         ? profileUser.name 
-        : (feed.length > 0 ? feed[0].name : name);
+        : (feed.length > 0 ? feed[0].name : null);
+
+    // Mostrar loading enquanto os dados não carregam
+    const isLoadingProfile = !profileUser && feed.length === 0;
 
     return (
         <div>
@@ -566,9 +569,23 @@ export default function ProfilePage() {
                     <div className="d-flex justify-content-between align-items-center">
                         <div className="feed-header-container">
                             <div className="user-info-header">
-                                <img src={profilePhoto} alt="Profile" className="header-user-photo" />
+                                {isLoadingProfile ? (
+                                    <div className="header-user-photo loading-placeholder">
+                                        <div className="spinner-border text-primary" role="status">
+                                            <span className="visually-hidden">Loading...</span>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <img 
+                                        src={profilePhoto || getInitialsImage("User")} 
+                                        alt="Profile" 
+                                        className="header-user-photo" 
+                                    />
+                                )}
                                 <div className="header-user-details">
-                                    <h4 className="header-user-name">{profileName}</h4>
+                                    <h4 className="header-user-name">
+                                        {isLoadingProfile ? "Loading..." : (profileName || "User")}
+                                    </h4>
                                 </div>
                             </div>
                         </div>

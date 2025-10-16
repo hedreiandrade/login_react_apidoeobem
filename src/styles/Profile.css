@@ -254,6 +254,47 @@ html {
     animation: slideIn 0.3s ease-out;
 }
 
+.loading-placeholder {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f8f9fa;
+    border: 2px dashed #dee2e6;
+}
+
+.loading-placeholder .spinner-border {
+    width: 3rem;
+    height: 3rem;
+}
+
+/* Responsividade para o spinner */
+@media (max-width: 768px) {
+    .loading-placeholder {
+        width: 130px;
+        height: 130px;
+    }
+    
+    .loading-placeholder .spinner-border {
+        width: 2.5rem;
+        height: 2.5rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .loading-placeholder {
+        width: 110px;
+        height: 110px;
+    }
+    
+    .loading-placeholder .spinner-border {
+        width: 2rem;
+        height: 2rem;
+    }
+}
+
 @keyframes slideIn {
     from {
         opacity: 0;

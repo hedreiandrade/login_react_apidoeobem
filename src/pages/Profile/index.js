@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Footer from '../../components/Footer';
 import SocialHeader from '../../components/SocialHeader';
 import { Alert, Button, Input } from 'reactstrap';
-import { apiFeed } from '../../services/api';
+import { apiFeed, api } from '../../services/api';
 import '../../styles/Profile.css';
 import { useExpireToken } from "../../hooks/expireToken";
 import { getInitialsImage } from "../../ultils/initialsImage";
@@ -30,6 +30,7 @@ export default function ProfilePage() {
     const [commentsLoading, setCommentsLoading] = useState({});
     const [deletingPosts, setDeletingPosts] = useState({});
     const [profileUser, setProfileUser] = useState(null);
+    const [profileUserError, setProfileUserError] = useState(false);
     
     const observer = useRef();
     const commentsEndRefs = useRef({});
@@ -51,7 +52,8 @@ export default function ProfilePage() {
     // Função para buscar informações do usuário do perfil
     const fetchProfileUser = useCallback(async () => {
         try {
-            const response = await apiFeed.get(`/user/${id}`, {
+            setProfileUserError(false);
+            const response = await api.get(`/user/${id}`, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
@@ -59,6 +61,9 @@ export default function ProfilePage() {
             setProfileUser(response.data);
         } catch (err) {
             console.error('Error fetching profile user:', err);
+            setProfileUserError(true);
+            // Se der erro, definir profileUser como null para usar dados do feed
+            setProfileUser(null);
         }
     }, [id, token]);
 
@@ -78,6 +83,7 @@ export default function ProfilePage() {
             setIsFollowed(response.data.is_followed);
         } catch (err) {
             console.error('Error checking follow status:', err);
+            setIsFollowed(false);
         } finally {
             setCheckingFollowStatus(false);
         }
@@ -217,6 +223,7 @@ export default function ProfilePage() {
         setHasMore(true);
         setResetFeedTrigger(prev => prev + 1);
         setProfileUser(null);
+        setProfileUserError(false);
     }, [id]);
 
     const lastPostRef = useCallback(node => {
@@ -545,20 +552,39 @@ export default function ProfilePage() {
         }
     };
 
-    // Determinar foto e nome do perfil
-    const profilePhoto = profileUser 
-        ? (isValidPhoto(profileUser.photo) ? profileUser.photo : getInitialsImage(profileUser.name))
-        : (feed.length > 0 
-            ? (isValidPhoto(feed[0].photo) ? feed[0].photo : getInitialsImage(feed[0].name))
-            : null
-          );
-    
-    const profileName = profileUser 
-        ? profileUser.name 
-        : (feed.length > 0 ? feed[0].name : null);
+    // Determinar foto e nome do perfil - LÓGICA SIMPLIFICADA
+    const getProfileInfo = () => {
+        // Se temos dados do profileUser, usar eles
+        if (profileUser) {
+            return {
+                photo: isValidPhoto(profileUser.photo) ? profileUser.photo : getInitialsImage(profileUser.name),
+                name: profileUser.name
+            };
+        }
+        
+        // Se temos posts no feed, usar dados do primeiro post
+        if (feed.length > 0) {
+            const firstPost = feed[0];
+            return {
+                photo: isValidPhoto(firstPost.photo) ? firstPost.photo : getInitialsImage(firstPost.name),
+                name: firstPost.name
+            };
+        }
+        
+        // Se deu erro ao buscar usuário ou não há dados, usar fallback
+        if (profileUserError || !loading) {
+            return {
+                photo: getInitialsImage("User"),
+                name: "User"
+            };
+        }
+        
+        // Caso contrário, ainda está carregando
+        return null;
+    };
 
-    // Mostrar loading enquanto os dados não carregam
-    const isLoadingProfile = !profileUser && feed.length === 0;
+    const profileInfo = getProfileInfo();
+    const isLoadingProfile = !profileInfo && !profileUserError;
 
     return (
         <div>
@@ -577,14 +603,14 @@ export default function ProfilePage() {
                                     </div>
                                 ) : (
                                     <img 
-                                        src={profilePhoto || getInitialsImage("User")} 
+                                        src={profileInfo.photo} 
                                         alt="Profile" 
                                         className="header-user-photo" 
                                     />
                                 )}
                                 <div className="header-user-details">
                                     <h4 className="header-user-name">
-                                        {isLoadingProfile ? "Loading..." : (profileName || "User")}
+                                        {isLoadingProfile ? "Loading..." : profileInfo.name}
                                     </h4>
                                 </div>
                             </div>

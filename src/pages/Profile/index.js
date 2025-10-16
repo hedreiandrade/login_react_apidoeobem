@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 import SocialHeader from '../../components/SocialHeader';
 import { Alert, Button, Input } from 'reactstrap';
@@ -30,6 +29,7 @@ export default function ProfilePage() {
     const [commentTexts, setCommentTexts] = useState({});
     const [commentsLoading, setCommentsLoading] = useState({});
     const [deletingPosts, setDeletingPosts] = useState({});
+    const [profileUser, setProfileUser] = useState(null);
     
     const observer = useRef();
     const commentsEndRefs = useRef({});
@@ -47,6 +47,20 @@ export default function ProfilePage() {
     const user = {
         photo: isValidPhoto(rawPhoto) ? rawPhoto : getInitialsImage(name)
     };
+
+    // Função para buscar informações do usuário do perfil
+    const fetchProfileUser = useCallback(async () => {
+        try {
+            const response = await apiFeed.get(`/user/${id}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+            setProfileUser(response.data);
+        } catch (err) {
+            console.error('Error fetching profile user:', err);
+        }
+    }, [id, token]);
 
     // Função para verificar se já segue o usuário
     const checkIsFollowed = useCallback(async () => {
@@ -192,8 +206,9 @@ export default function ProfilePage() {
     useEffect(() => {
         if (id && userId && token) {
             checkIsFollowed();
+            fetchProfileUser();
         }
-    }, [id, userId, token, checkIsFollowed]);
+    }, [id, userId, token, checkIsFollowed, fetchProfileUser]);
 
     // Reset feed quando o ID do perfil mudar
     useEffect(() => {
@@ -201,6 +216,7 @@ export default function ProfilePage() {
         setPage(1);
         setHasMore(true);
         setResetFeedTrigger(prev => prev + 1);
+        setProfileUser(null);
     }, [id]);
 
     const lastPostRef = useCallback(node => {
@@ -529,6 +545,18 @@ export default function ProfilePage() {
         }
     };
 
+    // Determinar foto e nome do perfil
+    const profilePhoto = profileUser 
+        ? (isValidPhoto(profileUser.photo) ? profileUser.photo : getInitialsImage(profileUser.name))
+        : (feed.length > 0 
+            ? (isValidPhoto(feed[0].photo) ? feed[0].photo : getInitialsImage(feed[0].name))
+            : user.photo
+          );
+    
+    const profileName = profileUser 
+        ? profileUser.name 
+        : (feed.length > 0 ? feed[0].name : name);
+
     return (
         <div>
             <SocialHeader user={user} />
@@ -536,7 +564,14 @@ export default function ProfilePage() {
             <div className="col-md-6 App-profile">
                 <div className="profile-container">
                     <div className="d-flex justify-content-between align-items-center">
-                        <Header title="Profile" />
+                        <div className="feed-header-container">
+                            <div className="user-info-header">
+                                <img src={profilePhoto} alt="Profile" className="header-user-photo" />
+                                <div className="header-user-details">
+                                    <h4 className="header-user-name">{profileName}</h4>
+                                </div>
+                            </div>
+                        </div>
                         {renderFollowButton()}
                     </div>
                     <hr className="my-3" />

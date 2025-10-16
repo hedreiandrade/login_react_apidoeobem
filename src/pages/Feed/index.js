@@ -446,7 +446,9 @@ export default function FeedPage() {
                 <div className="feed-container">
                     <div className="feed-header-container">
                         <div className="user-info-header">
-                            <img src={user.photo} alt="User" className="header-user-photo" />
+                            <Link to={`/profile/${userId}`}>
+                                <img src={user.photo} alt="User" className="header-user-photo" />
+                            </Link>
                             <div className="header-user-details">
                                 <h4 className="header-user-name">{name}</h4>
                             </div>

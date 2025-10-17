@@ -13,6 +13,7 @@ export default class Login extends Component {
             isRegistering: false,
             errors: {},
             tabCount: 0,
+            showForgotPassword: false,
             formData: {
                 name: '',
                 email: '',
@@ -22,21 +23,19 @@ export default class Login extends Component {
                 photoPreview: null
             },
             processingGoogleLogin: false,
-            processingFacebookLogin: false // NOVO: estado para Facebook
+            processingFacebookLogin: false
         };
     }
 
     componentDidMount() {
-        this.checkForSocialTokens(); // ALTERADO: verifica ambos
+        this.checkForSocialTokens();
     }
 
-    // CORREÇÃO: Agora verifica tanto Google quanto Facebook no HASH
     checkForSocialTokens = () => {
         const hash = window.location.hash;
         const urlParams = new URLSearchParams(window.location.search);
         
         if (hash && hash.includes('access_token')) {
-            // CORREÇÃO: Verificar se é Facebook pelo state parameter
             const hashParams = new URLSearchParams(hash.substring(1));
             const state = hashParams.get('state');
             if (state && state.includes('facebook')) {
@@ -47,7 +46,6 @@ export default class Login extends Component {
                 this.processGoogleTokenFromRedirect();
             }
         }
-        // Mantém verificação na query string por segurança
         else if (urlParams.has('access_token')) {
             this.setState({ processingFacebookLogin: true });
             this.processFacebookTokenFromRedirect();
@@ -78,7 +76,6 @@ export default class Login extends Component {
                     localStorage.setItem('photo', userData.photo || '');
                     localStorage.setItem('name', userData.name);
                     localStorage.setItem('auth_provider', userData.auth_provider);
-                    // Limpar a URL
                     window.history.replaceState({}, document.title, "/");
                     
                     this.setState({ 
@@ -103,10 +100,8 @@ export default class Login extends Component {
         }
     };
 
-    // NOVO: Método para processar token do Facebook
     processFacebookTokenFromRedirect = async () => {
         try {
-            // CORREÇÃO: Buscar token tanto do hash quanto da query string
             let accessToken;
             const hash = window.location.hash.substring(1);
             const urlParams = new URLSearchParams(window.location.search);
@@ -128,16 +123,13 @@ export default class Login extends Component {
                     token: accessToken
                 });
 
-                // CORREÇÃO: Parsear a resposta manualmente
                 let responseData;
                 
                 if (typeof response.data === 'string') {
-                    // Extrair o JSON da string que contém HTML + JSON
                     const jsonMatch = response.data.match(/\{"response":\{[^]+\}\}/);
                     if (jsonMatch) {
                         try {
                             responseData = JSON.parse(jsonMatch[0]);
-                            console.log('JSON parseado:', responseData);
                         } catch (parseError) {
                             console.error('Erro ao parsear JSON:', parseError);
                         }
@@ -145,7 +137,7 @@ export default class Login extends Component {
                 } else {
                     responseData = response.data;
                 }
-                // Agora acessar os dados corretamente
+
                 const userData = responseData?.response || responseData;
 
                 if (userData && userData.token) {
@@ -155,7 +147,6 @@ export default class Login extends Component {
                     localStorage.setItem('photo', userData.photo || '');
                     localStorage.setItem('name', userData.name);
                     localStorage.setItem('auth_provider', userData.auth_provider);
-                    // Limpar a URL
                     window.history.replaceState({}, document.title, "/");
                     
                     this.setState({ 
@@ -182,7 +173,6 @@ export default class Login extends Component {
     };
 
     handleGoogleLogin = () => {
-        // Use as variáveis de ambiente
         const clientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
         const redirectUri = process.env.REACT_APP_GOOGLE_REDIRECT_URI;
         const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
@@ -191,21 +181,20 @@ export default class Login extends Component {
             `&response_type=token` +
             `&scope=email%20profile` +
             `&prompt=select_account` +
-            `&state=google_${Math.random().toString(36).substring(7)}`; // CORREÇÃO: Adiciona identificador
+            `&state=google_${Math.random().toString(36).substring(7)}`;
         window.location.href = authUrl;
     };
 
     handleFacebookLogin = () => {
         const clientIdFb = process.env.REACT_APP_FACEBOOK_APP_ID;
         const redirectUriFb = process.env.REACT_APP_FACEBOOK_REDIRECT_URI;
-        // SOLICITAR permissão de email (requer App Review)
         const authUrl = `https://www.facebook.com/v19.0/dialog/oauth?` +
             `client_id=${clientIdFb}` +
             `&redirect_uri=${encodeURIComponent(redirectUriFb)}` +
             `&response_type=token` +
-            `&scope=email,public_profile` + // INCLUIR email
-            `&auth_type=rerequest` + // Importantíssimo para re-solicitar permissões
-            `&state=facebook_${Math.random().toString(36).substring(7)}`; // CORREÇÃO: Adiciona identificador
+            `&scope=email,public_profile` +
+            `&auth_type=rerequest` +
+            `&state=facebook_${Math.random().toString(36).substring(7)}`;
         window.location.href = authUrl;
     };
 
@@ -320,7 +309,8 @@ export default class Login extends Component {
         this.setState({ 
             isRegistering: !this.state.isRegistering, 
             message: "", 
-            errors: {} 
+            errors: {},
+            showForgotPassword: false
         });
     };
 
@@ -338,19 +328,63 @@ export default class Login extends Component {
         }
     };
 
+    handleForgotPassword = () => {
+        this.setState({ 
+            showForgotPassword: true,
+            message: '' 
+        });
+    };
+
+    handleBackToLogin = () => {
+        this.setState({ 
+            showForgotPassword: false,
+            message: '' 
+        });
+    };
+
+    handleSendResetEmail = async () => {
+        const { email } = this.state.formData;
+        
+        if (!email) {
+            this.setState({ 
+                message: 'Please enter your email address' 
+            });
+            return;
+        }
+
+        try {
+            this.setState({ message: 'Sending reset email...' });
+            
+            const response = await api.post('/forgot-password', { email });
+            
+            if (response.status === 200) {
+                this.setState({ 
+                    message: 'Password reset email sent! Check your inbox.' 
+                });
+            } else {
+                this.setState({ 
+                    message: response.data.response || 'Error sending reset email' 
+                });
+            }
+        } catch (error) {
+            this.setState({ 
+                message: error.response?.data?.response || 'Error sending reset email' 
+            });
+        }
+    };
+
     render() {
-        const { processingGoogleLogin, processingFacebookLogin } = this.state;
-        const processingAnyLogin = processingGoogleLogin || processingFacebookLogin; // ALTERADO
+        const { processingGoogleLogin, processingFacebookLogin, showForgotPassword, isRegistering } = this.state;
+        const processingAnyLogin = processingGoogleLogin || processingFacebookLogin;
 
         return (
             <div className="col-md-6 App">
-                <Header title={this.state.isRegistering ? "Register" : "H Media"} />
+                <Header title={isRegistering ? "Register" : "H Media"} />
                 <hr className="my-3" />
                 
-                {/* Mensagem de processamento do Google */}
                 {this.state.message && (
                     <Alert 
-                        color={this.state.message.includes('Processando') ? 'info' : 'danger'} 
+                        color={this.state.message.includes('Processando') || this.state.message.includes('Sending') ? 'info' : 'danger'} 
                         className="text-center" 
                         fade={false}
                     >
@@ -358,7 +392,6 @@ export default class Login extends Component {
                     </Alert>
                 )}
 
-                {/* ALTERADO: MOSTRAR LOADING PARA AMBOS */}
                 {processingAnyLogin ? (
                     <div className="text-center">
                         <div className="spinner-border text-primary" role="status">
@@ -370,125 +403,176 @@ export default class Login extends Component {
                         </p>
                     </div>
                 ) : (
-                    /* SEMPRE MOSTRAR FORMULÁRIO QUANDO NÃO ESTÁ PROCESSANDO */
                     <>
-                        <Form>
-                            {this.state.isRegistering && (
-                                <>
-                                    <FormGroup>
-                                        <Label for="name">Name</Label>
-                                        <Input 
-                                            type="text" 
-                                            id="name" 
-                                            name="name" 
-                                            value={this.state.formData.name} 
-                                            onChange={this.handleChange} 
-                                            placeholder="Type your name" 
-                                            autoFocus
-                                        />
-                                        {this.state.errors.name && <Label className="text-danger">{this.state.errors.name}</Label>}
-                                    </FormGroup>
-                                    <FormGroup>
-                                        <Label for="photo">Profile Photo</Label>
-                                        <Input 
-                                            type="file" 
-                                            id="photo" 
-                                            name="photo" 
-                                            onChange={this.handleFileChange} 
-                                        />
-                                        {this.state.formData.photoPreview && (
-                                            <div className="photo-preview-container">
-                                                <img src={this.state.formData.photoPreview} alt="Profile Preview" className="photo-preview" />
-                                            </div>
-                                        )}
-                                    </FormGroup>
-                                </>
-                            )}
-                            <FormGroup>
-                                <Label for="email">Email</Label>
-                                <Input 
-                                    type="email" 
-                                    id="email" 
-                                    name="email" 
-                                    value={this.state.formData.email} 
-                                    onChange={this.handleChange} 
-                                    placeholder="Type your e-mail" 
-                                    autoFocus={!this.state.isRegistering}
-                                />
-                                {this.state.errors.email && <Label className="text-danger">{this.state.errors.email}</Label>}
-                            </FormGroup>
-                            <FormGroup>
-                                <Label for="password">Password</Label>
-                                <Input 
-                                    type="password" 
-                                    id="password" 
-                                    name="password" 
-                                    value={this.state.formData.password} 
-                                    onChange={this.handleChange} 
-                                    placeholder="Type your password" 
-                                />
-                                {this.state.errors.password && <Label className="text-danger">{this.state.errors.password}</Label>}
-                            </FormGroup>
-                            {this.state.isRegistering && (
+                        {showForgotPassword ? (
+                            <Form>
                                 <FormGroup>
-                                    <Label for="passwordConfirm">Confirm Password</Label>
+                                    <Label for="resetEmail">Enter your email to reset password</Label>
                                     <Input 
-                                        type="password" 
-                                        id="passwordConfirm" 
-                                        name="passwordConfirm" 
-                                        value={this.state.formData.passwordConfirm} 
+                                        type="email" 
+                                        id="resetEmail" 
+                                        name="email" 
+                                        value={this.state.formData.email} 
                                         onChange={this.handleChange} 
-                                        placeholder="Confirm your password" 
+                                        placeholder="Type your e-mail" 
+                                        autoFocus
                                     />
-                                    {this.state.errors.passwordConfirm && <Label className="text-danger">{this.state.errors.passwordConfirm}</Label>}
                                 </FormGroup>
-                            )}
-                            <div className="button-container">
-                                <Button 
-                                    color="primary" 
-                                    className="align-button" 
-                                    onClick={this.state.isRegistering ? this.createAccount : this.signIn} 
-                                    onKeyPress={this.enterFormSignIn}
-                                >
-                                    {this.state.isRegistering ? "Register" : "Sign in"}
-                                </Button>
-                                <Button 
-                                    color="secondary" 
-                                    className="align-button" 
-                                    onClick={this.toggleForm} 
-                                    onKeyPress={this.enterFormRegister}
-                                >
-                                    {this.state.isRegistering ? "Back to sign in" : "Register account"}
-                                </Button>
-                            </div>
-                        </Form>
+                                <div className="button-container">
+                                    <Button 
+                                        color="primary" 
+                                        className="align-button" 
+                                        onClick={this.handleSendResetEmail}
+                                    >
+                                        Send Reset Email
+                                    </Button>
+                                    <Button 
+                                        color="secondary" 
+                                        className="align-button" 
+                                        onClick={this.handleBackToLogin}
+                                    >
+                                        Back to Login
+                                    </Button>
+                                </div>
+                            </Form>
+                        ) : (
+                            <>
+                                <Form>
+                                    {isRegistering && (
+                                        <>
+                                            <FormGroup>
+                                                <Label for="name">Name</Label>
+                                                <Input 
+                                                    type="text" 
+                                                    id="name" 
+                                                    name="name" 
+                                                    value={this.state.formData.name} 
+                                                    onChange={this.handleChange} 
+                                                    placeholder="Type your name" 
+                                                    autoFocus
+                                                />
+                                                {this.state.errors.name && <Label className="text-danger">{this.state.errors.name}</Label>}
+                                            </FormGroup>
+                                            <FormGroup>
+                                                <Label for="photo">Profile Photo</Label>
+                                                <Input 
+                                                    type="file" 
+                                                    id="photo" 
+                                                    name="photo" 
+                                                    onChange={this.handleFileChange} 
+                                                />
+                                                {this.state.formData.photoPreview && (
+                                                    <div className="photo-preview-container">
+                                                        <img src={this.state.formData.photoPreview} alt="Profile Preview" className="photo-preview" />
+                                                    </div>
+                                                )}
+                                            </FormGroup>
+                                        </>
+                                    )}
+                                    <FormGroup>
+                                        <Label for="email">Email</Label>
+                                        <Input 
+                                            type="email" 
+                                            id="email" 
+                                            name="email" 
+                                            value={this.state.formData.email} 
+                                            onChange={this.handleChange} 
+                                            placeholder="Type your e-mail" 
+                                            autoFocus={!isRegistering}
+                                        />
+                                        {this.state.errors.email && <Label className="text-danger">{this.state.errors.email}</Label>}
+                                    </FormGroup>
+                                    <FormGroup>
+                                        <Label for="password">Password</Label>
+                                        <Input 
+                                            type="password" 
+                                            id="password" 
+                                            name="password" 
+                                            value={this.state.formData.password} 
+                                            onChange={this.handleChange} 
+                                            placeholder="Type your password" 
+                                        />
+                                        {this.state.errors.password && <Label className="text-danger">{this.state.errors.password}</Label>}
+                                    </FormGroup>
+                                    {isRegistering && (
+                                        <FormGroup>
+                                            <Label for="passwordConfirm">Confirm Password</Label>
+                                            <Input 
+                                                type="password" 
+                                                id="passwordConfirm" 
+                                                name="passwordConfirm" 
+                                                value={this.state.formData.passwordConfirm} 
+                                                onChange={this.handleChange} 
+                                                placeholder="Confirm your password" 
+                                            />
+                                            {this.state.errors.passwordConfirm && <Label className="text-danger">{this.state.errors.passwordConfirm}</Label>}
+                                        </FormGroup>
+                                    )}
+                                    <div className="button-container">
+                                        <Button 
+                                            color="primary" 
+                                            className="align-button" 
+                                            onClick={isRegistering ? this.createAccount : this.signIn} 
+                                            onKeyPress={this.enterFormSignIn}
+                                        >
+                                            {isRegistering ? "Register" : "Sign in"}
+                                        </Button>
+                                        <Button 
+                                            color="secondary" 
+                                            className="align-button" 
+                                            onClick={this.toggleForm} 
+                                            onKeyPress={this.enterFormRegister}
+                                        >
+                                            {isRegistering ? "Back to sign in" : "Register account"}
+                                        </Button>
+                                    </div>
 
-                        {/* Login Social */}
-                        <div className="social-login-container">
-                            <Button 
-                                color="outline-primary" 
-                                className="social-button google-button"
-                                onClick={this.handleGoogleLogin}
-                                block
-                            >
-                                <div className="social-button-content">
-                                    <BsGoogle size={20} className="social-icon" />
-                                    <span className="social-button-text">Continue with Google</span>
+                                    {/* NOVO: Link Forgot Password - só mostra no login */}
+                                    {!isRegistering && (
+                                        <div className="forgot-password-container" style={{ marginTop: '15px', textAlign: 'center' }}>
+                                            <Button 
+                                                color="link" 
+                                                onClick={this.handleForgotPassword}
+                                                style={{ 
+                                                    padding: '15px 10px', 
+                                                    color: '#000000', 
+                                                    fontSize: '16px',
+                                                    textDecoration: 'none'
+                                                }}
+                                            >
+                                                Forgot your password ?
+                                            </Button>
+                                        </div>
+                                    )}
+                                </Form>
+
+                                <div className="social-login-container">
+                                    <Button 
+                                        color="outline-primary" 
+                                        className="social-button google-button"
+                                        onClick={this.handleGoogleLogin}
+                                        block
+                                    >
+                                        <div className="social-button-content">
+                                            <BsGoogle size={20} className="social-icon" />
+                                            <span className="social-button-text">Continue with Google</span>
+                                        </div>
+                                    </Button>
+                                    
+                                    <Button 
+                                        color="outline-primary" 
+                                        className="social-button facebook-button"
+                                        onClick={this.handleFacebookLogin}
+                                        block
+                                    >
+                                        <div className="social-button-content">
+                                            <BsFacebook size={20} className="social-icon" />
+                                            <span className="social-button-text">Continue with Facebook</span>
+                                        </div>
+                                    </Button>
                                 </div>
-                            </Button>
-                            
-                            <Button 
-                                color="outline-primary" 
-                                className="social-button facebook-button"
-                                onClick={this.handleFacebookLogin}
-                                block
-                            >
-                                <div className="social-button-content">
-                                    <BsFacebook size={20} className="social-icon" />
-                                    <span className="social-button-text">Continue with Facebook</span>
-                                </div>
-                            </Button>
-                        </div>
+                            </>
+                        )}
                     </>
                 )}
             </div>

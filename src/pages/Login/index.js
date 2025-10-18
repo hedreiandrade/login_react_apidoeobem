@@ -424,14 +424,14 @@ export default class Login extends Component {
                                         className="align-button" 
                                         onClick={this.handleSendResetEmail}
                                     >
-                                        Send Reset Email
+                                        Send reset email
                                     </Button>
                                     <Button 
                                         color="secondary" 
                                         className="align-button" 
                                         onClick={this.handleBackToLogin}
                                     >
-                                        Back to Login
+                                        Back to sign in
                                     </Button>
                                 </div>
                             </Form>

@@ -344,20 +344,18 @@ export default class Login extends Component {
 
     handleSendResetEmail = async () => {
         const { email } = this.state.formData;
-        
         if (!email) {
             this.setState({ 
                 message: 'Please enter your email address' 
             });
             return;
         }
-
         try {
             this.setState({ message: 'Sending reset email...' });
-            
-            const response = await api.post('/forgot-password', { email });
-            
-            if (response.status === 200) {
+            const response = await api.get(`/emailForgotPassword/${email}`);
+            console.log('hedrei');
+            console.log(response.data.status);
+            if (response.data.status === 200) {
                 this.setState({ 
                     message: 'Password reset email sent! Check your inbox.' 
                 });
@@ -380,18 +378,21 @@ export default class Login extends Component {
         return (
             <div className="col-md-6 App">
                 <Header title={isRegistering ? "Register" : "H Media"} />
-                <hr className="my-3" />
-                
+                <hr className="my-3" />         
                 {this.state.message && (
                     <Alert 
-                        color={this.state.message.includes('Processando') || this.state.message.includes('Sending') ? 'info' : 'danger'} 
+                        color={
+                            this.state.message.includes('Processando') || 
+                            this.state.message.includes('Sending') ? 'info' : 
+                            this.state.message.includes('Password reset email sent') ? 'success' : 
+                            'danger'
+                        } 
                         className="text-center" 
                         fade={false}
                     >
                         {this.state.message}
                     </Alert>
                 )}
-
                 {processingAnyLogin ? (
                     <div className="text-center">
                         <div className="spinner-border text-primary" role="status">

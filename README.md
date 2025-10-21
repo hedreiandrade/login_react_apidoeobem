@@ -1,11 +1,6 @@
 <div align="center">
-  <img src="socialmidia.gif" alt="GIF Demonstração">
-</div>
-
-<div align="center">
-  <img src="register.png" alt="Tela de Registro">
-  <img src="followers.png" alt="Tela de Seguidores">
-  <img src="feed.png" alt="Tela de Feed">
+  <img src="socialmidia.gif" alt="GIF demonstração web">
+  <img src="socialmidiaresponsive.gif" alt="GIF demonstração mobile">
 </div>
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).

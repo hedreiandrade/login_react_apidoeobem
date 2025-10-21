@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="socialmidia.gif" alt="GIF demonstração web">
+  <img src="socialmidiaweb.gif" alt="GIF demonstração web">
   <img src="socialmidiaresponsive.gif" alt="GIF demonstração mobile">
 </div>
 

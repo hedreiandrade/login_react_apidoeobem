@@ -4,6 +4,7 @@ import Header from '../../components/Header';
 import { api } from '../../services/api';
 import '../../styles/Login.css';
 import { BsFacebook, BsGoogle } from "react-icons/bs";
+import { FaHeading } from "react-icons/fa6";
 
 export default class Login extends Component {
     constructor(props) {
@@ -353,9 +354,7 @@ export default class Login extends Component {
         try {
             this.setState({ message: 'Sending reset email...' });
             const response = await api.get(`/emailForgotPassword/${email}`);
-            console.log('hedrei');
-            console.log(response.data.status);
-            if (response.data.status === 200) {
+            if (response.status === 200) {
                 this.setState({ 
                     message: 'Password reset email sent! Check your inbox.' 
                 });
@@ -377,7 +376,15 @@ export default class Login extends Component {
 
         return (
             <div className="col-md-6 App">
-                <Header title={isRegistering ? "Register" : "H Media"} />
+                <Header 
+                    title={
+                        isRegistering ? "Register" : 
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <FaHeading size={30} style={{ marginRight: '8px' }} />
+                            Media
+                        </div>
+                    } 
+                />
                 <hr className="my-3" />         
                 {this.state.message && (
                     <Alert 

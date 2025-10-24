@@ -186,7 +186,7 @@ export default function ResetPassword() {
                 {tokenValid && (
                     <Form onSubmit={handleSubmit}>
                         <FormGroup>
-                            <Label for="newPassword">New Password</Label>
+                            <Label for="newPassword">New password</Label>
                             <Input
                                 type="password"
                                 id="newPassword"
@@ -214,7 +214,7 @@ export default function ResetPassword() {
                         </FormGroup>
 
                         <FormGroup>
-                            <Label for="confirmPassword">Confirm New Password</Label>
+                            <Label for="confirmPassword">Confirm new password</Label>
                             <Input
                                 type="password"
                                 id="confirmPassword"

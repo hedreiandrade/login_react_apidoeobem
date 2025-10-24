@@ -10,6 +10,7 @@ import Followers from './pages/Followers';
 import Following from './pages/Following';
 import Profile from './pages/Profile';
 import Search from './pages/Search';
+import ForgotPassword from './pages/ForgotPassword';
 
 const Routes = () => (
     <Router>
@@ -22,6 +23,7 @@ const Routes = () => (
             <PrivateRoute path="/following" component={Following} />
             <PrivateRoute path="/profile/:id" component={Profile} />
             <PrivateRoute path="/search" component={Search} />
+            <Route path="/forgot-password" component={ForgotPassword} />
             <Route exact path="/logout" component={Logout} />
         </Switch>
     </Router>

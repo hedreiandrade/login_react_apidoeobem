@@ -142,14 +142,16 @@ export default function ResetPassword() {
             const response = await api.post('/resetPassword', {
                 token: token,
                 email: email,
-                newPassword: formData.newPassword
+                newPassword: formData.newPassword,
+                confirmPassword: formData.confirmPassword
             });
-
-            if (response.status === 200) {
+            if (response.data.status === 200) {
                 setMessage('Password reset successfully!');
                 setTimeout(() => {
-                    history.push('/login');
+                    history.push('/');
                 }, 3000);
+            }else{
+                setMessage(response.data.message);
             }
         } catch (error) {
             setMessage('Error resetting password. Please try again.');

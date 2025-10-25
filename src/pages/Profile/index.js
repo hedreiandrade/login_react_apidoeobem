@@ -556,7 +556,7 @@ export default function ProfilePage() {
     const renderFollowButton = () => {
         if (userId === parseInt(id)) {
             return (
-                <button className="btn btn-outline-secondary btn-sm" disabled>
+                <button className="btn btn-outline-secondary btn-sm ms-3" disabled>
                     Your Profile
                 </button>
             );
@@ -564,7 +564,7 @@ export default function ProfilePage() {
 
         if (checkingFollowStatus) {
             return (
-                <button className="btn btn-secondary btn-sm" disabled>
+                <button className="btn btn-secondary btn-sm ms-3" disabled>
                     Loading...
                 </button>
             );
@@ -572,7 +572,7 @@ export default function ProfilePage() {
 
         if (followLoading) {
             return (
-                <button className="btn btn-secondary btn-sm" disabled>
+                <button className="btn btn-secondary btn-sm ms-3" disabled>
                     {isFollowed ? 'Unfollowing...' : 'Following...'}
                 </button>
             );
@@ -581,7 +581,7 @@ export default function ProfilePage() {
         if (isFollowed) {
             return (
                 <button 
-                    className="btn btn-secondary btn-sm" 
+                    className="btn btn-secondary btn-sm ms-3" 
                     onClick={unfollowUser}
                 >
                     Following
@@ -590,7 +590,7 @@ export default function ProfilePage() {
         } else {
             return (
                 <button 
-                    className="btn btn-primary btn-sm" 
+                    className="btn btn-primary btn-sm ms-3" 
                     onClick={followUser}
                 >
                     Follow
@@ -656,47 +656,48 @@ export default function ProfilePage() {
                                     />
                                 )}
                                 <div className="header-user-details">
+                                    <hr className="my-1" />
                                     <h4 className="header-user-name">
                                         {isLoadingProfile ? "Loading..." : profileInfo.name}
                                     </h4>
+                                    <br/>
+                                    {/* Mostrar contagens apenas se NÃO for o próprio perfil */}
+                                    {userId !== parseInt(id) && (
+                                        <div className="follow-counts">
+                                            <button 
+                                                className="btn btn-primary btn-sm" 
+                                                style={{ 
+                                                    marginRight: "10px",
+                                                    backgroundColor: '#085f7f',
+                                                    borderColor: '#085f7f',
+                                                    color: '#fff'
+                                                }}
+                                                disabled
+                                            >
+                                                <span style={{ margin: 0 }}>
+                                                    {countsLoading ? "Loading..." : `${followersCount} Followers`}
+                                                </span>
+                                            </button>
+
+                                            <button 
+                                                className="btn btn-primary btn-sm" 
+                                                style={{ 
+                                                    backgroundColor: '#085f7f',
+                                                    borderColor: '#085f7f',
+                                                    color: '#fff'
+                                                }}
+                                                disabled
+                                            >
+                                                <span style={{ margin: 0 }}>
+                                                    {countsLoading ? "Loading..." : `${followingCount} Following`}
+                                                </span>
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
-                        <div className="d-flex align-items-center">
-                            {/* Mostrar contagens apenas se NÃO for o próprio perfil */}
-                            {userId !== parseInt(id) && (
-                                <div className="follow-counts d-flex align-items-center">
-                                    <button 
-                                        className="btn btn-primary btn-sm me-2" 
-                                        style={{ 
-                                            backgroundColor: '#002aff',
-                                            borderColor: '#002aff',
-                                            color: '#fff'
-                                        }}
-                                        disabled
-                                    >
-                                        <span style={{ margin: 0 }}>
-                                            {countsLoading ? "Loading..." : `${followersCount} Followers`}
-                                        </span>
-                                    </button>
-
-                                    <button 
-                                        className="btn btn-primary btn-sm me-2" 
-                                        style={{ 
-                                            backgroundColor: '#002aff',
-                                            borderColor: '#002aff',
-                                            color: '#fff'
-                                        }}
-                                        disabled
-                                    >
-                                        <span style={{ margin: 0 }}>
-                                            {countsLoading ? "Loading..." : `${followingCount} Following`}
-                                        </span>
-                                    </button>
-                                </div>
-                            )}
-                            {renderFollowButton()}
-                        </div>
+                        {renderFollowButton()}
                     </div>
                     <hr className="my-3" />
                     {error && <Alert color="danger" fade={false} className="text-center">{error}</Alert>}

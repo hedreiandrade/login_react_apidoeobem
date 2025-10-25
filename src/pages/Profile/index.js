@@ -31,6 +31,9 @@ export default function ProfilePage() {
     const [deletingPosts, setDeletingPosts] = useState({});
     const [profileUser, setProfileUser] = useState(null);
     const [profileUserError, setProfileUserError] = useState(false);
+    const [followersCount, setFollowersCount] = useState(0);
+    const [followingCount, setFollowingCount] = useState(0);
+    const [countsLoading, setCountsLoading] = useState(true);
     
     const observer = useRef();
     const commentsEndRefs = useRef({});
@@ -89,6 +92,42 @@ export default function ProfilePage() {
         }
     }, [id, userId, token]);
 
+    // Função para buscar contagem de seguidores e seguindo
+    const fetchFollowCounts = useCallback(async () => {
+        try {
+            setCountsLoading(true);
+            const isValid = await getVerifyToken(token);
+            if (!isValid) {
+                window.location.href = "/";
+                return;
+            }
+
+            // Buscar contagem de seguidores
+            const followersResponse = await apiFeed.get(`/followers/${id}/1/5`, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+            if (followersResponse.data && typeof followersResponse.data.total === 'number') {
+                setFollowersCount(followersResponse.data.total);
+            }
+
+            // Buscar contagem de seguindo
+            const followingResponse = await apiFeed.get(`/following/${id}/1/5`, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+            if (followingResponse.data && typeof followingResponse.data.total === 'number') {
+                setFollowingCount(followingResponse.data.total);
+            }
+        } catch (error) {
+            console.error('Failed to fetch follow counts', error);
+        } finally {
+            setCountsLoading(false);
+        }
+    }, [id, token]);
+
     // Função para seguir usuário
     const followUser = async () => {
         setFollowLoading(true);
@@ -102,6 +141,8 @@ export default function ProfilePage() {
                 }
             });
             setIsFollowed(true);
+            // Atualizar contagem após seguir
+            await fetchFollowCounts();
         } catch (err) {
             setError('Failed to follow user');
         } finally {
@@ -122,6 +163,8 @@ export default function ProfilePage() {
                 }
             });
             setIsFollowed(false);
+            // Atualizar contagem após deixar de seguir
+            await fetchFollowCounts();
         } catch (err) {
             setError('Failed to unfollow user');
         } finally {
@@ -213,8 +256,9 @@ export default function ProfilePage() {
         if (id && userId && token) {
             checkIsFollowed();
             fetchProfileUser();
+            fetchFollowCounts();
         }
-    }, [id, userId, token, checkIsFollowed, fetchProfileUser]);
+    }, [id, userId, token, checkIsFollowed, fetchProfileUser, fetchFollowCounts]);
 
     // Reset feed quando o ID do perfil mudar
     useEffect(() => {
@@ -224,6 +268,9 @@ export default function ProfilePage() {
         setResetFeedTrigger(prev => prev + 1);
         setProfileUser(null);
         setProfileUserError(false);
+        setFollowersCount(0);
+        setFollowingCount(0);
+        setCountsLoading(true);
     }, [id]);
 
     const lastPostRef = useCallback(node => {
@@ -509,7 +556,7 @@ export default function ProfilePage() {
     const renderFollowButton = () => {
         if (userId === parseInt(id)) {
             return (
-                <button className="btn btn-outline-secondary btn-sm ms-3" disabled>
+                <button className="btn btn-outline-secondary btn-sm" disabled>
                     Your Profile
                 </button>
             );
@@ -517,7 +564,7 @@ export default function ProfilePage() {
 
         if (checkingFollowStatus) {
             return (
-                <button className="btn btn-secondary btn-sm ms-3" disabled>
+                <button className="btn btn-secondary btn-sm" disabled>
                     Loading...
                 </button>
             );
@@ -525,7 +572,7 @@ export default function ProfilePage() {
 
         if (followLoading) {
             return (
-                <button className="btn btn-secondary btn-sm ms-3" disabled>
+                <button className="btn btn-secondary btn-sm" disabled>
                     {isFollowed ? 'Unfollowing...' : 'Following...'}
                 </button>
             );
@@ -534,7 +581,7 @@ export default function ProfilePage() {
         if (isFollowed) {
             return (
                 <button 
-                    className="btn btn-secondary btn-sm ms-3" 
+                    className="btn btn-secondary btn-sm" 
                     onClick={unfollowUser}
                 >
                     Following
@@ -543,7 +590,7 @@ export default function ProfilePage() {
         } else {
             return (
                 <button 
-                    className="btn btn-primary btn-sm ms-3" 
+                    className="btn btn-primary btn-sm" 
                     onClick={followUser}
                 >
                     Follow
@@ -615,7 +662,41 @@ export default function ProfilePage() {
                                 </div>
                             </div>
                         </div>
-                        {renderFollowButton()}
+                        <div className="d-flex align-items-center">
+                            {/* Mostrar contagens apenas se NÃO for o próprio perfil */}
+                            {userId !== parseInt(id) && (
+                                <div className="follow-counts d-flex align-items-center">
+                                    <button 
+                                        className="btn btn-primary btn-sm me-2" 
+                                        style={{ 
+                                            backgroundColor: '#002aff',
+                                            borderColor: '#002aff',
+                                            color: '#fff'
+                                        }}
+                                        disabled
+                                    >
+                                        <span style={{ margin: 0 }}>
+                                            {countsLoading ? "Loading..." : `${followersCount} Followers`}
+                                        </span>
+                                    </button>
+
+                                    <button 
+                                        className="btn btn-primary btn-sm me-2" 
+                                        style={{ 
+                                            backgroundColor: '#002aff',
+                                            borderColor: '#002aff',
+                                            color: '#fff'
+                                        }}
+                                        disabled
+                                    >
+                                        <span style={{ margin: 0 }}>
+                                            {countsLoading ? "Loading..." : `${followingCount} Following`}
+                                        </span>
+                                    </button>
+                                </div>
+                            )}
+                            {renderFollowButton()}
+                        </div>
                     </div>
                     <hr className="my-3" />
                     {error && <Alert color="danger" fade={false} className="text-center">{error}</Alert>}

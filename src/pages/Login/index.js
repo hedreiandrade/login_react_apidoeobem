@@ -403,7 +403,6 @@ export default class Login extends Component {
                 {processingAnyLogin ? (
                     <div className="text-center">
                         <div className="spinner-border text-primary" role="status">
-                            <span className="sr-only">Processando login...</span>
                         </div>
                         <p>
                             {processingGoogleLogin && 'Processando login com Google...'}

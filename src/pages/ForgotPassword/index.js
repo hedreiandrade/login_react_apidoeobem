@@ -146,7 +146,7 @@ export default function ResetPassword() {
                 confirmPassword: formData.confirmPassword
             });
             if (response.data.status === 200) {
-                setMessage('Password reset successfully!');
+                setMessage('Password reseted successfully!');
                 setTimeout(() => {
                     history.push('/');
                 }, 3000);

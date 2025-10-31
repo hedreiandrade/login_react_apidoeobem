@@ -269,39 +269,59 @@ export default class Login extends Component {
         if (!this.validateFields()) return;
 
         const { email, password } = this.state.formData;
-        const response = await api.post('/login', { email, password });
-        if (typeof response.data.response.token === "undefined") {
-            this.setState({ message: response.data.response });
-        } else {
-            localStorage.setItem('login_token', response.data.response.token);
-            localStorage.setItem('user_id', response.data.response.user_id);
-            localStorage.setItem('photo', response.data.response.photo);
-            localStorage.setItem('name', response.data.response.name);
-            this.setState({ message: '' });
-            this.props.history.push("/feed");
+        
+        try {
+            const response = await api.post('/login', { email, password });
+            if (typeof response.data.response.token === "undefined") {
+                this.setState({ message: response.data.response });
+            } else {
+                localStorage.setItem('login_token', response.data.response.token);
+                localStorage.setItem('user_id', response.data.response.user_id);
+                localStorage.setItem('photo', response.data.response.photo);
+                localStorage.setItem('name', response.data.response.name);
+                this.setState({ message: '' });
+                this.props.history.push("/feed");
+            }
+        } catch (error) {
+            this.setState({ 
+                message: error.response?.data?.response || 'Erro no servidor' 
+            });
         }
     };
 
     createAccount = async () => {
         if (!this.validateFields()) return;
-
+        this.setState({ message: 'Creating account and sending email confirmation.' });
         const formData = new FormData();
         formData.append('name', this.state.formData.name);
         formData.append('email', this.state.formData.email);
         formData.append('password', this.state.formData.password);
         formData.append('photo', this.state.formData.photo);
 
-        const response = await api.post("/user", formData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
-        });
+        try {
+            const response = await api.post("/user", formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
 
-        if (response.status === 201) {
-            this.setState({ message: 'This email needs a check confirmation in your email' });
-        } else {
-            if(response.data.password){
-                this.setState({ message: response.data.password[0] });
+            if (response.status === 201) {
+                // Mostra mensagem de sucesso (success/verde) após criar a conta
+                this.setState({ 
+                    message: 'Account created successfully! Check your email to confirm your account.' 
+                });
+            } else {
+                if(response.data.password){
+                    this.setState({ message: response.data.password[0] });
+                }else{
+                    this.setState({ message: response.data.response});
+                }
+            }
+        } catch (error) {
+            if(error.response?.data?.password){
+                this.setState({ message: error.response.data.password[0] });
             }else{
-                this.setState({ message: response.data.response});
+                this.setState({ 
+                    message: error.response?.data?.response || 'Error creating account' 
+                });
             }
         }
     };
@@ -390,8 +410,10 @@ export default class Login extends Component {
                     <Alert 
                         color={
                             this.state.message.includes('Processando') || 
-                            this.state.message.includes('Sending') ? 'info' : 
-                            this.state.message.includes('Password reset email sent') ? 'success' : 
+                            this.state.message.toLowerCase().includes('sending') ? 'info' :  
+                            this.state.message.includes('Password reset email sent') || 
+                            this.state.message.includes('Account created successfully') || 
+                            this.state.message.includes('This email needs a check confirmation') ? 'success' : 
                             'danger'
                         } 
                         className="text-center" 

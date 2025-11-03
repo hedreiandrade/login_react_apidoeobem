@@ -164,7 +164,6 @@ export default class Login extends Component {
                 }
             }
         } catch (error) {
-            console.error('Error Facebook:', error);
             this.setState({ 
                 message: error.response?.data?.response || 'Erro no servidor',
                 processingFacebookLogin: false 
@@ -375,9 +374,15 @@ export default class Login extends Component {
             this.setState({ message: 'Sending reset email...' });
             const response = await api.get(`/emailForgotPassword/${email}`);
             if (response.status === 200) {
-                this.setState({ 
-                    message: 'Password reset email sent! Check your inbox.' 
-                });
+                if(response.data.status === 401){
+                    this.setState({ 
+                        message: response.data.response || 'Error sending reset email' 
+                    });
+                }else{
+                    this.setState({ 
+                        message: 'Password reset email sent! Check your inbox.' 
+                    });
+                }
             } else {
                 this.setState({ 
                     message: response.data.response || 'Error sending reset email' 
@@ -414,7 +419,8 @@ export default class Login extends Component {
                             this.state.message.includes('Password reset email sent') || 
                             this.state.message.includes('Account created successfully') || 
                             this.state.message.includes('This email needs a check confirmation') ? 'success' : 
-                            'danger'
+                            this.state.message.includes('An error occurred while sent email forgot password') ? 'danger' :
+                                    'danger'
                         } 
                         className="text-center" 
                         fade={false}

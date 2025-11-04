@@ -376,7 +376,7 @@ export default class Login extends Component {
             if (response.status === 200) {
                 if(response.data.status === 401){
                     this.setState({ 
-                        message: response.data.response || 'Error sending reset email' 
+                        message: response.data.response || 'An error occurred while sent email forgot password' 
                     });
                 }else{
                     this.setState({ 

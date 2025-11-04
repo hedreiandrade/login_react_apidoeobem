@@ -138,7 +138,7 @@ export default function ChangePassword() {
         <div>
             <SocialHeader user={user} />
             <div className="col-md-6 App">
-                <Header title="Change Password" />
+                <Header title="Change password" />
                 <hr className="my-3" />
                 {message && <Alert color={message.includes('successfully') ? 'success' : 'danger'} className="text-center" fade={false}>{message}</Alert>}
                 <Form onSubmit={handleSubmit}>

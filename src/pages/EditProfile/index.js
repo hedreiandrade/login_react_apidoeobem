@@ -149,14 +149,18 @@ export default function EditProfile() {
                     Authorization: `Bearer ${token}`
                 }
             });
-            if (response.status === 203) {
+            if (response.data.status === 203) {
                 setMessage('There is an account for this e-mail, try to recover your password.');
             } else {
-                localStorage.setItem('photo', response.data.photo);
-                window.location.reload();
+                if(response.data.status === 401){
+                     setMessage(response.data.response);
+                }else{
+                    localStorage.setItem('photo', response.data.photo);
+                    window.location.reload();
+                }
             }
         } catch (error) {
-            setMessage('Update profile have error');
+            setMessage(error.response?.data?.response);
         }
     };
 
@@ -164,7 +168,7 @@ export default function EditProfile() {
         <div>
             <SocialHeader user={user} />
             <div className="col-md-6 App">
-                <Header title="Edit Profile" />
+                <Header title="Edit profile" />
                 <hr className="my-3" />
                 {message && <Alert color="danger" className="text-center" fade={false}>{message}</Alert>}
                 <Form>

@@ -98,10 +98,8 @@ export default function ChangePassword() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!validateFields()) return;
-
         const token = localStorage.getItem('login_token');
         const userId = localStorage.getItem('user_id');
-
         try {
             const isValid = await getVerifyToken(token);
             if (!isValid) {
@@ -119,18 +117,13 @@ export default function ChangePassword() {
                     Authorization: `Bearer ${token}`
                 }
             });
-
-            if (response.status === 201) {
+            if (response.data.status === 200) {
                 setMessage('Password updated successfully');
-                setTimeout(() => {
-                    history.push("/edit-profile");
-                }, 2000); // Redireciona após 2 segundos
             } else {
-                setMessage(response.data.response || 'Error updating password');
+                setMessage(response.data.response || 'An error occurred while change password');
             }
         } catch (error) {
-            console.log(error);
-            setMessage('Error updating password');
+            setMessage(error.response?.data?.response);
         }
     };
 

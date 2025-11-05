@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { apiFeed } from "../services/api";
 import { useExpireToken } from "../hooks/expireToken";
 import { getVerifyToken } from "../ultils/verifyToken";
+import { FaHeading } from "react-icons/fa6";
 
 export default function SocialHeader({ user }) {
     useExpireToken();
@@ -87,7 +88,7 @@ export default function SocialHeader({ user }) {
 
     return (
         <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px", background: "#007bff", color: "#fff", position: "relative" }}>
-            <Link to="/feed" style={{ color: "#fff", textDecoration: "none" }}><h4>H Media</h4></Link>
+            <Link to="/feed" style={{ color: "#fff", textDecoration: "none" }}><h4>&nbsp;&nbsp;<FaHeading size={28} style={{ marginRight: '8px', marginBottom: '5px' }} /> Media</h4></Link>
 
             <div style={{ display: "flex", alignItems: "center" }}>
                 {/* Contador de seguidores (visível) */}

@@ -117,16 +117,17 @@ export default function FeedPage() {
                 window.location.href = "/";
                 return;
             }
-
-            await apiFeed.delete(`/posts/${postId}`, {
+            const response = await apiFeed.delete(`/posts/${postId}`, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 }
             });
-
-            setFeed(prevFeed => prevFeed.filter(post => post.post_id !== postId));
-
+            if(response.data.status === 401){
+                setError('Failed to delete a post');
+            }else{
+                setFeed(prevFeed => prevFeed.filter(post => post.post_id !== postId));
+            }
         } catch (err) {
             setError('Failed to delete post');
         } finally {

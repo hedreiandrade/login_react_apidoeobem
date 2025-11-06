@@ -328,40 +328,38 @@ export default function FeedPage() {
     const handlePost = useCallback(async () => {
         if (!description.trim() && !mediaFile) return;
         setPosting(true);
-
         try {
             const isValid = await getVerifyToken(token);
             if (!isValid) {
                 window.location.href = "/";
                 return;
             }
-
             const formData = new FormData();
             formData.append('user_id', userId);
             formData.append('description', description);
             if (mediaFile) {
                 formData.append('media_link', mediaFile);
             }
-
-            await apiFeed.post('/posts', formData, {
+            const response = await apiFeed.post('/posts', formData, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                     'Content-Type': 'multipart/form-data'
                 }
             });
-
-            setDescription('');
-            setMediaFile(null);
-            setPreviewUrl(null);
-            if (fileInputRef.current) {
-                fileInputRef.current.value = '';
+            if(response.data.status === 401){
+                setError('Failed to create post');
+            }else{
+                setDescription('');
+                setMediaFile(null);
+                setPreviewUrl(null);
+                if (fileInputRef.current) {
+                    fileInputRef.current.value = '';
+                }
+                setPage(1);
+                setFeed([]);
+                setHasMore(true);
+                setResetFeedTrigger(prev => prev + 1);
             }
-            
-            setPage(1);
-            setFeed([]);
-            setHasMore(true);
-            setResetFeedTrigger(prev => prev + 1);
-            
         } catch (err) {
             setError('Failed to create post');
         } finally {

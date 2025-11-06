@@ -148,7 +148,7 @@ html {
 
 .edit-profile-btn:hover {
     text-decoration: none;
-    color: #6c757d;
+    color: #FFF;
 }
 
 /* Profile Details */
@@ -565,9 +565,25 @@ html {
     .comment-submit-btn {
         align-self: flex-end;
     }
+
+    .follow-btn {
+        margin-top: 60px;
+    }
+
+    .edit-profile-btn{
+        margin-top: 60px;
+    }
+    .edit-profile-btn:hover {
+        color: #FFF;
+    }
 }
 
 @media (max-width: 576px) {
+
+    .follow-btn {
+        margin-top: 60px;
+    }
+
     .profile-avatar {
         width: 100px;
         height: 100px;
@@ -589,5 +605,12 @@ html {
     
     .profile-info-section {
         margin-top: -50px;
+    }
+
+    .edit-profile-btn{
+        margin-top: 60px;
+    }
+    .edit-profile-btn:hover {
+        color: #FFF;
     }
 }

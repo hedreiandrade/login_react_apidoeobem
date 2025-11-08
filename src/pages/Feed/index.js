@@ -370,41 +370,39 @@ export default function FeedPage() {
 
     const handleLike = useCallback(async (postId, currentLikes, isCurrentlyLiked) => {
         if (likingPosts[postId]) return;
-        
         setLikingPosts(prev => ({ ...prev, [postId]: true }));
-        
         try {
             const isValid = await getVerifyToken(token);
             if (!isValid) {
                 window.location.href = "/";
                 return;
             }
-
             const endpoint = isCurrentlyLiked ? '/unLike' : '/like';
             const data = {
                 post_id: postId,
                 user_id: userId
             };
-
-            await apiFeed.post(endpoint, data, {
+            const response = await apiFeed.post(endpoint, data, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 }
             });
-
-            setFeed(prevFeed => 
-                prevFeed.map(post => 
-                    post.post_id === postId 
-                        ? { 
-                            ...post, 
-                            number_likes: isCurrentlyLiked ? currentLikes - 1 : currentLikes + 1,
-                            user_has_liked: !isCurrentlyLiked
-                        } 
-                        : post
-                )
-            );
-
+            if(response.data.status === 401){
+                setError(`Failed to ${isCurrentlyLiked ? 'unlike' : 'like'} post`);
+            }else{
+                setFeed(prevFeed => 
+                    prevFeed.map(post => 
+                        post.post_id === postId 
+                            ? { 
+                                ...post, 
+                                number_likes: isCurrentlyLiked ? currentLikes - 1 : currentLikes + 1,
+                                user_has_liked: !isCurrentlyLiked
+                            } 
+                            : post
+                    )
+                );
+            }
         } catch (err) {
             setError(`Failed to ${isCurrentlyLiked ? 'unlike' : 'like'} post`);
         } finally {

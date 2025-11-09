@@ -231,49 +231,45 @@ export default function FeedPage() {
     const handleAddComment = useCallback(async (postId) => {
         const commentText = commentTexts[postId] || '';
         if (!commentText.trim()) return;
-
         setCommentingPosts(prev => ({ ...prev, [postId]: true }));
-
         try {
             const isValid = await getVerifyToken(token);
             if (!isValid) {
                 window.location.href = "/";
                 return;
             }
-
             const data = {
                 post_id: postId,
                 user_id: userId,
                 comment: commentText
             };
-
-            await apiFeed.post('/comments', data, {
+            const response = await apiFeed.post('/comments', data, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 }
             });
-
-            await fetchComments(postId, 1);
-            
-            setCommentTexts(prev => ({
-                ...prev,
-                [postId]: ''
-            }));
-
-            setFeed(prevFeed => 
-                prevFeed.map(post => 
-                    post.post_id === postId 
-                        ? { 
-                            ...post, 
-                            number_comments: (post.number_comments || 0) + 1
-                        } 
-                        : post
-                )
-            );
-
+            if(response.data.status === 401){
+                setError(`Failed to comment a post`);
+            }else{
+                await fetchComments(postId, 1);
+                setCommentTexts(prev => ({
+                    ...prev,
+                    [postId]: ''
+                }));
+                setFeed(prevFeed => 
+                    prevFeed.map(post => 
+                        post.post_id === postId 
+                            ? { 
+                                ...post, 
+                                number_comments: (post.number_comments || 0) + 1
+                            } 
+                            : post
+                    )
+                );
+            }
         } catch (err) {
-            setError('Failed to add comment');
+            setError('Failed to comment a post');
         } finally {
             setCommentingPosts(prev => ({ ...prev, [postId]: false }));
         }
@@ -286,34 +282,34 @@ export default function FeedPage() {
                 window.location.href = "/";
                 return;
             }
-
-            await apiFeed.delete(`/comments/${commentId}`, {
+            const response = await apiFeed.delete(`/comments/${commentId}`, {
                 data: { user_id: userId },
                 headers: {
                     Authorization: `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 }
             });
-
-            setCommentsData(prev => ({
-                ...prev,
-                [postId]: {
-                    ...prev[postId],
-                    data: prev[postId]?.data?.filter(comment => comment.id !== commentId) || []
-                }
-            }));
-
-            setFeed(prevFeed => 
-                prevFeed.map(post => 
-                    post.post_id === postId 
-                        ? { 
-                            ...post, 
-                            number_comments: Math.max(0, (post.number_comments || 1) - 1)
-                        } 
-                        : post
-                )
-            );
-
+            if(response.data.status === 401){
+                setError(`Failed to delete comment`);
+            }else{
+                setCommentsData(prev => ({
+                    ...prev,
+                    [postId]: {
+                        ...prev[postId],
+                        data: prev[postId]?.data?.filter(comment => comment.id !== commentId) || []
+                    }
+                }));
+                setFeed(prevFeed => 
+                    prevFeed.map(post => 
+                        post.post_id === postId 
+                            ? { 
+                                ...post, 
+                                number_comments: Math.max(0, (post.number_comments || 1) - 1)
+                            } 
+                            : post
+                    )
+                );
+            }
         } catch (err) {
             setError('Failed to delete comment');
         }

@@ -8,6 +8,8 @@ import EditProfile from './pages/EditProfile';
 import ChangePassword from './pages/ChangePassword';
 import Followers from './pages/Followers';
 import Following from './pages/Following';
+import FollowersUsers from './pages/FollowersUsers';
+import FollowingUsers from './pages/FollowingUsers';
 import Profile from './pages/Profile';
 import Search from './pages/Search';
 import ForgotPassword from './pages/ForgotPassword';
@@ -21,6 +23,8 @@ const Routes = () => (
             <PrivateRoute path="/change-password" component={ChangePassword} />
             <PrivateRoute path="/followers" component={Followers} />
             <PrivateRoute path="/following" component={Following} />
+            <PrivateRoute path="/followersUsers/:id" component={FollowersUsers} />
+            <PrivateRoute path="/followingUsers/:id" component={FollowingUsers} />
             <PrivateRoute path="/profile/:id" component={Profile} />
             <PrivateRoute path="/search" component={Search} />
             <Route path="/forgot-password" component={ForgotPassword} />

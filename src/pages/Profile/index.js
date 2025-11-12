@@ -790,34 +790,36 @@ export default function ProfilePage() {
                                 </>
                             ) : (
                                 <>
-                                    <button 
+                                    <Link 
+                                        to={`/followingUsers/${id}`}
                                         className="btn btn-primary btn-sm" 
                                         style={{ 
                                             marginRight: "10px",
                                             backgroundColor: '#085f7f',
                                             borderColor: '#085f7f',
-                                            color: '#fff'
+                                            color: '#fff',
+                                            textDecoration: 'none'
                                         }}
-                                        disabled
                                     >
                                         <span style={{ margin: 0 }}>
                                             {countsLoading ? "Loading..." : `${followingCount} Following`}
                                         </span>
-                                    </button>
+                                    </Link>
 
-                                    <button 
+                                    <Link 
+                                        to={`/followersUsers/${id}`}
                                         className="btn btn-primary btn-sm" 
                                         style={{ 
                                             backgroundColor: '#085f7f',
                                             borderColor: '#085f7f',
-                                            color: '#fff'
+                                            color: '#fff',
+                                            textDecoration: 'none'
                                         }}
-                                        disabled
                                     >
                                         <span style={{ margin: 0 }}>
                                             {countsLoading ? "Loading..." : `${followersCount} Followers`}
                                         </span>
-                                    </button>
+                                    </Link>
                                 </>
                             )}
                         </div>

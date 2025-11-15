@@ -1,17 +1,55 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Footer from '../../components/Footer';
 import SocialHeader from '../../components/SocialHeader';
 import { Alert, Button } from 'reactstrap';
 import { RiVerifiedBadgeFill } from "react-icons/ri";
+import { api } from '../../services/api';
+import { getVerifyToken } from "../../ultils/verifyToken";
 import '../../styles/Verified.css';
 
 export default function VerifiedPage() {
     const [copiedEmail, setCopiedEmail] = useState(false);
     const [copiedPix, setCopiedPix] = useState(false);
-    
-    const emailText = `I would like to verify my account on H Media. Here is the payment proof.`;
+    const [userEmail, setUserEmail] = useState('');
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
     
     const pixInfo = `28.287.739/0001-45`;
+
+    // Obter o email do usuário via API
+    useEffect(() => {
+        const fetchUserData = async () => {
+            try {
+                const token = localStorage.getItem('login_token');
+                const userId = localStorage.getItem('user_id');
+                
+                const isValid = await getVerifyToken(token);
+                if (!isValid) {
+                    window.location.href = "/";
+                    return;
+                }
+
+                const response = await api.get(`/user/${userId}`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                });
+                
+                const { email } = response.data;
+                setUserEmail(email);
+            } catch (err) {
+                console.error('Error fetching user data:', err);
+                setError('Failed to load user data');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchUserData();
+    }, []);
+
+    // Texto do email incluindo o email do usuário
+    const emailText = `I would like to verify my account on H Media. Here is the payment proof. My user email is ${userEmail} my ID is ${localStorage.getItem('user_id')}.`;
 
     const copyToClipboard = (text, type) => {
         navigator.clipboard.writeText(text).then(() => {
@@ -54,6 +92,8 @@ export default function VerifiedPage() {
                             </p>
                         </div>
 
+                        {error && <Alert color="danger" fade={false} className="text-center">{error}</Alert>}
+
                         <div className="payment-section mb-5">
                             <h4 className="mb-4">Verification Process</h4>
                             
@@ -92,25 +132,36 @@ export default function VerifiedPage() {
                                     <h5 className="text-primary">Step 2: Send the email</h5>
                                     <p className="mb-2">After payment, send the following email with your payment proof:</p>
                                     
-                                    <div className="email-text-container p-3 mb-3" 
-                                         style={{ 
-                                             backgroundColor: '#f8f9fa', 
-                                             border: '1px solid #dee2e6',
-                                             borderRadius: '8px',
-                                             whiteSpace: 'pre-line',
-                                             textAlign: 'left'
-                                         }}>
-                                        {emailText}
-                                    </div>
-                                    
-                                    <Button 
-                                        color="primary" 
-                                        onClick={() => copyToClipboard(emailText, 'email')}
-                                        className="copy-btn"
-                                        size="sm"
-                                    >
-                                        {copiedEmail ? 'Copied!' : 'Copy email Text'}
-                                    </Button>
+                                    {loading ? (
+                                        <div className="text-center p-3">
+                                            <div className="spinner-border text-primary" role="status">
+                                                <span className="visually-hidden">Loading...</span>
+                                            </div>
+                                            <p className="mt-2">Loading your information...</p>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className="email-text-container p-3 mb-3" 
+                                                 style={{ 
+                                                     backgroundColor: '#f8f9fa', 
+                                                     border: '1px solid #dee2e6',
+                                                     borderRadius: '8px',
+                                                     whiteSpace: 'pre-line',
+                                                     textAlign: 'left'
+                                                 }}>
+                                                {emailText}
+                                            </div>
+                                            
+                                            <Button 
+                                                color="primary" 
+                                                onClick={() => copyToClipboard(emailText, 'email')}
+                                                className="copy-btn"
+                                                size="sm"
+                                            >
+                                                {copiedEmail ? 'Copied!' : 'Copy email Text'}
+                                            </Button>
+                                        </>
+                                    )}
                                 </div>
                             </div>
 

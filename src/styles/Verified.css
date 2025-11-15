@@ -1,0 +1,65 @@
+/* Estilos globais */
+body,
+html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    font-family: Arial, sans-serif;
+    background-color: #fff;
+}
+
+.header {
+    width: 100%;
+    background-color: #0069D9;
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.header h3 {
+    margin: 0;
+    color: #fff;
+}
+
+.step-by-step .step {
+    background-color: #f8f9fa;
+    margin-bottom: 1rem;
+}
+
+.step-by-step .step:last-child {
+    margin-bottom: 0;
+}
+
+.pix-info, .email-text-container {
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+}
+
+.verified-benefits li {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.verified-benefits li:last-child {
+    border-bottom: none;
+}
+
+.copy-btn {
+    margin: 0.5rem;
+}
+
+.verification-note {
+    border-left: 4px solid #1D9BF0;
+}
+
+.pix-amount {
+    font-size: 1.2rem;
+    font-weight: bold;
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    background-color: #fff3cd !important;
+    border: 2px solid #ffc107;
+    border-radius: 8px;
+}

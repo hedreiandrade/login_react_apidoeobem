@@ -13,6 +13,7 @@ import FollowingUsers from './pages/FollowingUsers';
 import Profile from './pages/Profile';
 import Search from './pages/Search';
 import ForgotPassword from './pages/ForgotPassword';
+import Verified from './pages/Verified';
 
 const Routes = () => (
     <Router>
@@ -28,6 +29,7 @@ const Routes = () => (
             <PrivateRoute path="/profile/:id" component={Profile} />
             <PrivateRoute path="/search" component={Search} />
             <Route path="/forgot-password" component={ForgotPassword} />
+            <PrivateRoute path="/verified" component={Verified} />
             <Route exact path="/logout" component={Logout} />
         </Switch>
     </Router>

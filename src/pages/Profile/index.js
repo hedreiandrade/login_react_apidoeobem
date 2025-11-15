@@ -592,7 +592,6 @@ export default function ProfilePage() {
         }));
     };
 
-    // Renderizar botão Follow/Following ou Edit Profile
     const renderFollowButton = () => {
         if (userId === parseInt(id)) {
             return (
@@ -602,7 +601,7 @@ export default function ProfilePage() {
             );
         }
 
-        if (checkingFollowStatus) {
+        if (checkingFollowStatus || isLoadingProfile) {
             return (
                 <button className="btn btn-secondary btn-sm follow-btn" disabled>
                     Loading...
@@ -748,9 +747,19 @@ export default function ProfilePage() {
                     <div className="profile-details">
                         <div className="profile-name-section">
                             <h2 className="profile-name">
-                                {isLoadingProfile ? "Loading..." : profileInfo.name}
-                                {profileInfo?.verified_profile === 1 && (
-                                    <RiVerifiedBadgeFill className="verified-badge" title="Verified" />
+                                {isLoadingProfile || checkingFollowStatus ? (
+                                    "Loading..."
+                                ) : (
+                                    <>
+                                        {profileInfo.name}
+                                        {profileInfo?.verified_profile === 1 ? (
+                                            <RiVerifiedBadgeFill className="verified-badge" title="Verified" />
+                                        ) : isOwnProfile && (
+                                            <Link to="/verified" className="get-verified-link-simple">
+                                                Get Verified
+                                            </Link>
+                                        )}
+                                    </>
                                 )}
                             </h2>
                         </div>

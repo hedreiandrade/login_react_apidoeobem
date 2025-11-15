@@ -509,6 +509,58 @@ html {
     margin-left: 3px;
 }
 
+.verified-badge {
+    color: #1D9BF0;
+    margin-left: 4px;
+    vertical-align: middle;
+}
+
+.profile-name-section .verified-badge {
+    font-size: 24px;
+    margin-left: 8px;
+}
+
+.post-verified-badge {
+    font-size: 16px;
+    margin-left: 4px;
+}
+
+.comment-verified-badge {
+    font-size: 14px;
+    margin-left: 3px;
+}
+
+.get-verified-link-simple {
+    color: #1D9BF0;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    margin-left: 8px;
+    transition: color 0.2s ease;
+}
+
+.get-verified-link-simple:hover {
+    color: #0d8bdc;
+    text-decoration: underline;
+}
+
+.profile-name-section .get-verified-link-simple {
+    font-size: 16px;
+    margin-left: 12px;
+}
+
+.loading-verified {
+    color: #6c757d;
+    font-size: 14px;
+    margin-left: 8px;
+    font-style: italic;
+}
+
+.profile-name-section .loading-verified {
+    font-size: 16px;
+    margin-left: 12px;
+}
+
 @keyframes slideIn {
     from {
         opacity: 0;

@@ -488,6 +488,27 @@ html {
     margin-top: 10px;
 }
 
+.verified-badge {
+    color: #1D9BF0;
+    margin-left: 4px;
+    vertical-align: middle;
+}
+
+.profile-name-section .verified-badge {
+    font-size: 24px;
+    margin-left: 8px;
+}
+
+.post-verified-badge {
+    font-size: 16px;
+    margin-left: 4px;
+}
+
+.comment-verified-badge {
+    font-size: 14px;
+    margin-left: 3px;
+}
+
 @keyframes slideIn {
     from {
         opacity: 0;

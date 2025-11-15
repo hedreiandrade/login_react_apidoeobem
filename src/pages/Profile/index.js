@@ -10,6 +10,7 @@ import { getVerifyToken } from "../../ultils/verifyToken";
 import { useParams, Link } from 'react-router-dom';
 import { AiFillHeart } from "react-icons/ai";
 import { FaTrash, FaCommentDots, FaCamera } from "react-icons/fa";
+import { RiVerifiedBadgeFill } from "react-icons/ri";
 
 export default function ProfilePage() {
     useExpireToken();
@@ -645,7 +646,8 @@ export default function ProfilePage() {
                 photo: isValidPhoto(profileUser.photo) ? profileUser.photo : getInitialsImage(profileUser.name),
                 name: profileUser.name,
                 joinedDate: profileUser.created_at ? new Date(profileUser.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'Joined recently',
-                cover_photo: profileUser.cover_photo
+                cover_photo: profileUser.cover_photo,
+                verified_profile: profileUser.verified_profile || 0
             };
         }
         
@@ -655,7 +657,8 @@ export default function ProfilePage() {
                 photo: isValidPhoto(firstPost.photo) ? firstPost.photo : getInitialsImage(firstPost.name),
                 name: firstPost.name,
                 joinedDate: 'Joined recently',
-                cover_photo: null
+                cover_photo: null,
+                verified_profile: firstPost.verified_profile || 0
             };
         }
         
@@ -664,7 +667,8 @@ export default function ProfilePage() {
                 photo: getInitialsImage("User"),
                 name: "User",
                 joinedDate: 'Joined recently',
-                cover_photo: null
+                cover_photo: null,
+                verified_profile: 0
             };
         }
         
@@ -745,6 +749,9 @@ export default function ProfilePage() {
                         <div className="profile-name-section">
                             <h2 className="profile-name">
                                 {isLoadingProfile ? "Loading..." : profileInfo.name}
+                                {profileInfo?.verified_profile === 1 && (
+                                    <RiVerifiedBadgeFill className="verified-badge" title="Verified" />
+                                )}
                             </h2>
                         </div>
 
@@ -862,7 +869,12 @@ export default function ProfilePage() {
                                             <img src={photo} alt={post.name} className="post-user-photo" />
                                         </Link>
                                         <div className="post-user-info">
-                                            <strong className="post-user-name">{post.name}</strong>
+                                            <strong className="post-user-name">
+                                                {post.name}
+                                                {post.verified_profile === 1 && (
+                                                    <RiVerifiedBadgeFill className="verified-badge post-verified-badge" title="Verified" />
+                                                )}
+                                            </strong>
                                             <span className="post-date">{new Date(post.created_at).toLocaleDateString()}</span>
                                         </div>
                                         
@@ -952,7 +964,12 @@ export default function ProfilePage() {
                                                                             />
                                                                         </Link>
                                                                         <div className="comment-content">
-                                                                            <strong className="comment-user-name">{comment.name}</strong>
+                                                                            <strong className="comment-user-name">
+                                                                                {comment.name}
+                                                                                {comment.verified_profile === 1 && (
+                                                                                    <RiVerifiedBadgeFill className="verified-badge comment-verified-badge" title="Verified" />
+                                                                                )}
+                                                                            </strong>
                                                                             <p className="comment-text">{comment.comment}</p>
                                                                             <small className="comment-date">
                                                                                 {new Date(comment.created_at).toLocaleString()}

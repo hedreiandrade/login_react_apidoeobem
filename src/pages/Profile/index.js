@@ -807,7 +807,7 @@ export default function ProfilePage() {
                             ) : (
                                 <>
                                     <Link 
-                                        to={`/followingUsers/${id}`}
+                                        to={`/following-users/${id}`}
                                         className="btn btn-primary btn-sm" 
                                         style={{ 
                                             marginRight: "10px",
@@ -823,7 +823,7 @@ export default function ProfilePage() {
                                     </Link>
 
                                     <Link 
-                                        to={`/followersUsers/${id}`}
+                                        to={`/followers-users/${id}`}
                                         className="btn btn-primary btn-sm" 
                                         style={{ 
                                             backgroundColor: '#085f7f',

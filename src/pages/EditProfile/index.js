@@ -149,6 +149,7 @@ export default function EditProfile() {
                     Authorization: `Bearer ${token}`
                 }
             });
+            localStorage.setItem('name', formData.name);
             if (response.data.status === 203) {
                 setMessage('There is an account for this e-mail, try to recover your password.');
             } else {

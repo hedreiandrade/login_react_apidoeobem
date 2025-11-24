@@ -380,6 +380,32 @@ html {
     font-weight: 500;
 }
 
+.upload-progress-container {
+    margin: 10px 0;
+    width: 100%;
+}
+
+.upload-progress {
+    height: 20px;
+    margin-bottom: 5px;
+}
+
+.upload-text {
+    display: block;
+    text-align: center;
+    color: #6c757d;
+    font-size: 0.875rem;
+}
+
+.posting-button {
+    position: relative;
+    overflow: hidden;
+}
+
+.posting-button:disabled {
+    opacity: 0.8;
+}
+
 /* Responsividade */
 @media (max-width: 768px) {
     .header-user-photo {

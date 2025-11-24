@@ -18,6 +18,7 @@ export default function FeedPage() {
     const [mediaFile, setMediaFile] = useState(null);
     const [previewUrl, setPreviewUrl] = useState(null);
     const [posting, setPosting] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
     const [feed, setFeed] = useState([]);
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
@@ -320,11 +321,17 @@ export default function FeedPage() {
         if (!file) return;
         setMediaFile(file);
         setPreviewUrl(URL.createObjectURL(file));
+        setUploadProgress(0);
     }, []);
 
     const handlePost = useCallback(async () => {
         if (!description.trim() && !mediaFile) return;
         setPosting(true);
+        setUploadProgress(0);
+        
+        let uploadInterval;
+        let processInterval;
+
         try {
             const isValid = await getVerifyToken(token);
             if (!isValid) {
@@ -337,30 +344,83 @@ export default function FeedPage() {
             if (mediaFile) {
                 formData.append('media_link', mediaFile);
             }
+
+            // Fase 1: Upload simulado mais lento e gradual (0-60%)
+            let currentProgress = 0;
+            uploadInterval = setInterval(() => {
+                currentProgress += 1;
+                if (currentProgress >= 60) {
+                    clearInterval(uploadInterval);
+                    setUploadProgress(60);
+                } else {
+                    setUploadProgress(currentProgress);
+                }
+            }, 100); // Mais lento - 100ms por 1%
+
+            // Fazer o upload real
             const response = await apiFeed.post('/posts', formData, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                     'Content-Type': 'multipart/form-data'
+                },
+                onUploadProgress: (progressEvent) => {
+                    if (progressEvent.total && progressEvent.loaded) {
+                        const realProgress = Math.round(
+                            (progressEvent.loaded * 60) / progressEvent.total // Upload real vai até 60%
+                        );
+                        if (realProgress > currentProgress) {
+                            setUploadProgress(realProgress);
+                            currentProgress = realProgress;
+                        }
+                    }
                 }
             });
+            
+            clearInterval(uploadInterval);
+            setUploadProgress(60); // Garante que chegou a 60% após upload
+
+            // Fase 2: Processamento no servidor (60-100%) - Mais lento também
+            setUploadProgress(65);
+            
+            let processProgress = 65;
+            processInterval = setInterval(() => {
+                processProgress += 2;
+                if (processProgress >= 100) {
+                    setUploadProgress(100);
+                    clearInterval(processInterval);
+                    
+                    // Aguardar um pouco para mostrar 100% antes de finalizar
+                    setTimeout(() => {
+                        setDescription('');
+                        setMediaFile(null);
+                        setPreviewUrl(null);
+                        setUploadProgress(0);
+                        if (fileInputRef.current) {
+                            fileInputRef.current.value = '';
+                        }
+                        setPage(1);
+                        setFeed([]);
+                        setHasMore(true);
+                        setResetFeedTrigger(prev => prev + 1);
+                        setPosting(false);
+                    }, 500);
+                } else {
+                    setUploadProgress(processProgress);
+                }
+            }, 200); // Processamento mais lento também
+
             if(response.data.status === 401){
                 setError('Failed to create post');
-            }else{
-                setDescription('');
-                setMediaFile(null);
-                setPreviewUrl(null);
-                if (fileInputRef.current) {
-                    fileInputRef.current.value = '';
-                }
-                setPage(1);
-                setFeed([]);
-                setHasMore(true);
-                setResetFeedTrigger(prev => prev + 1);
+                clearInterval(processInterval);
+                setPosting(false);
             }
+
         } catch (err) {
             setError('Failed to create post');
-        } finally {
+            setUploadProgress(0);
             setPosting(false);
+            if (uploadInterval) clearInterval(uploadInterval);
+            if (processInterval) clearInterval(processInterval);
         }
     }, [description, mediaFile, token, userId]);
 
@@ -431,6 +491,19 @@ export default function FeedPage() {
         }));
     }, []);
 
+    // Calcular texto do botão baseado no progresso
+    const getButtonText = () => {
+        if (!posting) return 'Post';
+        
+        if (uploadProgress < 60) {
+            return `Uploading ${Math.round(uploadProgress)}%`;
+        } else if (uploadProgress < 100) {
+            return `Processing ${Math.round(uploadProgress)}%`;
+        } else {
+            return 'Finishing...';
+        }
+    };
+
     return (
         <div>
             <SocialHeader user={user} />
@@ -468,8 +541,30 @@ export default function FeedPage() {
                                 {renderMedia(previewUrl)}
                             </div>
                         )}
-                        <Button color="primary" onClick={handlePost} disabled={posting}>
-                            {posting ? 'Posting...' : 'Post'}
+                        
+                        <Button 
+                            color="primary" 
+                            onClick={handlePost} 
+                            disabled={posting}
+                            className="posting-button"
+                            style={{
+                                background: posting 
+                                    ? `linear-gradient(90deg, #007bff ${uploadProgress}%, #6c757d ${uploadProgress}%)`
+                                    : '',
+                                border: 'none',
+                                position: 'relative',
+                                overflow: 'hidden',
+                                transition: 'background 0.3s ease'
+                            }}
+                        >
+                            {posting ? (
+                                <>
+                                    <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                    {getButtonText()}
+                                </>
+                            ) : (
+                                'Post'
+                            )}
                         </Button>
                     </div>
                     <hr />

@@ -345,25 +345,31 @@ export default function FeedPage() {
                 formData.append('media_link', mediaFile);
             }
 
-            // Fase 1: Upload simulado mais lento e gradual (0-60%)
-            let currentProgress = 0;
-            uploadInterval = setInterval(() => {
-                currentProgress += 1;
-                if (currentProgress >= 60) {
-                    clearInterval(uploadInterval);
-                    setUploadProgress(60);
-                } else {
-                    setUploadProgress(currentProgress);
-                }
-            }, 100); // Mais lento - 100ms por 1%
+            const hasMedia = !!mediaFile;
 
-            // Fazer o upload real
-            const response = await apiFeed.post('/posts', formData, {
+            // Configuração do axios com ou sem progresso
+            const axiosConfig = {
                 headers: {
                     Authorization: `Bearer ${token}`,
-                    'Content-Type': 'multipart/form-data'
-                },
-                onUploadProgress: (progressEvent) => {
+                    'Content-Type': hasMedia ? 'multipart/form-data' : 'application/json'
+                }
+            };
+
+            // Se tem arquivo, adiciona onUploadProgress
+            if (hasMedia) {
+                // Fase 1: Upload simulado mais lento e gradual (0-60%)
+                let currentProgress = 0;
+                uploadInterval = setInterval(() => {
+                    currentProgress += 1;
+                    if (currentProgress >= 60) {
+                        clearInterval(uploadInterval);
+                        setUploadProgress(60);
+                    } else {
+                        setUploadProgress(currentProgress);
+                    }
+                }, 100);
+
+                axiosConfig.onUploadProgress = (progressEvent) => {
                     if (progressEvent.total && progressEvent.loaded) {
                         const realProgress = Math.round(
                             (progressEvent.loaded * 60) / progressEvent.total // Upload real vai até 60%
@@ -373,13 +379,21 @@ export default function FeedPage() {
                             currentProgress = realProgress;
                         }
                     }
-                }
-            });
-            
-            clearInterval(uploadInterval);
-            setUploadProgress(60); // Garante que chegou a 60% após upload
+                };
+            } else {
+                // Se não tem arquivo, vai direto para 60%
+                setUploadProgress(60);
+            }
 
-            // Fase 2: Processamento no servidor (60-100%) - Mais lento também
+            // Fazer o post
+            const response = await apiFeed.post('/posts', formData, axiosConfig);
+            
+            if (hasMedia) {
+                clearInterval(uploadInterval);
+                setUploadProgress(60); // Garante que chegou a 60% após upload
+            }
+
+            // Fase 2: Processamento no servidor (60-100%)
             setUploadProgress(65);
             
             let processProgress = 65;
@@ -407,7 +421,7 @@ export default function FeedPage() {
                 } else {
                     setUploadProgress(processProgress);
                 }
-            }, 200); // Processamento mais lento também
+            }, 200);
 
             if(response.data.status === 401){
                 setError('Failed to create post');

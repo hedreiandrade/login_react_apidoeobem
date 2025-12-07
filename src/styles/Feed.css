@@ -89,6 +89,22 @@ html {
     display: flex;
     align-items: center;
     gap: 10px;
+    position: relative;
+    margin-bottom: 15px;
+}
+
+.repost-indicator {
+    position: absolute;
+    top: -25px;
+    left: 40px;
+    display: flex;
+    align-items: center;
+    color: #657786;
+    font-size: 12px;
+    background: #f7f9fa;
+    padding: 2px 8px;
+    border-radius: 12px;
+    z-index: 1;
 }
 
 .post-user-name {
@@ -97,6 +113,9 @@ html {
 
 .post-description {
     margin-top: 10px;
+    margin-bottom: 15px;
+    line-height: 1.5;
+    color: #333;
 }
 
 .post-file-input {
@@ -117,31 +136,31 @@ html {
 /* Estilos para a área de likes e ações do post */
 .post-actions {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end;
     align-items: center;
-    margin-top: 10px;
+    margin-top: 15px;
     padding-top: 10px;
     border-top: 1px solid #eee;
 }
 
-.likes-count {
-    font-size: 14px;
-    color: #666;
-}
-
-.likes-text {
-    font-weight: 500;
-}
-
-.like-button {
-    min-width: 80px;
-    font-size: 12px;
-}
+/* REMOVIDO: .post-stats (ícones e contagem da esquerda) */
 
 .post-user-info {
     display: flex;
     flex-direction: column;
     margin-left: 10px;
+    flex: 1;
+}
+
+.post-user-name-container {
+    display: flex;
+    flex-direction: column;
+}
+
+.original-user-handle {
+    font-size: 12px;
+    color: #657786;
+    margin-top: 2px;
 }
 
 .post-date {
@@ -160,40 +179,99 @@ html {
 
 .post-header {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     margin-bottom: 10px;
 }
 
 /* Estilos para comentários estilo TikTok */
 .post-actions {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end;
     align-items: center;
     margin-top: 10px;
     padding: 10px 0;
     border-top: 1px solid #f0f0f0;
 }
 
-.post-stats {
-    display: flex;
-    gap: 15px;
-}
-
-.likes-text, .comments-text {
-    font-size: 0.9em;
-    color: #666;
-    font-weight: 500;
-}
+/* REMOVIDO: .post-stats da esquerda */
 
 .post-buttons {
     display: flex;
     gap: 8px;
+    justify-content: flex-end;
+    align-items: center;
+    flex-shrink: 0;
 }
 
-.like-button, .comment-button {
-    font-size: 0.8em;
-    padding: 6px 12px;
-    border-radius: 20px;
+.like-button, .comment-button, .repost-button {
+    font-size: 0.75em;
+    padding: 4px 10px;
+    border-radius: 16px;
+    min-width: 65px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    height: 32px;
+}
+
+.like-button {
+    background-color: #f8f9fa !important;
+    color: #6c757d !important;
+    border-color: #dee2e6 !important;
+}
+
+.like-button:hover {
+    background-color: rgba(220, 53, 69, 0.1) !important;
+    border-color: rgba(220, 53, 69, 0.2) !important;
+    transform: translateY(-1px);
+}
+
+.comment-button {
+    background-color: #f8f9fa !important;
+    color: #6c757d !important;
+    border-color: #dee2e6 !important;
+}
+
+.comment-button:hover {
+    background-color: rgba(13, 110, 253, 0.1) !important;
+    border-color: rgba(13, 110, 253, 0.2) !important;
+    transform: translateY(-1px);
+}
+
+.repost-button {
+    background-color: #f8f9fa !important;
+    color: #6c757d !important;
+    border-color: #dee2e6 !important;
+}
+
+.repost-button:hover {
+    background-color: rgba(25, 135, 84, 0.1) !important;
+    border-color: rgba(25, 135, 84, 0.2) !important;
+    transform: translateY(-1px);
+}
+
+/* Estilo quando o botão está ativo (curtido) */
+.like-button.active {
+    background-color: rgba(220, 53, 69, 0.1) !important;
+    color: #dc3545 !important;
+    border-color: #dc3545 !important;
+}
+
+.like-button.active .post-button-icon {
+    color: #dc3545 !important;
+}
+
+/* Ícones dentro dos botões */
+.post-button-icon {
+    margin-right: 4px;
+    font-size: 14px;
+}
+
+/* Estilo para números dentro dos botões */
+.post-button-count {
+    font-weight: 600;
+    font-size: 0.85em;
 }
 
 /* Seção de comentários */
@@ -394,6 +472,24 @@ html {
     .header-feed-title {
         font-size: 1rem;
     }
+    
+    .post-buttons {
+        gap: 6px;
+    }
+    
+    .like-button,
+    .comment-button,
+    .repost-button {
+        min-width: 60px;
+        padding: 4px 8px;
+        font-size: 0.7em;
+        height: 30px;
+    }
+    
+    .post-button-icon {
+        font-size: 13px;
+        margin-right: 3px;
+    }
 }
 
 @media (max-width: 576px) {
@@ -408,6 +504,24 @@ html {
     
     .user-info-header {
         gap: 8px;
+    }
+    
+    .post-buttons {
+        gap: 4px;
+    }
+    
+    .like-button,
+    .comment-button,
+    .repost-button {
+        min-width: 55px;
+        padding: 3px 6px;
+        font-size: 0.65em;
+        height: 28px;
+    }
+    
+    .post-button-icon {
+        font-size: 12px;
+        margin-right: 2px;
     }
 }
 
@@ -459,34 +573,61 @@ html {
     }
 }
 
-/* Responsividade */
-@media (max-width: 768px) {
-    .post-actions {
-        flex-direction: column;
-        gap: 10px;
-        align-items: flex-start;
-    }
-    
-    .post-stats {
-        order: 2;
-    }
-    
+/* Ajustes para garantir que os botões fiquem lado a lado */
+.post-buttons {
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+}
+
+/* Para telas muito pequenas (smartphones pequenos) */
+@media (max-width: 400px) {
     .post-buttons {
-        order: 1;
-        width: 100%;
-        justify-content: space-between;
+        gap: 3px;
     }
     
-    .comments-section {
-        padding: 10px;
+    .like-button,
+    .comment-button,
+    .repost-button {
+        min-width: 50px;
+        padding: 2px 4px;
+        font-size: 0.6em;
+        height: 26px;
     }
     
-    .comment-input-container {
-        flex-direction: column;
-        gap: 8px;
+    .post-button-icon {
+        font-size: 11px;
+        margin-right: 1px;
     }
-    
-    .comment-submit-btn {
-        align-self: flex-end;
-    }
+}
+
+/* Ajuste para garantir que não quebre linha */
+.post-actions {
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+}
+
+/* Container principal do feed para limitar largura */
+.App-feed {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+/* Ajuste para garantir espaçamento consistente */
+.post-buttons > * {
+    flex-shrink: 0;
+}
+
+/* Remover larguras flexíveis para garantir tamanho consistente */
+.like-button,
+.comment-button,
+.repost-button {
+    flex: 0 0 auto;
+}
+
+/* Ajuste para garantir alinhamento perfeito à direita */
+.post-actions {
+    justify-content: flex-end;
+    width: 100%;
 }

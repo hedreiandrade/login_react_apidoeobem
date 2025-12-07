@@ -10,6 +10,7 @@ import { getVerifyToken } from "../../ultils/verifyToken";
 import { Link } from 'react-router-dom';
 import { AiFillHeart } from "react-icons/ai";
 import { FaTrash, FaCommentDots } from "react-icons/fa";
+import { BiRepost } from "react-icons/bi";
 
 export default function FeedPage() {
     useExpireToken();
@@ -30,6 +31,7 @@ export default function FeedPage() {
     const [commentTexts, setCommentTexts] = useState({});
     const [commentsLoading, setCommentsLoading] = useState({});
     const [deletingPosts, setDeletingPosts] = useState({});
+    const [repostingPosts, setRepostingPosts] = useState({});
     
     const observer = useRef();
     const commentsEndRefs = useRef({});
@@ -47,6 +49,66 @@ export default function FeedPage() {
     const user = {
         photo: isValidPhoto(rawPhoto) ? rawPhoto : getInitialsImage(name)
     };
+
+    // Função para formatar o nome do usuário (minúsculo e sem espaços)
+    const formatUsername = useCallback((username) => {
+        return username ? username.toLowerCase().replace(/\s+/g, '') : 'user';
+    }, []);
+
+    // Função para fazer repost
+    const handleRepost = useCallback(async (originalPostId, originalUserId, originalDescription, originalMediaLink, originalUserName) => {
+        if (repostingPosts[originalPostId]) return;
+
+        setRepostingPosts(prev => ({ ...prev, [originalPostId]: true }));
+
+        try {
+            const isValid = await getVerifyToken(token);
+            if (!isValid) {
+                window.location.href = "/";
+                return;
+            }
+
+            const repostData = {
+                user_id: userId,
+                description: originalDescription,
+                media_link: originalMediaLink,
+                is_repost: true,
+                original_user_id: originalUserId,
+                original_post_id: originalPostId,
+            };
+
+            const response = await apiFeed.post('/rePosts', repostData, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            if (response.data.status === 401) {
+                setError(response.data.error);
+            } else {
+                // Atualiza o feed para refletir o novo repost
+                // Atualiza o contador de reposts localmente
+                setFeed(prevFeed => 
+                    prevFeed.map(post => 
+                        post.post_id === originalPostId 
+                            ? { 
+                                ...post, 
+                                number_reposts: (post.number_reposts || 0) + 1
+                            } 
+                            : post
+                    )
+                );
+                setPage(1);
+                setFeed([]);
+                setHasMore(true);
+                setResetFeedTrigger(prev => prev + 1);
+            }
+        } catch (err) {
+            setError('Failed to repost');
+        } finally {
+            setRepostingPosts(prev => ({ ...prev, [originalPostId]: false }));
+        }
+    }, [token, repostingPosts, userId]);
 
     const fetchFeed = useCallback(async (pageNum = page) => {
         let isMounted = true;
@@ -490,6 +552,7 @@ export default function FeedPage() {
                         const hasMoreComments = commentsData[post.post_id]?.hasMore || false;
                         const isDeleting = deletingPosts[post.post_id] || false;
                         const isPostOwner = parseInt(post.user_id) === userId;
+                        const isReposting = repostingPosts[post.post_id] || false;
                         
                         return (
                             <div
@@ -497,16 +560,45 @@ export default function FeedPage() {
                                 ref={isLast ? lastPostRef : null}
                                 className="post-item"
                             >
+                                {/* Header do post com indicador de repost - IGUAL AO EXEMPLO DO X */}
                                 <div className="post-header">
-                                    <Link to={`/profile/${post.user_id}`}>
-                                        <img src={photo} alt={post.name} className="post-user-photo" />
-                                    </Link>
+                                    {post.is_repost ? (
+                                        <>
+                                            <div className="repost-indicator">
+                                                <BiRepost size={14} style={{ marginRight: '5px' }} />
+                                                <small className="text-muted">
+                                                    <strong>{post.name}</strong> reposted
+                                                </small>
+                                            </div>
+                                            <Link to={`/profile/${post.original_user_id}`}>
+                                                <img 
+                                                    src={isValidPhoto(post.original_user_photo) 
+                                                        ? post.original_user_photo 
+                                                        : getInitialsImage(post.original_user_name || 'User')} 
+                                                    alt={post.original_user_name} 
+                                                    className="post-user-photo" 
+                                                />
+                                            </Link>
+                                        </>
+                                    ) : (
+                                        <Link to={`/profile/${post.user_id}`}>
+                                            <img 
+                                                src={photo} 
+                                                alt={post.name} 
+                                                className="post-user-photo" 
+                                            />
+                                        </Link>
+                                    )}
                                     <div className="post-user-info">
-                                        <strong className="post-user-name">{post.name}</strong>
+                                        <div className="post-user-name-container">
+                                            <strong className="post-user-name">
+                                                {post.is_repost ? post.original_user_name : post.name}
+                                            </strong>
+                                        </div>
                                         <span className="post-date">{new Date(post.created_at).toLocaleDateString()}</span>
                                     </div>
                                     
-                                    {isPostOwner && (
+                                    {isPostOwner && !post.is_repost && (
                                         <Button 
                                             color="link" 
                                             size="sm"
@@ -523,18 +615,13 @@ export default function FeedPage() {
                                         </Button>
                                     )}
                                 </div>
+                                
+                                {/* A descrição mantém o conteúdo original */}
                                 <p className="post-description">{post.description}</p>
                                 {renderMedia(post.media_link)}
                                 
                                 <div className="post-actions">
-                                    <div className="post-stats">
-                                        <span className="likes-text">
-                                            {post.number_likes} {post.number_likes === 1 ? 'like' : 'likes'}
-                                        </span>
-                                        <span className="comments-text">
-                                            {post.number_comments || 0} {post.number_comments === 1 ? 'comment' : 'comments'}
-                                        </span>
-                                    </div>
+                                    {/* Botões com números e ícones */}
                                     <div className="post-buttons">
                                         <Button 
                                             color={hasLiked ? "primary" : "secondary"}
@@ -554,7 +641,7 @@ export default function FeedPage() {
                                                             color: hasLiked ? '#dc3545' : '#6c757d'
                                                         }} 
                                                     />
-                                                    {hasLiked ? 'Liked' : 'Like'}
+                                                    {post.number_likes || 0}
                                                 </>
                                             )}
                                         </Button>
@@ -565,7 +652,29 @@ export default function FeedPage() {
                                             className="comment-button"
                                         >
                                             <FaCommentDots size={14} style={{ marginRight: '5px' }} />
-                                            Comment
+                                            {post.number_comments || 0}
+                                        </Button>
+                                        <Button 
+                                            color="primary"
+                                            size="sm"
+                                            onClick={() => handleRepost(
+                                                post.post_id, 
+                                                post.user_id, 
+                                                post.description, 
+                                                post.media_link,
+                                                post.name
+                                            )}
+                                            disabled={isReposting}
+                                            className="repost-button"
+                                        >
+                                            {isReposting ? (
+                                                '...'
+                                            ) : (
+                                                <>
+                                                    <BiRepost size={16} style={{ marginRight: '5px' }} /> 
+                                                    {post.number_reposts || 0}
+                                                </>
+                                            )}
                                         </Button>
                                     </div>
                                 </div>

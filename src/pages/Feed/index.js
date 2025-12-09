@@ -598,14 +598,15 @@ export default function FeedPage() {
                                         <span className="post-date">{new Date(post.created_at).toLocaleDateString()}</span>
                                     </div>
                                     
-                                    {isPostOwner && !post.is_repost && (
+                                    {/* Botão de deletar disponível para posts do usuário (originais e reposts) */}
+                                    {(isPostOwner || (post.is_repost && post.original_user_id === userId)) ? (
                                         <Button 
                                             color="link" 
                                             size="sm"
                                             className="post-delete-btn"
                                             onClick={() => handleDeletePost(post.post_id)}
                                             disabled={isDeleting}
-                                            title="Delete post"
+                                            title={post.is_repost ? "Delete repost" : "Delete post"}
                                         >
                                             {isDeleting ? (
                                                 <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
@@ -613,7 +614,7 @@ export default function FeedPage() {
                                                 <FaTrash size={16} />
                                             )}
                                         </Button>
-                                    )}
+                                    ) : null}
                                 </div>
                                 
                                 {/* A descrição mantém o conteúdo original */}

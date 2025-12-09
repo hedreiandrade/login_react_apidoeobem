@@ -140,7 +140,6 @@ export default function SocialHeader({ user }) {
                                         window.location.href = `/profile/${localStorage.getItem('user_id')}`;
                                     }}
                                 />
-                                <span style={{ color: "#333", fontWeight: "bold" }}>{user.name}</span>
                             </div>
                             <div style={{ padding: "10px" }}>
                                 <Link

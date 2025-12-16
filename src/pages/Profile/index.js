@@ -10,11 +10,15 @@ import { getVerifyToken } from "../../ultils/verifyToken";
 import { useParams, Link } from 'react-router-dom';
 import { AiFillHeart } from "react-icons/ai";
 import { FaTrash, FaCommentDots, FaCamera } from "react-icons/fa";
+import { BiRepost } from "react-icons/bi";
 import { RiVerifiedBadgeFill } from "react-icons/ri";
 
 export default function ProfilePage() {
     useExpireToken();
 
+    const [description, setDescription] = useState('');
+    const [mediaFile, setMediaFile] = useState(null);
+    const [posting, setPosting] = useState(false);
     const [feed, setFeed] = useState([]);
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
@@ -37,6 +41,7 @@ export default function ProfilePage() {
     const [countsLoading, setCountsLoading] = useState(true);
     const [uploadingCover, setUploadingCover] = useState(false);
     const [showCoverUpload, setShowCoverUpload] = useState(false);
+    const [repostingPosts, setRepostingPosts] = useState({});
     
     const observer = useRef();
     const commentsEndRefs = useRef({});
@@ -47,14 +52,75 @@ export default function ProfilePage() {
     const token = localStorage.getItem('login_token');
     const userId = parseInt(localStorage.getItem('user_id'));
     const fileInputRef = useRef(null);
+    const postFileInputRef = useRef(null);
 
-    const isValidPhoto = (photo) => {
+    const isValidPhoto = useCallback((photo) => {
         return photo && photo.trim() !== '' && photo !== 'null' && photo !== 'undefined';
-    };
+    }, []);
 
     const user = {
         photo: isValidPhoto(rawPhoto) ? rawPhoto : getInitialsImage(name)
     };
+
+    // Função para formatar o nome do usuário (minúsculo e sem espaços)
+    const formatUsername = useCallback((username) => {
+        return username ? username.toLowerCase().replace(/\s+/g, '') : 'user';
+    }, []);
+
+    // Função para fazer repost - IGUAL AO FEED
+    const handleRepost = useCallback(async (originalPostId, originalUserId, originalDescription, originalMediaLink, originalUserName) => {
+        if (repostingPosts[originalPostId]) return;
+
+        setRepostingPosts(prev => ({ ...prev, [originalPostId]: true }));
+
+        try {
+            const isValid = await getVerifyToken(token);
+            if (!isValid) {
+                window.location.href = "/";
+                return;
+            }
+
+            const repostData = {
+                user_id: userId,
+                description: originalDescription,
+                media_link: originalMediaLink,
+                is_repost: true,
+                original_user_id: originalUserId,
+                original_post_id: originalPostId,
+            };
+
+            const response = await apiFeed.post('/rePosts', repostData, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            if (response.data.status === 401) {
+                setError(response.data.error);
+            } else {
+                // Atualiza o feed para refletir o novo repost
+                // Atualiza o contador de reposts localmente - IGUAL AO FEED
+                setFeed(prevFeed => 
+                    prevFeed.map(post => 
+                        post.post_id === originalPostId 
+                            ? { 
+                                ...post, 
+                                number_reposts: (post.number_reposts || 0) + 1
+                            } 
+                            : post
+                    )
+                );
+                setPage(1);
+                setFeed([]);
+                setHasMore(true);
+                setResetFeedTrigger(prev => prev + 1);
+            }
+        } catch (err) {
+            setError('Failed to repost');
+        } finally {
+            setRepostingPosts(prev => ({ ...prev, [originalPostId]: false }));
+        }
+    }, [token, repostingPosts, userId]);
 
     // Função para buscar informações do usuário do perfil
     const fetchProfileUser = useCallback(async () => {
@@ -215,87 +281,102 @@ export default function ProfilePage() {
         }
     };
 
-    // Função para excluir post
-    const handleDeletePost = useCallback(async (postId) => {
-        if (deletingPosts[postId]) return;
-
-        setDeletingPosts(prev => ({ ...prev, [postId]: true }));
-
+    // Função para fazer post no profile
+    const handlePost = useCallback(async () => {
+        if (!description.trim() && !mediaFile) return;
+        setPosting(true);
         try {
             const isValid = await getVerifyToken(token);
             if (!isValid) {
                 window.location.href = "/";
                 return;
             }
-
-            const response = await apiFeed.delete(`/posts/${postId}`, {
+            const formData = new FormData();
+            formData.append('user_id', userId);
+            formData.append('description', description);
+            if (mediaFile) {
+                formData.append('media_link', mediaFile);
+            }
+            const response = await apiFeed.post('/posts', formData, {
                 headers: {
                     Authorization: `Bearer ${token}`,
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'multipart/form-data'
                 }
             });
             if(response.data.status === 401){
-                setError('Failed to delete a post');
+                setError('Failed to create post');
             }else{
-                setFeed(prevFeed => prevFeed.filter(post => post.post_id !== postId));
+                setDescription('');
+                setMediaFile(null);
+                if (postFileInputRef.current) {
+                    postFileInputRef.current.value = '';
+                }
+                // Recarrega o feed
+                setPage(1);
+                setFeed([]);
+                setHasMore(true);
+                setResetFeedTrigger(prev => prev + 1);
             }
         } catch (err) {
-            setError('Failed to delete post');
+            setError('Failed to create post');
         } finally {
-            setDeletingPosts(prev => ({ ...prev, [postId]: false }));
+            setPosting(false);
         }
-    }, [token, deletingPosts]);
+    }, [description, mediaFile, token, userId]);
 
-    const fetchFeed = useCallback(() => {
+    // Função para lidar com a seleção de mídia (imagens/vídeos)
+    const handleMediaChange = useCallback((e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        setMediaFile(file);
+    }, []);
+
+    const fetchFeed = useCallback(async (pageNum = page) => {
         let isMounted = true;
 
-        const fetchData = async () => {
-            if (isMounted) setLoading(true);
-            if (isMounted) setError('');
-            try {
-                const isValid = await getVerifyToken(token);
-                if (!isValid) {
-                    window.location.href = "/";
-                    return;
-                }
-                
-                const response = await apiFeed.get(`/profile/${id}/${page}/5?user_session=${userId}`, {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                });
-
-                if (isMounted && response.data.data.length > 0) {
-                    setFeed(prev => {
-                        const existingIds = new Set(prev.map(post => post.post_id));
-                        const newPosts = response.data.data.filter(post => !existingIds.has(post.post_id));
-                        return [...prev, ...newPosts];
-                    });
-                }
-
-                if (isMounted && page >= response.data.last_page) {
-                    setHasMore(false);
-                }
-            } catch (err) {
-                if (isMounted) setError('Failed to load feed');
-            } finally {
-                if (isMounted) setLoading(false);
+        if (isMounted) setLoading(true);
+        if (isMounted) setError('');
+        
+        try {
+            const isValid = await getVerifyToken(token);
+            if (!isValid) {
+                window.location.href = "/";
+                return;
             }
-        };
+            
+            const response = await apiFeed.get(`/profile/${id}/${pageNum}/5?user_session=${userId}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
 
-        fetchData();
+            if (isMounted && response.data.data.length > 0) {
+                setFeed(prev => {
+                    const existingIds = new Set(prev.map(post => post.post_id));
+                    const newPosts = response.data.data.filter(post => !existingIds.has(post.post_id));
+                    return [...prev, ...newPosts];
+                });
+            }
+
+            if (isMounted && pageNum >= response.data.last_page) {
+                setHasMore(false);
+            }
+        } catch (err) {
+            if (isMounted) setError('Failed to load feed');
+        } finally {
+            if (isMounted) setLoading(false);
+        }
 
         return () => {
             isMounted = false;
         };
-    }, [id, userId, token, page]);
+    }, [token, page, id, userId]);
 
     useEffect(() => {
         if (hasMore) {
-            const cleanup = fetchFeed();
-            return cleanup;
+            fetchFeed(page);
         }
-    }, [fetchFeed, hasMore, resetFeedTrigger]);
+    }, [fetchFeed, hasMore, resetFeedTrigger, page]);
 
     useEffect(() => {
         if (id && userId && token) {
@@ -316,7 +397,8 @@ export default function ProfilePage() {
         setFollowersCount(0);
         setFollowingCount(0);
         setCountsLoading(true);
-
+        setDescription('');
+        setMediaFile(null);
         window.scrollTo(0,0);
     }, [id]);
 
@@ -331,7 +413,35 @@ export default function ProfilePage() {
         if (node) observer.current.observe(node);
     }, [loading, hasMore]);
 
-    // Função para carregar comentários de um post
+    const handleDeletePost = useCallback(async (postId) => {
+        if (deletingPosts[postId]) return;
+
+        setDeletingPosts(prev => ({ ...prev, [postId]: true }));
+
+        try {
+            const isValid = await getVerifyToken(token);
+            if (!isValid) {
+                window.location.href = "/";
+                return;
+            }
+            const response = await apiFeed.delete(`/posts/${postId}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            if(response.data.status === 401){
+                setError('Failed to delete a post');
+            }else{
+                setFeed(prevFeed => prevFeed.filter(post => post.post_id !== postId));
+            }
+        } catch (err) {
+            setError('Failed to delete post');
+        } finally {
+            setDeletingPosts(prev => ({ ...prev, [postId]: false }));
+        }
+    }, [token, deletingPosts]);
+
     const fetchComments = useCallback(async (postId, pageNum = 1) => {
         if (commentsLoading[postId]) return;
         
@@ -367,10 +477,9 @@ export default function ProfilePage() {
         } finally {
             setCommentsLoading(prev => ({ ...prev, [postId]: false }));
         }
-    }, [commentsLoading, token]);
+    }, [token, commentsLoading]);
 
-    // Função para expandir/recolher comentários
-    const toggleComments = async (postId) => {
+    const toggleComments = useCallback(async (postId) => {
         if (expandedComments[postId]) {
             setExpandedComments(prev => ({
                 ...prev,
@@ -388,30 +497,29 @@ export default function ProfilePage() {
             
             await fetchComments(postId, 1);
         }
-    };
+    }, [expandedComments, fetchComments]);
 
-    // Effect para configurar observer quando comentários mudam
-    useEffect(() => {
-        const setupCommentsObserver = (postId) => {
-            if (!commentsEndRefs.current[postId]) return;
+    const setupCommentsObserver = useCallback((postId) => {
+        if (!commentsEndRefs.current[postId]) return;
 
-            const observer = new IntersectionObserver(
-                (entries) => {
-                    if (entries[0].isIntersecting) {
-                        const postComments = commentsData[postId];
-                        if (postComments?.hasMore && !commentsLoading[postId]) {
-                            const nextPage = postComments.currentPage + 1;
-                            fetchComments(postId, nextPage);
-                        }
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting) {
+                    const postComments = commentsData[postId];
+                    if (postComments?.hasMore && !commentsLoading[postId]) {
+                        const nextPage = postComments.currentPage + 1;
+                        fetchComments(postId, nextPage);
                     }
-                },
-                { threshold: 0.1 }
-            );
+                }
+            },
+            { threshold: 0.1 }
+        );
 
-            observer.observe(commentsEndRefs.current[postId]);
-            return observer;
-        };
+        observer.observe(commentsEndRefs.current[postId]);
+        return observer;
+    }, [commentsData, commentsLoading, fetchComments]);
 
+    useEffect(() => {
         const observers = {};
         
         Object.keys(expandedComments).forEach(postId => {
@@ -425,10 +533,9 @@ export default function ProfilePage() {
                 if (observer) observer.disconnect();
             });
         };
-    }, [expandedComments, commentsData, commentsLoading, fetchComments]);
+    }, [expandedComments, commentsData, commentsLoading, setupCommentsObserver]);
 
-    // Função para adicionar comentário
-    const handleAddComment = async (postId) => {
+    const handleAddComment = useCallback(async (postId) => {
         const commentText = commentTexts[postId] || '';
         if (!commentText.trim()) return;
         setCommentingPosts(prev => ({ ...prev, [postId]: true }));
@@ -469,14 +576,13 @@ export default function ProfilePage() {
                 );
             }
         } catch (err) {
-            setError('Failed to add comment');
+            setError('Failed to comment a post');
         } finally {
             setCommentingPosts(prev => ({ ...prev, [postId]: false }));
         }
-    };
+    }, [token, commentTexts, fetchComments, userId]);
 
-    // Função para excluir comentário
-    const handleDeleteComment = async (postId, commentId) => {
+    const handleDeleteComment = useCallback(async (postId, commentId) => {
         try {
             const isValid = await getVerifyToken(token);
             if (!isValid) {
@@ -514,10 +620,9 @@ export default function ProfilePage() {
         } catch (err) {
             setError('Failed to delete comment');
         }
-    };
+    }, [token, userId]);
 
-    // Função para Like post
-    const handleLike = async (postId, currentLikes, isCurrentlyLiked) => {
+    const handleLike = useCallback(async (postId, currentLikes, isCurrentlyLiked) => {
         if (likingPosts[postId]) return;
         setLikingPosts(prev => ({ ...prev, [postId]: true }));
         try {
@@ -557,9 +662,9 @@ export default function ProfilePage() {
         } finally {
             setLikingPosts(prev => ({ ...prev, [postId]: false }));
         }
-    };
+    }, [token, likingPosts, userId]);
 
-    const renderMedia = (url) => {
+    const renderMedia = useCallback((url) => {
         if (!url || typeof url !== 'string') return null;
 
         const isVideo = url.toLowerCase().match(/\.(mp4|webm|ogg)$/);
@@ -579,18 +684,18 @@ export default function ProfilePage() {
             );
         }
         return null;
-    };
+    }, []);
 
-    const userHasLiked = (post) => {
+    const userHasLiked = useCallback((post) => {
         return post.user_has_liked === 1 || post.user_has_liked === true;
-    };
+    }, []);
 
-    const handleCommentTextChange = (postId, text) => {
+    const handleCommentTextChange = useCallback((postId, text) => {
         setCommentTexts(prev => ({
             ...prev,
             [postId]: text
         }));
-    };
+    }, []);
 
     const renderFollowButton = () => {
         if (userId === parseInt(id)) {
@@ -843,6 +948,36 @@ export default function ProfilePage() {
 
                     {error && <Alert color="danger" fade={false} className="text-center">{error}</Alert>}
                     
+                    {/* Create Post Section (somente no próprio perfil) */}
+                    {isOwnProfile && (
+                        <div className="create-post-section">
+                            <div className="create-post">
+                                <div className="post-input-container">
+                                    <Input
+                                        type="textarea"
+                                        value={description}
+                                        onChange={e => setDescription(e.target.value)}
+                                        placeholder="What's on your mind?"
+                                        className="post-input"
+                                    />
+                                    <div className="post-actions-row">
+                                        <Input
+                                            type="file"
+                                            accept="image/*,video/*"
+                                            onChange={handleMediaChange}
+                                            className="post-file-input"
+                                            innerRef={postFileInputRef}
+                                        />
+                                        <Button color="primary" onClick={handlePost} disabled={posting}>
+                                            {posting ? 'Posting...' : 'Post'}
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+                            <hr />
+                        </div>
+                    )}
+
                     {/* Posts Section */}
                     <div className="posts-section">
                         <h4 className="posts-title">Posts</h4>
@@ -866,6 +1001,7 @@ export default function ProfilePage() {
                             const hasMoreComments = commentsData[post.post_id]?.hasMore || false;
                             const isDeleting = deletingPosts[post.post_id] || false;
                             const isPostOwner = parseInt(post.user_id) === userId;
+                            const isReposting = repostingPosts[post.post_id] || false; // IGUAL AO FEED
                             
                             return (
                                 <div
@@ -873,28 +1009,56 @@ export default function ProfilePage() {
                                     ref={isLast ? lastPostRef : null}
                                     className="profile-item"
                                 >
+                                    {/* Header do post com indicador de repost - IGUAL AO FEED */}
                                     <div className="post-header">
-                                        <Link to={`/profile/${post.user_id}`}>
-                                            <img src={photo} alt={post.name} className="post-user-photo" />
-                                        </Link>
+                                        {post.is_repost ? (
+                                            <>
+                                                <div className="repost-indicator">
+                                                    <BiRepost size={14} style={{ marginRight: '5px' }} />
+                                                    <small className="text-muted">
+                                                        <strong>{post.name}</strong> reposted
+                                                    </small>
+                                                </div>
+                                                <Link to={`/profile/${post.original_user_id}`}>
+                                                    <img 
+                                                        src={isValidPhoto(post.original_user_photo) 
+                                                            ? post.original_user_photo 
+                                                            : getInitialsImage(post.original_user_name || 'User')} 
+                                                        alt={post.original_user_name} 
+                                                        className="post-user-photo" 
+                                                    />
+                                                </Link>
+                                            </>
+                                        ) : (
+                                            <Link to={`/profile/${post.user_id}`}>
+                                                <img 
+                                                    src={photo} 
+                                                    alt={post.name} 
+                                                    className="post-user-photo" 
+                                                />
+                                            </Link>
+                                        )}
                                         <div className="post-user-info">
-                                            <strong className="post-user-name">
-                                                {post.name}
-                                                {post.verified_profile === 1 && (
+                                            <div className="post-user-name-container">
+                                                <strong className="post-user-name">
+                                                    {post.is_repost ? post.original_user_name : post.name}
+                                                </strong>
+                                                {(post.is_repost ? post.original_user_verified_profile : post.verified_profile) === 1 && (
                                                     <RiVerifiedBadgeFill className="verified-badge post-verified-badge" title="Verified" />
                                                 )}
-                                            </strong>
+                                            </div>
                                             <span className="post-date">{new Date(post.created_at).toLocaleDateString()}</span>
                                         </div>
                                         
-                                        {isPostOwner && (
+                                        {/* Botão de deletar disponível para posts do usuário (originais e reposts) */}
+                                        {(isPostOwner || (post.is_repost && post.original_user_id === userId)) ? (
                                             <Button 
                                                 color="link" 
                                                 size="sm"
                                                 className="post-delete-btn"
                                                 onClick={() => handleDeletePost(post.post_id)}
                                                 disabled={isDeleting}
-                                                title="Delete post"
+                                                title={post.is_repost ? "Delete repost" : "Delete post"}
                                             >
                                                 {isDeleting ? (
                                                     <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
@@ -902,20 +1066,15 @@ export default function ProfilePage() {
                                                     <FaTrash size={16} />
                                                 )}
                                             </Button>
-                                        )}
+                                        ) : null}
                                     </div>
+                                    
+                                    {/* A descrição mantém o conteúdo original */}
                                     <p className="post-description">{post.description}</p>
                                     {renderMedia(post.media_link)}
                                     
                                     <div className="post-actions">
-                                        <div className="post-stats">
-                                            <span className="likes-text">
-                                                {post.number_likes} {post.number_likes === 1 ? 'like' : 'likes'}
-                                            </span>
-                                            <span className="comments-text">
-                                                {post.number_comments || 0} {post.number_comments === 1 ? 'comment' : 'comments'}
-                                            </span>
-                                        </div>
+                                        {/* Botões com números e ícones - IGUAL AO FEED */}
                                         <div className="post-buttons">
                                             <Button 
                                                 color={hasLiked ? "primary" : "secondary"}
@@ -935,7 +1094,7 @@ export default function ProfilePage() {
                                                                 color: hasLiked ? '#dc3545' : '#6c757d'
                                                             }} 
                                                         />
-                                                        {hasLiked ? 'Liked' : 'Like'}
+                                                        {post.number_likes || 0}
                                                     </>
                                                 )}
                                             </Button>
@@ -946,7 +1105,30 @@ export default function ProfilePage() {
                                                 className="comment-button"
                                             >
                                                 <FaCommentDots size={14} style={{ marginRight: '5px' }} />
-                                                Comment
+                                                {post.number_comments || 0}
+                                            </Button>
+                                            {/* Botão de Repost - IGUAL AO FEED */}
+                                            <Button 
+                                                color="primary"
+                                                size="sm"
+                                                onClick={() => handleRepost(
+                                                    post.post_id, 
+                                                    post.user_id, 
+                                                    post.description, 
+                                                    post.media_link,
+                                                    post.name
+                                                )}
+                                                disabled={isReposting}
+                                                className="repost-button"
+                                            >
+                                                {isReposting ? (
+                                                    '...'
+                                                ) : (
+                                                    <>
+                                                        <BiRepost size={16} style={{ marginRight: '5px' }} /> 
+                                                        {post.number_reposts || 0}
+                                                    </>
+                                                )}
                                             </Button>
                                         </div>
                                     </div>

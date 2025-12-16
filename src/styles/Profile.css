@@ -563,6 +563,133 @@ html {
     margin-left: 12px;
 }
 
+/* Profile.css - Apenas para o botão Post */
+
+.create-post-section {
+    margin-bottom: 20px;
+}
+
+.create-post {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+}
+
+.post-input-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.post-actions-row {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* Botão de Post - Tamanho da tela */
+.create-post .btn-primary {
+    background-color: #0069D9 !important;
+    color: white !important;
+    border: 1px solid #0056b3 !important;
+    border-radius: 8px !important;
+    padding: 12px !important;
+    font-size: 1em !important;
+    font-weight: 600 !important;
+    height: auto !important;
+    width: 100% !important;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+    min-height: 44px !important;
+}
+
+.create-post .btn-primary:hover {
+    background-color: #0056b3 !important;
+    border-color: #004085 !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+}
+
+.create-post .btn-primary:active {
+    transform: translateY(0) !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+}
+
+.create-post .btn-primary:disabled {
+    background-color: #6c757d !important;
+    border-color: #6c757d !important;
+    opacity: 0.7 !important;
+    cursor: not-allowed !important;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+/* Ajuste para o input de arquivo também ocupar toda a largura */
+.post-file-input {
+    width: 100% !important;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+    padding: 12px !important;
+    font-size: 0.9em;
+    cursor: pointer;
+    background-color: white;
+    min-height: 44px;
+}
+
+/* Ajuste do input de texto */
+.post-input {
+    min-height: 60px;
+    resize: vertical;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+    padding: 12px;
+    font-size: 0.9em;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .create-post .btn-primary {
+        padding: 10px !important;
+        font-size: 0.95em !important;
+        min-height: 40px !important;
+    }
+    
+    .post-file-input {
+        padding: 10px !important;
+        min-height: 40px;
+    }
+    
+    .post-input {
+        min-height: 50px;
+        padding: 10px;
+    }
+}
+
+@media (max-width: 576px) {
+    .create-post .btn-primary {
+        padding: 8px !important;
+        font-size: 0.9em !important;
+        min-height: 36px !important;
+    }
+    
+    .post-file-input {
+        padding: 8px !important;
+        min-height: 36px;
+    }
+    
+    .post-input {
+        min-height: 45px;
+        padding: 8px;
+    }
+}
+
 @keyframes slideIn {
     from {
         opacity: 0;

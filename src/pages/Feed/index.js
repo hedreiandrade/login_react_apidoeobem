@@ -492,24 +492,46 @@ export default function FeedPage() {
         }
     }, [token, likingPosts, userId]);
 
-    const renderMedia = useCallback((url) => {
+    const renderMedia = useCallback((url, isPreview = false) => {
         if (!url || typeof url !== 'string') return null;
 
-        const isVideo = url.toLowerCase().match(/\.(mp4|webm|ogg)$/);
-        const isImage = url.toLowerCase().match(/\.(jpeg|jpg|gif|png)$/);
+        const isVideo = url.toLowerCase().match(/\.(mp4|webm|ogg|mov|avi|wmv|flv|mkv|m4v)$/);
+        const isImage = url.toLowerCase().match(/\.(jpeg|jpg|gif|png|webp|bmp|svg)$/);
 
         if (isVideo) {
             return (
-                <video 
-                    src={url} 
-                    controls 
-                    className="post-media" 
-                    onLoadedData={(e) => {
-                        // Definir dimensões para evitar redimensionamento
-                        e.target.style.width = '100%';
-                        e.target.style.height = 'auto';
-                    }}
-                />
+                <div className="video-container" style={{ position: 'relative', width: '100%' }}>
+                    <video 
+                        src={url} 
+                        controls 
+                        className="post-media"
+                        playsInline
+                        webkit-playsinline="true"
+                        preload="metadata"
+                        style={{
+                            width: '100%',
+                            height: 'auto',
+                            maxHeight: '500px',
+                            objectFit: 'contain',
+                            backgroundColor: '#000'
+                        }}
+                        onError={(e) => {
+                            console.error('Error loading video:', url);
+                            e.target.style.display = 'none';
+                            e.target.parentElement.innerHTML = `
+                                <div class="video-error" style="padding: 20px; text-align: center; background: #f8f9fa;">
+                                    <p>Video cannot be loaded</p>
+                                    <a href="${url}" target="_blank" rel="noopener noreferrer">Open video</a>
+                                </div>
+                            `;
+                        }}
+                    >
+                        <source src={url} type="video/mp4" />
+                        <source src={url} type="video/webm" />
+                        <source src={url} type="video/ogg" />
+                        Your browser does not support the video tag.
+                    </video>
+                </div>
             );
         } else if (isImage) {
             return (
@@ -517,12 +539,23 @@ export default function FeedPage() {
                     src={url} 
                     alt="Post media" 
                     className="post-media"
-                    onLoad={(e) => {
-                        // Definir dimensões para evitar redimensionamento
-                        e.target.style.width = '100%';
-                        e.target.style.height = 'auto';
+                    style={{
+                        width: '100%',
+                        height: 'auto',
+                        maxHeight: '500px',
+                        objectFit: 'contain'
                     }}
                     loading="lazy"
+                    onError={(e) => {
+                        console.error('Error loading image:', url);
+                        e.target.style.display = 'none';
+                        e.target.parentElement.innerHTML = `
+                            <div class="image-error" style="padding: 20px; text-align: center; background: #f8f9fa;">
+                                <p>Image cannot be loaded</p>
+                                <a href="${url}" target="_blank" rel="noopener noreferrer">Open image</a>
+                            </div>
+                        `;
+                    }}
                 />
             );
         }
@@ -552,9 +585,13 @@ export default function FeedPage() {
                                     src={user.photo} 
                                     alt="User" 
                                     className="header-user-photo"
-                                    onLoad={(e) => {
-                                        e.target.style.width = '140px';
-                                        e.target.style.height = '140px';
+                                    style={{
+                                        width: '140px',
+                                        height: '140px',
+                                        objectFit: 'cover'
+                                    }}
+                                    onError={(e) => {
+                                        e.target.src = getInitialsImage(name);
                                     }}
                                 />
                             </Link>
@@ -569,9 +606,13 @@ export default function FeedPage() {
                             src={user.photo} 
                             alt="User" 
                             className="post-user-photo"
-                            onLoad={(e) => {
-                                e.target.style.width = '40px';
-                                e.target.style.height = '40px';
+                            style={{
+                                width: '40px',
+                                height: '40px',
+                                objectFit: 'cover'
+                            }}
+                            onError={(e) => {
+                                e.target.src = getInitialsImage(name);
                             }}
                         />
                         <Input
@@ -589,11 +630,11 @@ export default function FeedPage() {
                             innerRef={fileInputRef}
                         />
                         {previewUrl && (
-                            <div className="preview-container">
-                                {renderMedia(previewUrl)}
+                            <div className="preview-container" style={{ marginTop: '10px' }}>
+                                {renderMedia(previewUrl, true)}
                             </div>
                         )}
-                        <Button color="primary" onClick={handlePost} disabled={posting}>
+                        <Button color="primary" onClick={handlePost} disabled={posting} style={{ marginTop: '10px' }}>
                             {posting ? 'Posting...' : 'Post'}
                         </Button>
                     </div>
@@ -622,6 +663,7 @@ export default function FeedPage() {
                                 key={post.post_id}
                                 ref={isLast ? lastPostRef : null}
                                 className="post-item"
+                                style={{ marginBottom: '20px' }}
                             >
                                 {/* Header do post com indicador de repost - IGUAL AO EXEMPLO DO X */}
                                 <div className="post-header">
@@ -640,9 +682,13 @@ export default function FeedPage() {
                                                         : getInitialsImage(post.original_user_name || 'User')} 
                                                     alt={post.original_user_name} 
                                                     className="post-user-photo"
-                                                    onLoad={(e) => {
-                                                        e.target.style.width = '40px';
-                                                        e.target.style.height = '40px';
+                                                    style={{
+                                                        width: '40px',
+                                                        height: '40px',
+                                                        objectFit: 'cover'
+                                                    }}
+                                                    onError={(e) => {
+                                                        e.target.src = getInitialsImage(post.original_user_name || 'User');
                                                     }}
                                                 />
                                             </Link>
@@ -653,9 +699,13 @@ export default function FeedPage() {
                                                 src={photo} 
                                                 alt={post.name} 
                                                 className="post-user-photo"
-                                                onLoad={(e) => {
-                                                    e.target.style.width = '40px';
-                                                    e.target.style.height = '40px';
+                                                style={{
+                                                    width: '40px',
+                                                    height: '40px',
+                                                    objectFit: 'cover'
+                                                }}
+                                                onError={(e) => {
+                                                    e.target.src = getInitialsImage(post.name);
                                                 }}
                                             />
                                         </Link>
@@ -690,9 +740,13 @@ export default function FeedPage() {
                                 
                                 {/* A descrição mantém o conteúdo original */}
                                 <p className="post-description">{post.description}</p>
-                                {renderMedia(post.media_link)}
                                 
-                                <div className="post-actions">
+                                {/* Container de mídia responsivo */}
+                                <div className="media-container" style={{ marginTop: '10px' }}>
+                                    {renderMedia(post.media_link)}
+                                </div>
+                                
+                                <div className="post-actions" style={{ marginTop: '10px' }}>
                                     {/* Botões com números e ícones */}
                                     <div className="post-buttons">
                                         <Button 
@@ -769,9 +823,13 @@ export default function FeedPage() {
                                                                             src={commentUserPhoto} 
                                                                             alt={comment.name} 
                                                                             className="comment-user-photo"
-                                                                            onLoad={(e) => {
-                                                                                e.target.style.width = '30px';
-                                                                                e.target.style.height = '30px';
+                                                                            style={{
+                                                                                width: '30px',
+                                                                                height: '30px',
+                                                                                objectFit: 'cover'
+                                                                            }}
+                                                                            onError={(e) => {
+                                                                                e.target.src = getInitialsImage(comment.name);
                                                                             }}
                                                                         />
                                                                     </Link>

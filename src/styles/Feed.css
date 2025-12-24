@@ -433,8 +433,8 @@ html {
 }
 
 .header-user-photo {
-    width: 150px;
-    height: 150px;
+    width: 140px;
+    height: 140px;
     border-radius: 50%;
     object-fit: cover;
 }

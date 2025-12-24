@@ -50,6 +50,15 @@ export default function FeedPage() {
         photo: isValidPhoto(rawPhoto) ? rawPhoto : getInitialsImage(name)
     };
 
+    // Adicionar useEffect para limpar URLs de preview
+    useEffect(() => {
+        return () => {
+            if (previewUrl) {
+                URL.revokeObjectURL(previewUrl);
+            }
+        };
+    }, [previewUrl]);
+
     // Função para fazer repost
     const handleRepost = useCallback(async (originalPostId, originalUserId, originalDescription, originalMediaLink, originalUserName) => {
         if (repostingPosts[originalPostId]) return;
@@ -155,12 +164,20 @@ export default function FeedPage() {
     const lastPostRef = useCallback(node => {
         if (loading) return;
         if (observer.current) observer.current.disconnect();
-        observer.current = new IntersectionObserver(entries => {
-            if (entries[0].isIntersecting && hasMore) {
-                setPage(prevPage => prevPage + 1);
-            }
+        
+        // Usar requestAnimationFrame para evitar loops
+        requestAnimationFrame(() => {
+            observer.current = new IntersectionObserver(entries => {
+                if (entries[0].isIntersecting && hasMore) {
+                    setPage(prevPage => prevPage + 1);
+                }
+            }, {
+                rootMargin: '100px',
+                threshold: 0.1
+            });
+            
+            if (node) observer.current.observe(node);
         });
-        if (node) observer.current.observe(node);
     }, [loading, hasMore]);
 
     const handleDeletePost = useCallback(async (postId) => {
@@ -375,9 +392,15 @@ export default function FeedPage() {
     const handleMediaChange = useCallback((e) => {
         const file = e.target.files[0];
         if (!file) return;
+        
+        // Limpar URL anterior se existir
+        if (previewUrl) {
+            URL.revokeObjectURL(previewUrl);
+        }
+        
         setMediaFile(file);
         setPreviewUrl(URL.createObjectURL(file));
-    }, []);
+    }, [previewUrl]);
 
     const handlePost = useCallback(async () => {
         if (!description.trim() && !mediaFile) return;
@@ -405,7 +428,13 @@ export default function FeedPage() {
             }else{
                 setDescription('');
                 setMediaFile(null);
-                setPreviewUrl(null);
+                
+                // Limpar preview URL
+                if (previewUrl) {
+                    URL.revokeObjectURL(previewUrl);
+                    setPreviewUrl(null);
+                }
+                
                 if (fileInputRef.current) {
                     fileInputRef.current.value = '';
                 }
@@ -419,7 +448,7 @@ export default function FeedPage() {
         } finally {
             setPosting(false);
         }
-    }, [description, mediaFile, token, userId]);
+    }, [description, mediaFile, token, userId, previewUrl]);
 
     const handleLike = useCallback(async (postId, currentLikes, isCurrentlyLiked) => {
         if (likingPosts[postId]) return;
@@ -470,9 +499,32 @@ export default function FeedPage() {
         const isImage = url.toLowerCase().match(/\.(jpeg|jpg|gif|png)$/);
 
         if (isVideo) {
-            return <video src={url} controls className="post-media" />;
+            return (
+                <video 
+                    src={url} 
+                    controls 
+                    className="post-media" 
+                    onLoadedData={(e) => {
+                        // Definir dimensões para evitar redimensionamento
+                        e.target.style.width = '100%';
+                        e.target.style.height = 'auto';
+                    }}
+                />
+            );
         } else if (isImage) {
-            return <img src={url} alt="Post media" className="post-media" />;
+            return (
+                <img 
+                    src={url} 
+                    alt="Post media" 
+                    className="post-media"
+                    onLoad={(e) => {
+                        // Definir dimensões para evitar redimensionamento
+                        e.target.style.width = '100%';
+                        e.target.style.height = 'auto';
+                    }}
+                    loading="lazy"
+                />
+            );
         }
         return null;
     }, []);
@@ -496,7 +548,15 @@ export default function FeedPage() {
                     <div className="feed-header-container">
                         <div className="user-info-header">
                             <Link to={`/profile/${userId}`}>
-                                <img src={user.photo} alt="User" className="header-user-photo" />
+                                <img 
+                                    src={user.photo} 
+                                    alt="User" 
+                                    className="header-user-photo"
+                                    onLoad={(e) => {
+                                        e.target.style.width = '140px';
+                                        e.target.style.height = '140px';
+                                    }}
+                                />
                             </Link>
                             <div className="header-user-details">
                                 <h4 className="header-user-name">{name}</h4>
@@ -505,7 +565,15 @@ export default function FeedPage() {
                     </div>
                     <hr className="my-3" />
                     <div className="create-post">
-                        <img src={user.photo} alt="User" className="post-user-photo" />
+                        <img 
+                            src={user.photo} 
+                            alt="User" 
+                            className="post-user-photo"
+                            onLoad={(e) => {
+                                e.target.style.width = '40px';
+                                e.target.style.height = '40px';
+                            }}
+                        />
                         <Input
                             type="textarea"
                             value={description}
@@ -571,7 +639,11 @@ export default function FeedPage() {
                                                         ? post.original_user_photo 
                                                         : getInitialsImage(post.original_user_name || 'User')} 
                                                     alt={post.original_user_name} 
-                                                    className="post-user-photo" 
+                                                    className="post-user-photo"
+                                                    onLoad={(e) => {
+                                                        e.target.style.width = '40px';
+                                                        e.target.style.height = '40px';
+                                                    }}
                                                 />
                                             </Link>
                                         </>
@@ -580,7 +652,11 @@ export default function FeedPage() {
                                             <img 
                                                 src={photo} 
                                                 alt={post.name} 
-                                                className="post-user-photo" 
+                                                className="post-user-photo"
+                                                onLoad={(e) => {
+                                                    e.target.style.width = '40px';
+                                                    e.target.style.height = '40px';
+                                                }}
                                             />
                                         </Link>
                                     )}
@@ -693,6 +769,10 @@ export default function FeedPage() {
                                                                             src={commentUserPhoto} 
                                                                             alt={comment.name} 
                                                                             className="comment-user-photo"
+                                                                            onLoad={(e) => {
+                                                                                e.target.style.width = '30px';
+                                                                                e.target.style.height = '30px';
+                                                                            }}
                                                                         />
                                                                     </Link>
                                                                     <div className="comment-content">

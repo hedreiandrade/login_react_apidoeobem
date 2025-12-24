@@ -62,11 +62,6 @@ export default function ProfilePage() {
         photo: isValidPhoto(rawPhoto) ? rawPhoto : getInitialsImage(name)
     };
 
-    // Função para formatar o nome do usuário (minúsculo e sem espaços)
-    const formatUsername = useCallback((username) => {
-        return username ? username.toLowerCase().replace(/\s+/g, '') : 'user';
-    }, []);
-
     // Função para fazer repost - IGUAL AO FEED
     const handleRepost = useCallback(async (originalPostId, originalUserId, originalDescription, originalMediaLink, originalUserName) => {
         if (repostingPosts[originalPostId]) return;

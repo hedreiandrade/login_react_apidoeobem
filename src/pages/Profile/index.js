@@ -1108,7 +1108,7 @@ export default function ProfilePage() {
                                                 size="sm"
                                                 onClick={() => handleRepost(
                                                     post.post_id, 
-                                                    post.user_id, 
+                                                    post.original_user_id || post.user_id, 
                                                     post.description, 
                                                     post.media_link,
                                                     post.name

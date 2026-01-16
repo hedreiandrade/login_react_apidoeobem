@@ -5,7 +5,6 @@ import { api } from '../../services/api';
 import '../../styles/EditProfile.css';
 import { useExpireToken } from "../../hooks/expireToken";
 import SocialHeader from '../../components/SocialHeader';
-import Footer from '../../components/Footer';
 import { useHistory } from 'react-router-dom';
 import { getInitialsImage } from "../../ultils/initialsImage";
 import { getVerifyToken } from "../../ultils/verifyToken";
@@ -222,7 +221,6 @@ export default function EditProfile() {
                     <br />
                 </Form>
             </div>
-            <Footer />
         </div>
     );
 }

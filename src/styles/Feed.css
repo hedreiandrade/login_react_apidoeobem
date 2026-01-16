@@ -55,7 +55,7 @@ html {
 }
 
 .feed-container {
-    padding: 20px;
+    padding: 2px;
     background-color: #fff;
     border-radius: 12px;
     box-shadow: 0 0 12px rgba(0, 0, 0, 0.05);
@@ -456,6 +456,24 @@ html {
     font-size: 1.1rem;
     color: #6c757d;
     font-weight: 500;
+}
+
+/* Garantir que o conteúdo principal não fique atrás do footer */
+.App-feed {
+  position: relative;
+  z-index: 1;
+}
+
+/* Estilos para os ícones ativos */
+.active-footer-icon {
+  color: #FFD700 !important;
+  transform: scale(1.1);
+}
+
+/* Evitar que os elementos fiquem atrás do footer fixo */
+.post-item, .create-post {
+  position: relative;
+  z-index: 2;
 }
 
 /* Responsividade */

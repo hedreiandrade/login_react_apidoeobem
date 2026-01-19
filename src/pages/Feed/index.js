@@ -600,7 +600,6 @@ export default function FeedPage() {
                     </div>
                 </div>
                 </div>
-                <hr className="my-3" />
                 <div className="create-post">
                 <img 
                     src={user.photo} 
@@ -638,7 +637,6 @@ export default function FeedPage() {
                     {posting ? 'Posting...' : 'Post'}
                 </Button>
                 </div>
-                <hr />
                 {error && <Alert color="danger" fade={false} className="text-center">{error}</Alert>}
 
                 {feed.map((post, index) => {

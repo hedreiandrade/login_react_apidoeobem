@@ -462,6 +462,7 @@ html {
 .App-feed {
   position: relative;
   z-index: 1;
+  top: -70px;
 }
 
 /* Estilos para os ícones ativos */

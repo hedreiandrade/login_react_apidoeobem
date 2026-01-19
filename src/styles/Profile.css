@@ -26,9 +26,8 @@ html {
 .App-profile {
     align-items: center;
     justify-content: center;
-    margin-top: 82px !important;
+    margin-top: 5px !important;
     margin: 0 auto;
-    padding: 0 15px;
 }
 
 .footer {
@@ -704,7 +703,7 @@ html {
 /* Responsividade */
 @media (max-width: 768px) {
     .App-profile {
-        margin-top: 70px !important;
+        margin-top: 5px !important;
         padding: 0 10px;
     }
     

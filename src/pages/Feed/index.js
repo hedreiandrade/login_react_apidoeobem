@@ -718,7 +718,7 @@ export default function FeedPage() {
                         </div>
 
                         {/* Botão de deletar disponível para posts do usuário (originais e reposts) */}
-                        {(isPostOwner || (post.is_repost && post.original_user_id === userId)) ? (
+                        {(isPostOwner || (post.is_repost && post.user_id === userId)) ? (
                         <Button 
                             color="link" 
                             size="sm"

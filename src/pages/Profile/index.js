@@ -1128,11 +1128,14 @@ export default function ProfilePage() {
                                         </div>
                                     </div>
 
-                                    {/* Área de Comentários */}
+                                    {/* Área de Comentários - COM LÓGICA CORRIGIDA */}
                                     {isCommentsExpanded && (
                                         <div className="comments-section">
                                             <div className="comments-list">
-                                                {postComments.length > 0 ? (
+                                                {isCommentsLoading && postComments.length === 0 ? (
+                                                    // Mostra "Loading..." apenas quando está carregando pela primeira vez
+                                                    <p className="text-center">Loading comments...</p>
+                                                ) : postComments.length > 0 ? (
                                                     <>
                                                         {postComments.map((comment) => {
                                                             const commentUserPhoto = isValidPhoto(comment.photo) 
@@ -1185,9 +1188,12 @@ export default function ProfilePage() {
                                                         )}
                                                     </>
                                                 ) : (
+                                                    // Só mostra "No comments yet" quando não está carregando e não há comentários
                                                     <p className="text-muted text-center no-comments">No comments yet</p>
                                                 )}
-                                                {isCommentsLoading && (
+                                                
+                                                {/* Loading de mais comentários (pagination) */}
+                                                {isCommentsLoading && postComments.length > 0 && (
                                                     <p className="text-center">Loading more comments...</p>
                                                 )}
                                             </div>

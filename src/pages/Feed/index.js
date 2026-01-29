@@ -806,66 +806,72 @@ export default function FeedPage() {
                     {isCommentsExpanded && (
                         <div className="comments-section">
                         <div className="comments-list">
-                            {postComments.length > 0 ? (
-                            <>
-                                {postComments.map((comment) => {
-                                const commentUserPhoto = isValidPhoto(comment.photo) 
-                                    ? comment.photo 
-                                    : getInitialsImage(comment.name);
+                            {isCommentsLoading && postComments.length === 0 ? (
+                                // Mostra "Loading..." apenas quando está carregando pela primeira vez
+                                <p className="text-center">Loading comments...</p>
+                            ) : postComments.length > 0 ? (
+                                <>
+                                    {postComments.map((comment) => {
+                                    const commentUserPhoto = isValidPhoto(comment.photo) 
+                                        ? comment.photo 
+                                        : getInitialsImage(comment.name);
 
-                                return (
-                                    <div key={comment.id} className="comment-item">
-                                    <div className="comment-header">
-                                        <Link to={`/profile/${comment.user_id}`}>
-                                        <img 
-                                            src={commentUserPhoto} 
-                                            alt={comment.name} 
-                                            className="comment-user-photo"
-                                            style={{
-                                            width: '30px',
-                                            height: '30px',
-                                            objectFit: 'cover'
-                                            }}
-                                            onError={(e) => {
-                                            e.target.src = getInitialsImage(comment.name);
-                                            }}
-                                        />
-                                        </Link>
-                                        <div className="comment-content">
-                                        <strong className="comment-user-name">{comment.name}</strong>
-                                        <p className="comment-text">{comment.comment}</p>
-                                        <small className="comment-date">
-                                            {new Date(comment.created_at).toLocaleString()}
-                                        </small>
+                                    return (
+                                        <div key={comment.id} className="comment-item">
+                                        <div className="comment-header">
+                                            <Link to={`/profile/${comment.user_id}`}>
+                                            <img 
+                                                src={commentUserPhoto} 
+                                                alt={comment.name} 
+                                                className="comment-user-photo"
+                                                style={{
+                                                width: '30px',
+                                                height: '30px',
+                                                objectFit: 'cover'
+                                                }}
+                                                onError={(e) => {
+                                                e.target.src = getInitialsImage(comment.name);
+                                                }}
+                                            />
+                                            </Link>
+                                            <div className="comment-content">
+                                            <strong className="comment-user-name">{comment.name}</strong>
+                                            <p className="comment-text">{comment.comment}</p>
+                                            <small className="comment-date">
+                                                {new Date(comment.created_at).toLocaleString()}
+                                            </small>
+                                            </div>
+                                            {(parseInt(comment.user_id) === userId || parseInt(post.user_id) === userId) && (
+                                            <Button 
+                                                color="link" 
+                                                size="sm"
+                                                className="comment-delete-btn"
+                                                onClick={() => handleDeleteComment(post.post_id, comment.id)}
+                                                title="Delete comment"
+                                            >
+                                                ×
+                                            </Button>
+                                            )}
                                         </div>
-                                        {(parseInt(comment.user_id) === userId || parseInt(post.user_id) === userId) && (
-                                        <Button 
-                                            color="link" 
-                                            size="sm"
-                                            className="comment-delete-btn"
-                                            onClick={() => handleDeleteComment(post.post_id, comment.id)}
-                                            title="Delete comment"
-                                        >
-                                            ×
-                                        </Button>
-                                        )}
-                                    </div>
-                                    </div>
-                                );
-                                })}
+                                        </div>
+                                    );
+                                    })}
 
-                                {hasMoreComments && (
-                                <div 
-                                    ref={el => commentsEndRefs.current[post.post_id] = el}
-                                    style={{ height: '1px', marginTop: '10px' }}
-                                />
-                                )}
-                            </>
+                                    {hasMoreComments && (
+                                    <div 
+                                        ref={el => commentsEndRefs.current[post.post_id] = el}
+                                        style={{ height: '1px', marginTop: '10px' }}
+                                    />
+                                    )}
+                                </>
                             ) : (
-                            <p className="text-muted text-center no-comments">No comments yet</p>
+                                // Só mostra "No comments yet" quando não está carregando e não há comentários
+                                <p className="text-muted text-center no-comments">No comments yet</p>
                             )}
-                            {isCommentsLoading && (
-                            <p className="text-center">Loading more comments...</p>
+                            
+                            {/* Loading de mais comentários (pagination) */}
+                            {isCommentsLoading && postComments.length > 0 && (
+                                <p className="text-center">Loading more comments...</p>
                             )}
                         </div>
 

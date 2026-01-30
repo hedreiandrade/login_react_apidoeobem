@@ -50,6 +50,109 @@ export default function FeedPage() {
         photo: isValidPhoto(rawPhoto) ? rawPhoto : getInitialsImage(name)
     };
 
+    // Função para formatar texto com links clicáveis
+    const formatTextWithLinks = useCallback((text) => {
+        if (!text || typeof text !== 'string') return text;
+        
+        // Expressão regular para detectar URLs
+        // Captura: http://, https://, www., e domínios comuns sem www
+        const urlRegex = /(\b(https?:\/\/|www\.)[^\s]+|\b[\w.-]+\.(com|org|net|br|io|co|info|edu|gov|me|dev|app)[^\s]*)/gi;
+        
+        const parts = [];
+        let lastIndex = 0;
+        let match;
+        
+        // Usar exec para encontrar todas as URLs
+        const regex = new RegExp(urlRegex.source, urlRegex.flags);
+        while ((match = regex.exec(text)) !== null) {
+            // Adiciona texto antes da URL
+            if (match.index > lastIndex) {
+                parts.push(text.substring(lastIndex, match.index));
+            }
+            
+            // Processa a URL encontrada
+            let url = match[0];
+            let displayUrl = url;
+            let href = url;
+            
+            // Adiciona protocolo se necessário
+            if (url.startsWith('www.')) {
+                href = `https://${url}`;
+            } else if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                // Para domínios sem www nem protocolo
+                href = `https://${url}`;
+            }
+            
+            // Remove caracteres de pontuação do final (exceto se fizer parte da URL)
+            const punctuationRegex = /[.,;!?]+$/;
+            const punctuationMatch = punctuationRegex.exec(url);
+            
+            if (punctuationMatch) {
+                // Separa a URL da pontuação
+                const cleanUrl = url.substring(0, punctuationMatch.index);
+                const punctuation = punctuationMatch[0];
+                
+                // Atualiza o href sem pontuação
+                if (cleanUrl.startsWith('www.')) {
+                    href = `https://${cleanUrl}`;
+                } else if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+                    href = `https://${cleanUrl}`;
+                }
+                
+                parts.push(
+                    <a
+                        key={`${match.index}-link`}
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                            color: '#1d9bf0',
+                            textDecoration: 'underline',
+                            wordBreak: 'break-word'
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-link"
+                    >
+                        {cleanUrl}
+                    </a>
+                );
+                parts.push(punctuation);
+            } else {
+                parts.push(
+                    <a
+                        key={`${match.index}-link`}
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                            color: '#1d9bf0',
+                            textDecoration: 'underline',
+                            wordBreak: 'break-word'
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-link"
+                    >
+                        {displayUrl}
+                    </a>
+                );
+            }
+            
+            lastIndex = match.index + match[0].length;
+        }
+        
+        // Adiciona o texto restante
+        if (lastIndex < text.length) {
+            parts.push(text.substring(lastIndex));
+        }
+        
+        // Se não encontrou URLs, retorna o texto normal
+        if (parts.length === 0) {
+            return text;
+        }
+        
+        return parts;
+    }, []);
+
     // Adicionar useEffect para limpar URLs de preview
     useEffect(() => {
         return () => {
@@ -736,8 +839,10 @@ export default function FeedPage() {
                         ) : null}
                     </div>
 
-                    {/* A descrição mantém o conteúdo original */}
-                    <p className="post-description">{post.description}</p>
+                    {/* Descrição com links clicáveis */}
+                    <p className="post-description">
+                        {formatTextWithLinks(post.description)}
+                    </p>
 
                     {/* Container de mídia responsivo */}
                     <div className="media-container" style={{ marginTop: '10px' }}>
@@ -836,7 +941,10 @@ export default function FeedPage() {
                                             </Link>
                                             <div className="comment-content">
                                             <strong className="comment-user-name">{comment.name}</strong>
-                                            <p className="comment-text">{comment.comment}</p>
+                                            {/* Comentário com links clicáveis */}
+                                            <p className="comment-text">
+                                                {formatTextWithLinks(comment.comment)}
+                                            </p>
                                             <small className="comment-date">
                                                 {new Date(comment.created_at).toLocaleString()}
                                             </small>

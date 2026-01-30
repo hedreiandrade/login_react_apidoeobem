@@ -62,6 +62,39 @@ export default function ProfilePage() {
         photo: isValidPhoto(rawPhoto) ? rawPhoto : getInitialsImage(name)
     };
 
+    // Função para transformar URLs em links clicáveis
+    const formatTextWithLinks = useCallback((text) => {
+        if (!text || typeof text !== 'string') return text;
+        
+        const urlRegex = /(\b(https?:\/\/|www\.)[^\s]+)/gi;
+        
+        return text.split(' ').map((word, index) => {
+            if (urlRegex.test(word)) {
+                let href = word;
+                if (word.startsWith('www.')) {
+                    href = `http://${word}`;
+                }
+                
+                href = href.replace(/[.,;!?]$/, '');
+                
+                return (
+                    <a 
+                        key={index}
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ color: '#1d9bf0', textDecoration: 'underline' }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {word}
+                    </a>
+                );
+            }
+            
+            return word + ' ';
+        });
+    }, []);
+
     // Função para fazer repost - IGUAL AO FEED
     const handleRepost = useCallback(async (originalPostId, originalUserId, originalDescription, originalMediaLink, originalUserName) => {
         if (repostingPosts[originalPostId]) return;
@@ -1064,8 +1097,10 @@ export default function ProfilePage() {
                                         ) : null}
                                     </div>
                                     
-                                    {/* A descrição mantém o conteúdo original */}
-                                    <p className="post-description">{post.description}</p>
+                                    {/* ALTERADO: descrição com links clicáveis */}
+                                    <p className="post-description">
+                                        {formatTextWithLinks(post.description)}
+                                    </p>
                                     {renderMedia(post.media_link)}
                                     
                                     <div className="post-actions">
@@ -1159,7 +1194,10 @@ export default function ProfilePage() {
                                                                                     <RiVerifiedBadgeFill className="verified-badge comment-verified-badge" title="Verified" />
                                                                                 )}
                                                                             </strong>
-                                                                            <p className="comment-text">{comment.comment}</p>
+                                                                            {/* ALTERADO: comentário com links clicáveis */}
+                                                                            <p className="comment-text">
+                                                                                {formatTextWithLinks(comment.comment)}
+                                                                            </p>
                                                                             <small className="comment-date">
                                                                                 {new Date(comment.created_at).toLocaleString()}
                                                                             </small>

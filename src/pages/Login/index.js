@@ -6,6 +6,13 @@ import '../../styles/Login.css';
 import { BsFacebook, BsGoogle } from "react-icons/bs";
 import { FaHeading } from "react-icons/fa6";
 
+// Importa os dados de países, estados e cidades do arquivo JSON na raiz
+import locationData from '../../locations.json';
+
+// Extrai os dados do JSON importado
+const { paisesEstadosCidades } = locationData;
+const paises = locationData.paises; // Usa o array de países do JSON
+
 export default class Login extends Component {
     constructor(props) {
         super(props);
@@ -21,10 +28,19 @@ export default class Login extends Component {
                 password: '',
                 passwordConfirm: '',
                 photo: null,
-                photoPreview: null
+                photoPreview: null,
+                address: '',
+                number: '',
+                country: '',
+                state: '',
+                city: '',
+                zipCode: ''
             },
             processingGoogleLogin: false,
-            processingFacebookLogin: false
+            processingFacebookLogin: false,
+            // Estados e cidades filtradas
+            estadosFiltrados: [],
+            cidadesFiltradas: []
         };
     }
 
@@ -200,16 +216,58 @@ export default class Login extends Component {
 
     handleChange = (e) => {
         const { name, value } = e.target;
-        this.setState((prevState) => ({
-            formData: {
+        
+        this.setState((prevState) => {
+            const newFormData = {
                 ...prevState.formData,
                 [name]: value
-            },
-            errors: {
-                ...prevState.errors,
-                [name]: ''
+            };
+            
+            // Lógica para atualizar estados baseados no país selecionado
+            if (name === 'country') {
+                const estados = paisesEstadosCidades[value] ? Object.keys(paisesEstadosCidades[value]) : [];
+                return {
+                    formData: {
+                        ...newFormData,
+                        state: '', // Limpa o estado
+                        city: ''   // Limpa a cidade
+                    },
+                    estadosFiltrados: estados,
+                    cidadesFiltradas: [],
+                    errors: {
+                        ...prevState.errors,
+                        [name]: ''
+                    }
+                };
             }
-        }));
+            
+            // Lógica para atualizar cidades baseadas no estado selecionado
+            if (name === 'state') {
+                const country = prevState.formData.country;
+                const cidades = paisesEstadosCidades[country] && paisesEstadosCidades[country][value] 
+                    ? paisesEstadosCidades[country][value] 
+                    : [];
+                return {
+                    formData: {
+                        ...newFormData,
+                        city: '' // Limpa a cidade
+                    },
+                    cidadesFiltradas: cidades,
+                    errors: {
+                        ...prevState.errors,
+                        [name]: ''
+                    }
+                };
+            }
+            
+            return {
+                formData: newFormData,
+                errors: {
+                    ...prevState.errors,
+                    [name]: ''
+                }
+            };
+        });
     };
 
     handleFileChange = (e) => {
@@ -232,7 +290,7 @@ export default class Login extends Component {
     validateFields = () => {
         let errors = {};
         let isValid = true;
-        const { name, email, password, passwordConfirm } = this.state.formData;
+        const { name, email, password, passwordConfirm, address, number, country, state, city, zipCode } = this.state.formData;
 
         if (!email) {
             errors.email = "Field is required";
@@ -251,11 +309,33 @@ export default class Login extends Component {
                 errors.passwordConfirm = "Field is required";
                 isValid = false;
             }
-            if (!passwordConfirm) {
-                errors.confirmNewPassword = 'Confirm new password is required';
-                isValid = false;
-            } else if (password !== passwordConfirm) {
+            if (password !== passwordConfirm) {
                 errors.passwordConfirm = 'Passwords do not match';
+                isValid = false;
+            }
+            // Validação dos novos campos
+            if (!address) {
+                errors.address = "Field is required";
+                isValid = false;
+            }
+            if (!number) {
+                errors.number = "Field is required";
+                isValid = false;
+            }
+            if (!country) {
+                errors.country = "Field is required";
+                isValid = false;
+            }
+            if (!state) {
+                errors.state = "Field is required";
+                isValid = false;
+            }
+            if (!city) {
+                errors.city = "Field is required";
+                isValid = false;
+            }
+            if (!zipCode) {
+                errors.zipCode = "Field is required";
                 isValid = false;
             }
         }
@@ -296,6 +376,13 @@ export default class Login extends Component {
         formData.append('email', this.state.formData.email);
         formData.append('password', this.state.formData.password);
         formData.append('photo', this.state.formData.photo);
+        // Adiciona os novos campos
+        formData.append('address', this.state.formData.address);
+        formData.append('number', this.state.formData.number);
+        formData.append('country', this.state.formData.country);
+        formData.append('state', this.state.formData.state);
+        formData.append('city', this.state.formData.city);
+        formData.append('postal_code', this.state.formData.zipCode);
 
         try {
             const response = await api.post("/user", formData, {
@@ -330,7 +417,23 @@ export default class Login extends Component {
             isRegistering: !this.state.isRegistering, 
             message: "", 
             errors: {},
-            showForgotPassword: false
+            showForgotPassword: false,
+            formData: {
+                name: '',
+                email: '',
+                password: '',
+                passwordConfirm: '',
+                photo: null,
+                photoPreview: null,
+                address: '',
+                number: '',
+                country: '',
+                state: '',
+                city: '',
+                zipCode: ''
+            },
+            estadosFiltrados: [],
+            cidadesFiltradas: []
         });
     };
 
@@ -501,6 +604,99 @@ export default class Login extends Component {
                                                         <img src={this.state.formData.photoPreview} alt="Profile Preview" className="photo-preview" />
                                                     </div>
                                                 )}
+                                            </FormGroup>
+                                            
+                                            {/* NOVOS CAMPOS DE ENDEREÇO */}
+                                            <FormGroup>
+                                                <Label for="address">Address</Label>
+                                                <Input 
+                                                    type="text" 
+                                                    id="address" 
+                                                    name="address" 
+                                                    value={this.state.formData.address} 
+                                                    onChange={this.handleChange} 
+                                                    placeholder="Type your address" 
+                                                />
+                                                {this.state.errors.address && <Label className="text-danger">{this.state.errors.address}</Label>}
+                                            </FormGroup>
+                                            
+                                            <FormGroup>
+                                                <Label for="number">Number</Label>
+                                                <Input 
+                                                    type="text" 
+                                                    id="number" 
+                                                    name="number" 
+                                                    value={this.state.formData.number} 
+                                                    onChange={this.handleChange} 
+                                                    placeholder="Type your address number" 
+                                                />
+                                                {this.state.errors.number && <Label className="text-danger">{this.state.errors.number}</Label>}
+                                            </FormGroup>
+                                            
+                                            <FormGroup>
+                                                <Label for="country">Country</Label>
+                                                <Input 
+                                                    type="select" 
+                                                    id="country" 
+                                                    name="country" 
+                                                    value={this.state.formData.country} 
+                                                    onChange={this.handleChange}
+                                                >
+                                                    <option value="">Select a country</option>
+                                                    {paises.map((pais, index) => (
+                                                        <option key={index} value={pais}>{pais}</option>
+                                                    ))}
+                                                </Input>
+                                                {this.state.errors.country && <Label className="text-danger">{this.state.errors.country}</Label>}
+                                            </FormGroup>
+                                            
+                                            <FormGroup>
+                                                <Label for="state">State</Label>
+                                                <Input 
+                                                    type="select" 
+                                                    id="state" 
+                                                    name="state" 
+                                                    value={this.state.formData.state} 
+                                                    onChange={this.handleChange}
+                                                    disabled={!this.state.formData.country}
+                                                >
+                                                    <option value="">Select a state</option>
+                                                    {this.state.estadosFiltrados.map((estado, index) => (
+                                                        <option key={index} value={estado}>{estado}</option>
+                                                    ))}
+                                                </Input>
+                                                {this.state.errors.state && <Label className="text-danger">{this.state.errors.state}</Label>}
+                                            </FormGroup>
+                                            
+                                            <FormGroup>
+                                                <Label for="city">City</Label>
+                                                <Input 
+                                                    type="select" 
+                                                    id="city" 
+                                                    name="city" 
+                                                    value={this.state.formData.city} 
+                                                    onChange={this.handleChange}
+                                                    disabled={!this.state.formData.state}
+                                                >
+                                                    <option value="">Select a city</option>
+                                                    {this.state.cidadesFiltradas.map((cidade, index) => (
+                                                        <option key={index} value={cidade}>{cidade}</option>
+                                                    ))}
+                                                </Input>
+                                                {this.state.errors.city && <Label className="text-danger">{this.state.errors.city}</Label>}
+                                            </FormGroup>
+                                            
+                                            <FormGroup>
+                                                <Label for="zipCode">Zip Code</Label>
+                                                <Input 
+                                                    type="text" 
+                                                    id="zipCode" 
+                                                    name="zipCode" 
+                                                    value={this.state.formData.zipCode} 
+                                                    onChange={this.handleChange} 
+                                                    placeholder="Type your zip code" 
+                                                />
+                                                {this.state.errors.zipCode && <Label className="text-danger">{this.state.errors.zipCode}</Label>}
                                             </FormGroup>
                                         </>
                                     )}

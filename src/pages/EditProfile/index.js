@@ -9,6 +9,13 @@ import { useHistory } from 'react-router-dom';
 import { getInitialsImage } from "../../ultils/initialsImage";
 import { getVerifyToken } from "../../ultils/verifyToken";
 
+// Importa os dados de países, estados e cidades do arquivo JSON na raiz
+import locationData from '../../locations.json';
+
+// Extrai os dados do JSON importado
+const { paisesEstadosCidades } = locationData;
+const paises = locationData.paises; // Usa o array de países do JSON
+
 export default function EditProfile() {
     const history = useHistory();
     if(localStorage.getItem('login_token') === null || localStorage.getItem('login_token') === ''){
@@ -40,7 +47,18 @@ export default function EditProfile() {
         photoPreview: null,
         email: '',
         auth_provider: null,
+        // NOVOS CAMPOS DE ENDEREÇO
+        address: '',
+        number: '',
+        country: '',
+        state: '',
+        city: '',
+        postal_code: ''
     });
+
+    // Estados e cidades filtradas
+    const [estadosFiltrados, setEstadosFiltrados] = useState([]);
+    const [cidadesFiltradas, setCidadesFiltradas] = useState([]);
 
     useEffect(() => {
         let isMounted = true;
@@ -58,7 +76,7 @@ export default function EditProfile() {
                         Authorization: `Bearer ${token}`
                     }
                 });
-                const { name, photo, email, auth_provider } = response.data;
+                const { name, photo, email, auth_provider, address, number, country, state, city, postal_code } = response.data;
     
                 if (isMounted) {
                     setFormData({
@@ -66,8 +84,29 @@ export default function EditProfile() {
                         photo: null,
                         photoPreview: isValidPhoto(photo) ? photo : getInitialsImage(name),
                         email,
-                        auth_provider
+                        auth_provider,
+                        // NOVOS CAMPOS DE ENDEREÇO
+                        address: address || '',
+                        number: number || '',
+                        country: country || '',
+                        state: state || '',
+                        city: city || '',
+                        postal_code: postal_code || ''
                     });
+
+                    // Se houver país, carrega os estados correspondentes
+                    if (country) {
+                        const estados = paisesEstadosCidades[country] ? Object.keys(paisesEstadosCidades[country]) : [];
+                        setEstadosFiltrados(estados);
+                    }
+
+                    // Se houver estado, carrega as cidades correspondentes
+                    if (country && state) {
+                        const cidades = paisesEstadosCidades[country] && paisesEstadosCidades[country][state] 
+                            ? paisesEstadosCidades[country][state] 
+                            : [];
+                        setCidadesFiltradas(cidades);
+                    }
                 }
             } catch (error) {
                 if (isMounted) setMessage('Error fetching user data');
@@ -79,14 +118,47 @@ export default function EditProfile() {
         return () => {
             isMounted = false;
         };
-    }, []);    
+    }, []);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormData(prevState => ({
-            ...prevState,
-            [name]: value
-        }));
+        
+        setFormData(prevState => {
+            const newFormData = {
+                ...prevState,
+                [name]: value
+            };
+            
+            // Lógica para atualizar estados baseados no país selecionado
+            if (name === 'country') {
+                const estados = paisesEstadosCidades[value] ? Object.keys(paisesEstadosCidades[value]) : [];
+                setEstadosFiltrados(estados);
+                setCidadesFiltradas([]);
+                
+                return {
+                    ...newFormData,
+                    state: '', // Limpa o estado
+                    city: ''   // Limpa a cidade
+                };
+            }
+            
+            // Lógica para atualizar cidades baseadas no estado selecionado
+            if (name === 'state') {
+                const country = formData.country;
+                const cidades = paisesEstadosCidades[country] && paisesEstadosCidades[country][value] 
+                    ? paisesEstadosCidades[country][value] 
+                    : [];
+                setCidadesFiltradas(cidades);
+                
+                return {
+                    ...newFormData,
+                    city: '' // Limpa a cidade
+                };
+            }
+            
+            return newFormData;
+        });
+        
         setErrors(prevErrors => ({
             ...prevErrors,
             [name]: ''
@@ -122,6 +194,37 @@ export default function EditProfile() {
             isValid = false;
         }
 
+        // Validação dos novos campos de endereço
+        if (!formData.address) {
+            errors.address = 'Field is required';
+            isValid = false;
+        }
+
+        if (!formData.number) {
+            errors.number = 'Field is required';
+            isValid = false;
+        }
+
+        if (!formData.country) {
+            errors.country = 'Field is required';
+            isValid = false;
+        }
+
+        if (!formData.state) {
+            errors.state = 'Field is required';
+            isValid = false;
+        }
+
+        if (!formData.city) {
+            errors.city = 'Field is required';
+            isValid = false;
+        }
+
+        if (!formData.postal_code) {
+            errors.postal_code = 'Field is required';
+            isValid = false;
+        }
+
         setErrors(errors);
         return isValid;
     };
@@ -133,9 +236,18 @@ export default function EditProfile() {
         const data = new FormData();
         data.append('name', formData.name);
         data.append('email', formData.email);
+        // Adiciona os novos campos de endereço
+        data.append('address', formData.address);
+        data.append('number', formData.number);
+        data.append('country', formData.country);
+        data.append('state', formData.state);
+        data.append('city', formData.city);
+        data.append('postal_code', formData.postal_code);
+        
         if (formData.photo) {
             data.append('photo', formData.photo);
         }
+        
         try {
             const isValid = await getVerifyToken(token);
             if (!isValid) {
@@ -206,15 +318,109 @@ export default function EditProfile() {
                         />
                         {errors.email && <Label className="text-danger">{errors.email}</Label>}
                     </FormGroup>
+                    
+                    {/* NOVOS CAMPOS DE ENDEREÇO */}
+                    <FormGroup>
+                        <Label for="address">Address</Label>
+                        <Input
+                            type="text"
+                            id="address"
+                            name="address"
+                            value={formData.address}
+                            onChange={handleChange}
+                            placeholder="Type your address"
+                        />
+                        {errors.address && <Label className="text-danger">{errors.address}</Label>}
+                    </FormGroup>
+                    
+                    <FormGroup>
+                        <Label for="number">Number</Label>
+                        <Input
+                            type="text"
+                            id="number"
+                            name="number"
+                            value={formData.number}
+                            onChange={handleChange}
+                            placeholder="Type your address number"
+                        />
+                        {errors.number && <Label className="text-danger">{errors.number}</Label>}
+                    </FormGroup>
+                    
+                    <FormGroup>
+                        <Label for="country">Country</Label>
+                        <Input
+                            type="select"
+                            id="country"
+                            name="country"
+                            value={formData.country}
+                            onChange={handleChange}
+                        >
+                            <option value="">Select a country</option>
+                            {paises.map((pais, index) => (
+                                <option key={index} value={pais}>{pais}</option>
+                            ))}
+                        </Input>
+                        {errors.country && <Label className="text-danger">{errors.country}</Label>}
+                    </FormGroup>
+                    
+                    <FormGroup>
+                        <Label for="state">State</Label>
+                        <Input
+                            type="select"
+                            id="state"
+                            name="state"
+                            value={formData.state}
+                            onChange={handleChange}
+                            disabled={!formData.country}
+                        >
+                            <option value="">Select a state</option>
+                            {estadosFiltrados.map((estado, index) => (
+                                <option key={index} value={estado}>{estado}</option>
+                            ))}
+                        </Input>
+                        {errors.state && <Label className="text-danger">{errors.state}</Label>}
+                    </FormGroup>
+                    
+                    <FormGroup>
+                        <Label for="city">City</Label>
+                        <Input
+                            type="select"
+                            id="city"
+                            name="city"
+                            value={formData.city}
+                            onChange={handleChange}
+                            disabled={!formData.state}
+                        >
+                            <option value="">Select a city</option>
+                            {cidadesFiltradas.map((cidade, index) => (
+                                <option key={index} value={cidade}>{cidade}</option>
+                            ))}
+                        </Input>
+                        {errors.city && <Label className="text-danger">{errors.city}</Label>}
+                    </FormGroup>
+                    
+                    <FormGroup>
+                        <Label for="postal_code">Zip Code</Label>
+                        <Input
+                            type="text"
+                            id="postal_code"
+                            name="postal_code"
+                            value={formData.postal_code}
+                            onChange={handleChange}
+                            placeholder="Type your zip code"
+                        />
+                        {errors.postal_code && <Label className="text-danger">{errors.postal_code}</Label>}
+                    </FormGroup>
+
                     <div className="button-container">
                         <Button color="primary" className="align-button" onClick={updateProfile} style={{ marginRight: "10px" }}>
                             Update profile
                         </Button>
-                    {formData.auth_provider === 'local' && (
-                        <Button color="secondary" className="align-button" onClick={redirectToChangePassword}>
-                            Change password
-                        </Button>
-                    )}
+                        {formData.auth_provider === 'local' && (
+                            <Button color="secondary" className="align-button" onClick={redirectToChangePassword}>
+                                Change password
+                            </Button>
+                        )}
                     </div>
                     <br />
                     <br />

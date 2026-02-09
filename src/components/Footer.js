@@ -1,6 +1,6 @@
 // src/components/Footer.js
 import React, { useState, useEffect } from "react";
-import { FaSearch } from "react-icons/fa";
+import { FaSearch, FaUser } from "react-icons/fa";
 import { IoMdHome } from "react-icons/io";
 import { Link, useLocation } from "react-router-dom";
 import '../styles/Footer.css';
@@ -8,6 +8,7 @@ import '../styles/Footer.css';
 export default function Footer({ showOnScroll = true }) {
   const [isVisible, setIsVisible] = useState(true);
   const location = useLocation();
+  const userId = localStorage.getItem('user_id');
 
   // Lógica do scroll
   useEffect(() => {
@@ -73,6 +74,18 @@ export default function Footer({ showOnScroll = true }) {
           </div>
           <span className="footer-label">
             Search
+          </span>
+        </Link>
+
+        <Link 
+          to={`/profile/${userId}`} 
+          className={`footer-link ${location.pathname === '/edit-profile' ? 'active' : ''}`}
+        >
+          <div className="footer-icon">
+            <FaUser />
+          </div>
+          <span className="footer-label">
+            Profile
           </span>
         </Link>
       </div>

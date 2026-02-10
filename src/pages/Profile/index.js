@@ -284,7 +284,7 @@ export default function ProfilePage() {
                 }
             });
             if (followingResponse.data && typeof followingResponse.data.total === 'number') {
-                setFollowingCount(followingResponse.data.total);
+                setFollowingCount(followersResponse.data.total);
             }
         } catch (error) {
             console.error('Failed to fetch follow counts', error);
@@ -847,6 +847,9 @@ export default function ProfilePage() {
             return {
                 photo: isValidPhoto(profileUser.photo) ? profileUser.photo : getInitialsImage(profileUser.name),
                 name: profileUser.name,
+                // ADICIONADO: cidade e país
+                city: profileUser.city || null,
+                country: profileUser.country || null,
                 joinedDate: profileUser.created_at ? new Date(profileUser.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'Joined recently',
                 cover_photo: profileUser.cover_photo,
                 verified_profile: profileUser.verified_profile || 0
@@ -858,6 +861,9 @@ export default function ProfilePage() {
             return {
                 photo: isValidPhoto(firstPost.photo) ? firstPost.photo : getInitialsImage(firstPost.name),
                 name: firstPost.name,
+                // ADICIONADO: cidade e país (se disponível no post)
+                city: firstPost.city || null,
+                country: firstPost.country || null,
                 joinedDate: 'Joined recently',
                 cover_photo: null,
                 verified_profile: firstPost.verified_profile || 0
@@ -868,6 +874,9 @@ export default function ProfilePage() {
             return {
                 photo: getInitialsImage("User"),
                 name: "User",
+                // ADICIONADO: cidade e país padrão
+                city: null,
+                country: null,
                 joinedDate: 'Joined recently',
                 cover_photo: null,
                 verified_profile: 0
@@ -967,7 +976,30 @@ export default function ProfilePage() {
                             </h2>
                         </div>
 
+                        {/* ADICIONADO: Exibição da cidade e país antes da data de ingresso */}
                         <div className="profile-meta">
+                            {/* Mostra cidade e país se disponíveis */}
+                            {profileInfo?.city && profileInfo?.country && (
+                                <span className="location-info">
+                                    {profileInfo.city}, {profileInfo.country}
+                                </span>
+                            )}
+                            
+                            {/* Mostra apenas cidade se só tiver cidade */}
+                            {profileInfo?.city && !profileInfo?.country && (
+                                <span className="location-info">
+                                    {profileInfo.city}
+                                </span>
+                            )}
+                            
+                            {/* Mostra apenas país se só tiver país */}
+                            {!profileInfo?.city && profileInfo?.country && (
+                                <span className="location-info">
+                                    {profileInfo.country}
+                                </span>
+                            )}
+                            
+                            {/* Data de ingresso */}
                             <span className="joined-date">
                                 {isLoadingProfile ? "Joined recently" : `Joined ${profileInfo.joinedDate}`}
                             </span>

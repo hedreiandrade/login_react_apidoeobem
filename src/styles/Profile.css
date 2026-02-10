@@ -652,6 +652,24 @@ html {
     box-sizing: border-box;
 }
 
+.profile-meta {
+    margin-bottom: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.location-info {
+    color: #666;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.joined-date {
+    color: #666;
+    font-size: 14px;
+}
+
 /* Responsividade */
 @media (max-width: 768px) {
     .create-post .btn-primary {
@@ -703,7 +721,7 @@ html {
 /* Responsividade */
 @media (max-width: 768px) {
     .App-profile {
-        margin-top: 5px !important;
+        margin-top: -20px !important;
         padding: 0 10px;
     }
     

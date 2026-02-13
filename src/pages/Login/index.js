@@ -5,6 +5,10 @@ import { api } from '../../services/api';
 import '../../styles/Login.css';
 import { BsFacebook, BsGoogle } from "react-icons/bs";
 import { FaHeading } from "react-icons/fa6";
+// Import do DatePicker do rsuite - Versão 5.68.1 compatível com Node 14
+import { DatePicker } from 'rsuite';
+// Import do CSS do rsuite
+import 'rsuite/dist/rsuite.min.css';
 
 // Importa os dados de países, estados e cidades do arquivo JSON na raiz
 import locationData from '../../locations.json';
@@ -34,7 +38,8 @@ export default class Login extends Component {
                 country: '',
                 state: '',
                 city: '',
-                zipCode: ''
+                zipCode: '',
+                birthDate: null // NOVO: campo para data de nascimento
             },
             processingGoogleLogin: false,
             processingFacebookLogin: false,
@@ -270,6 +275,20 @@ export default class Login extends Component {
         });
     };
 
+    // Handler para o DatePicker - Versão 5.68.1
+    handleDateChange = (date) => {
+        this.setState({
+            formData: {
+                ...this.state.formData,
+                birthDate: date
+            },
+            errors: {
+                ...this.state.errors,
+                birthDate: ''
+            }
+        });
+    };
+
     handleFileChange = (e) => {
         const file = e.target.files[0];
         if (file) {
@@ -290,7 +309,7 @@ export default class Login extends Component {
     validateFields = () => {
         let errors = {};
         let isValid = true;
-        const { name, email, password, passwordConfirm, address, number, country, state, city, zipCode } = this.state.formData;
+        const { name, email, password, passwordConfirm, address, number, country, state, city, zipCode, birthDate } = this.state.formData;
 
         if (!email) {
             errors.email = "Field is required";
@@ -338,6 +357,11 @@ export default class Login extends Component {
                 errors.zipCode = "Field is required";
                 isValid = false;
             }
+            // Validação da data de nascimento
+            if (!birthDate) {
+                errors.birthDate = "Field is required";
+                isValid = false;
+            }
         }
 
         this.setState({ errors });
@@ -383,6 +407,19 @@ export default class Login extends Component {
         formData.append('state', this.state.formData.state);
         formData.append('city', this.state.formData.city);
         formData.append('postal_code', this.state.formData.zipCode);
+        // Adiciona a data de nascimento no formato ISO (YYYY-MM-DD)
+        if (this.state.formData.birthDate) {
+            // Verifica se birthDate é um objeto Date válido
+            let birthDateFormatted;
+            if (this.state.formData.birthDate instanceof Date && !isNaN(this.state.formData.birthDate)) {
+                birthDateFormatted = this.state.formData.birthDate.toISOString().split('T')[0];
+            } else {
+                // Se for string, tenta converter
+                const date = new Date(this.state.formData.birthDate);
+                birthDateFormatted = !isNaN(date) ? date.toISOString().split('T')[0] : this.state.formData.birthDate;
+            }
+            formData.append('birth_date', birthDateFormatted);
+        }
 
         try {
             const response = await api.post("/user", formData, {
@@ -430,7 +467,8 @@ export default class Login extends Component {
                 country: '',
                 state: '',
                 city: '',
-                zipCode: ''
+                zipCode: '',
+                birthDate: null // Reset da data de nascimento
             },
             estadosFiltrados: [],
             cidadesFiltradas: []
@@ -606,7 +644,7 @@ export default class Login extends Component {
                                                 )}
                                             </FormGroup>
                                             
-                                            {/* NOVOS CAMPOS DE ENDEREÇO */}
+                                            {/* CAMPOS DE ENDEREÇO */}
                                             <FormGroup>
                                                 <Label for="address">Address</Label>
                                                 <Input 
@@ -698,6 +736,26 @@ export default class Login extends Component {
                                                 />
                                                 {this.state.errors.zipCode && <Label className="text-danger">{this.state.errors.zipCode}</Label>}
                                             </FormGroup>
+
+                                            {/* Campo de Data de Nascimento com DatePicker do rsuite - Versão 5.68.1 */}
+                                            <FormGroup>
+                                                <Label for="birthDate">Birthday Date</Label>
+                                                <div style={{ width: '100%' }}>
+                                                    <DatePicker
+                                                        id="birthDate"
+                                                        name="birthDate"
+                                                        value={this.state.formData.birthDate}
+                                                        onChange={this.handleDateChange}
+                                                        placeholder="Select your birth date"
+                                                        format="dd/MM/yyyy"
+                                                        placement="bottomStart"
+                                                        style={{ width: '100%' }}
+                                                        // disabledDate não está disponível em algumas versões 5.x, usando shouldDisableDate
+                                                        shouldDisableDate={date => date > new Date() || date < new Date('1900-01-01')}
+                                                    />
+                                                </div>
+                                                {this.state.errors.birthDate && <Label className="text-danger">{this.state.errors.birthDate}</Label>}
+                                            </FormGroup>
                                         </>
                                     )}
                                     <FormGroup>
@@ -758,7 +816,7 @@ export default class Login extends Component {
                                         </Button>
                                     </div>
 
-                                    {/* NOVO: Link Forgot Password - só mostra no login */}
+                                    {/* Link Forgot Password - só mostra no login */}
                                     {!isRegistering && (
                                         <div className="forgot-password-container" style={{ marginTop: '15px', textAlign: 'center' }}>
                                             <Button 

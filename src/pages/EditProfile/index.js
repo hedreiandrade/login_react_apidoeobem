@@ -9,6 +9,11 @@ import { useHistory } from 'react-router-dom';
 import { getInitialsImage } from "../../ultils/initialsImage";
 import { getVerifyToken } from "../../ultils/verifyToken";
 
+// Import do DatePicker do rsuite - Versão 5.68.1 compatível com Node 14
+import { DatePicker } from 'rsuite';
+// Import do CSS do rsuite
+import 'rsuite/dist/rsuite.min.css';
+
 // Importa os dados de países, estados e cidades do arquivo JSON na raiz
 import locationData from '../../locations.json';
 
@@ -47,13 +52,15 @@ export default function EditProfile() {
         photoPreview: null,
         email: '',
         auth_provider: null,
-        // NOVOS CAMPOS DE ENDEREÇO
+        // CAMPOS DE ENDEREÇO
         address: '',
         number: '',
         country: '',
         state: '',
         city: '',
-        postal_code: ''
+        postal_code: '',
+        // NOVO: campo para data de nascimento
+        birth_date: null
     });
 
     // Estados e cidades filtradas
@@ -76,7 +83,8 @@ export default function EditProfile() {
                         Authorization: `Bearer ${token}`
                     }
                 });
-                const { name, photo, email, auth_provider, address, number, country, state, city, postal_code } = response.data;
+                // Adiciona birth_date ao destructuring
+                const { name, photo, email, auth_provider, address, number, country, state, city, postal_code, birth_date } = response.data;
     
                 if (isMounted) {
                     setFormData({
@@ -85,13 +93,15 @@ export default function EditProfile() {
                         photoPreview: isValidPhoto(photo) ? photo : getInitialsImage(name),
                         email,
                         auth_provider,
-                        // NOVOS CAMPOS DE ENDEREÇO
+                        // CAMPOS DE ENDEREÇO
                         address: address || '',
                         number: number || '',
                         country: country || '',
                         state: state || '',
                         city: city || '',
-                        postal_code: postal_code || ''
+                        postal_code: postal_code || '',
+                        // NOVO: Converte a data de nascimento para objeto Date se existir
+                        birth_date: birth_date ? new Date(birth_date) : null
                     });
 
                     // Se houver país, carrega os estados correspondentes
@@ -165,6 +175,18 @@ export default function EditProfile() {
         }));
     };
 
+    // NOVO: Handler para o DatePicker
+    const handleDateChange = (date) => {
+        setFormData(prevState => ({
+            ...prevState,
+            birth_date: date
+        }));
+        setErrors(prevErrors => ({
+            ...prevErrors,
+            birth_date: ''
+        }));
+    };
+
     const handleFileChange = (e) => {
         const file = e.target.files[0];
         if (file) {
@@ -194,7 +216,7 @@ export default function EditProfile() {
             isValid = false;
         }
 
-        // Validação dos novos campos de endereço
+        // Validação dos campos de endereço
         if (!formData.address) {
             errors.address = 'Field is required';
             isValid = false;
@@ -225,6 +247,12 @@ export default function EditProfile() {
             isValid = false;
         }
 
+        // NOVO: Validação da data de nascimento
+        if (!formData.birth_date) {
+            errors.birth_date = 'Field is required';
+            isValid = false;
+        }
+
         setErrors(errors);
         return isValid;
     };
@@ -236,13 +264,27 @@ export default function EditProfile() {
         const data = new FormData();
         data.append('name', formData.name);
         data.append('email', formData.email);
-        // Adiciona os novos campos de endereço
+        // Adiciona os campos de endereço
         data.append('address', formData.address);
         data.append('number', formData.number);
         data.append('country', formData.country);
         data.append('state', formData.state);
         data.append('city', formData.city);
         data.append('postal_code', formData.postal_code);
+        
+        // NOVO: Adiciona a data de nascimento no formato ISO (YYYY-MM-DD)
+        if (formData.birth_date) {
+            // Verifica se birth_date é um objeto Date válido
+            let birthDateFormatted;
+            if (formData.birth_date instanceof Date && !isNaN(formData.birth_date)) {
+                birthDateFormatted = formData.birth_date.toISOString().split('T')[0];
+            } else {
+                // Se for string, tenta converter
+                const date = new Date(formData.birth_date);
+                birthDateFormatted = !isNaN(date) ? date.toISOString().split('T')[0] : formData.birth_date;
+            }
+            data.append('birth_date', birthDateFormatted);
+        }
         
         if (formData.photo) {
             data.append('photo', formData.photo);
@@ -319,7 +361,7 @@ export default function EditProfile() {
                         {errors.email && <Label className="text-danger">{errors.email}</Label>}
                     </FormGroup>
                     
-                    {/* NOVOS CAMPOS DE ENDEREÇO */}
+                    {/* CAMPOS DE ENDEREÇO */}
                     <FormGroup>
                         <Label for="address">Address</Label>
                         <Input
@@ -410,6 +452,25 @@ export default function EditProfile() {
                             placeholder="Type your zip code"
                         />
                         {errors.postal_code && <Label className="text-danger">{errors.postal_code}</Label>}
+                    </FormGroup>
+
+                    {/* NOVO: Campo de Data de Nascimento com DatePicker do rsuite - Versão 5.68.1 */}
+                    <FormGroup>
+                        <Label for="birth_date">Birthday Date</Label>
+                        <div style={{ width: '100%' }}>
+                            <DatePicker
+                                id="birth_date"
+                                name="birth_date"
+                                value={formData.birth_date}
+                                onChange={handleDateChange}
+                                placeholder="Select your birth date"
+                                format="dd/MM/yyyy"
+                                placement="bottomStart"
+                                style={{ width: '100%' }}
+                                shouldDisableDate={date => date > new Date() || date < new Date('1900-01-01')}
+                            />
+                        </div>
+                        {errors.birth_date && <Label className="text-danger">{errors.birth_date}</Label>}
                     </FormGroup>
 
                     <div className="button-container">

@@ -14,12 +14,12 @@ import { DatePicker } from 'rsuite';
 // Import do CSS do rsuite
 import 'rsuite/dist/rsuite.min.css';
 
-// Importa os dados de países, estados e cidades do arquivo JSON na raiz
-import locationData from '../../locations.json';
-
-// Extrai os dados do JSON importado
-const { paisesEstadosCidades } = locationData;
-const paises = locationData.paises; // Usa o array de países do JSON
+// Import do pacote country-state-city (funciona no navegador)
+import { 
+    Country,
+    State,
+    City
+} from 'country-state-city';
 
 export default function EditProfile() {
     const history = useHistory();
@@ -56,17 +56,84 @@ export default function EditProfile() {
         address: '',
         number: '',
         country: '',
+        countryCode: '',
         state: '',
+        stateCode: '',
         city: '',
         postal_code: '',
         // NOVO: campo para data de nascimento
         birth_date: null
     });
 
-    // Estados e cidades filtradas
+    // Dados dos selects
+    const [countries, setCountries] = useState([]);
     const [estadosFiltrados, setEstadosFiltrados] = useState([]);
     const [cidadesFiltradas, setCidadesFiltradas] = useState([]);
 
+    // Carrega a lista de países quando o componente monta
+    useEffect(() => {
+        try {
+            const countriesList = Country.getAllCountries();
+            const sortedCountries = countriesList.sort((a, b) => a.name.localeCompare(b.name));
+            setCountries(sortedCountries);
+        } catch (error) {
+            console.error('Erro ao carregar países:', error);
+            setMessage('Erro ao carregar lista de países');
+        }
+    }, []);
+
+    // Função para carregar estados (definida fora do useEffect para ser reutilizável)
+    const loadStates = (countryCode) => {
+        try {
+            if (!countryCode) {
+                setEstadosFiltrados([]);
+                return;
+            }
+
+            const states = State.getStatesOfCountry(countryCode);
+            const sortedStates = states.sort((a, b) => a.name.localeCompare(b.name));
+            setEstadosFiltrados(sortedStates);
+        } catch (error) {
+            console.error('Erro ao carregar estados:', error);
+            setMessage('Erro ao carregar lista de estados');
+        }
+    };
+
+    // Função para carregar cidades (definida fora do useEffect para ser reutilizável)
+    const loadCities = (countryCode, stateCode) => {
+        try {
+            if (!countryCode || !stateCode) {
+                setCidadesFiltradas([]);
+                return;
+            }
+
+            const cities = City.getCitiesOfState(countryCode, stateCode);
+            const cityNames = cities.map(city => city.name).sort((a, b) => a.localeCompare(b));
+            setCidadesFiltradas(cityNames);
+        } catch (error) {
+            console.error('Erro ao carregar cidades:', error);
+            setMessage('Erro ao carregar lista de cidades');
+        }
+    };
+
+    // Efeito para controlar quando o país mudou
+    useEffect(() => {
+        if (formData.countryCode) {
+            setEstadosFiltrados([]);
+            setCidadesFiltradas([]);
+            loadStates(formData.countryCode);
+        }
+    }, [formData.countryCode]); // ✅ Dependência correta
+
+    // Efeito para controlar quando o estado mudou
+    useEffect(() => {
+        if (formData.countryCode && formData.stateCode) {
+            setCidadesFiltradas([]);
+            loadCities(formData.countryCode, formData.stateCode);
+        }
+    }, [formData.countryCode, formData.stateCode]); // ✅ Dependências corretas
+
+    // Carrega dados do usuário
     useEffect(() => {
         let isMounted = true;
     
@@ -83,8 +150,7 @@ export default function EditProfile() {
                         Authorization: `Bearer ${token}`
                     }
                 });
-                // Adiciona birth_date ao destructuring
-                const { name, photo, email, auth_provider, address, number, country, state, city, postal_code, birth_date } = response.data;
+                const { name, photo, email, auth_provider, address, number, country, state, city, postal_code, birth_date, country_code, state_code } = response.data;
     
                 if (isMounted) {
                     setFormData({
@@ -93,30 +159,16 @@ export default function EditProfile() {
                         photoPreview: isValidPhoto(photo) ? photo : getInitialsImage(name),
                         email,
                         auth_provider,
-                        // CAMPOS DE ENDEREÇO
                         address: address || '',
                         number: number || '',
                         country: country || '',
+                        countryCode: country_code || '',
                         state: state || '',
+                        stateCode: state_code || '',
                         city: city || '',
                         postal_code: postal_code || '',
-                        // NOVO: Converte a data de nascimento para objeto Date se existir
                         birth_date: birth_date ? new Date(birth_date) : null
                     });
-
-                    // Se houver país, carrega os estados correspondentes
-                    if (country) {
-                        const estados = paisesEstadosCidades[country] ? Object.keys(paisesEstadosCidades[country]) : [];
-                        setEstadosFiltrados(estados);
-                    }
-
-                    // Se houver estado, carrega as cidades correspondentes
-                    if (country && state) {
-                        const cidades = paisesEstadosCidades[country] && paisesEstadosCidades[country][state] 
-                            ? paisesEstadosCidades[country][state] 
-                            : [];
-                        setCidadesFiltradas(cidades);
-                    }
                 }
             } catch (error) {
                 if (isMounted) setMessage('Error fetching user data');
@@ -128,54 +180,54 @@ export default function EditProfile() {
         return () => {
             isMounted = false;
         };
-    }, []);
+    }, []); // ✅ Sem dependências externas, executa apenas na montagem
 
     const handleChange = (e) => {
         const { name, value } = e.target;
         
+        // Atualiza o formData (sem callback)
         setFormData(prevState => {
             const newFormData = {
                 ...prevState,
                 [name]: value
             };
             
-            // Lógica para atualizar estados baseados no país selecionado
+            // Lógica para atualizar estados baseado no país selecionado
             if (name === 'country') {
-                const estados = paisesEstadosCidades[value] ? Object.keys(paisesEstadosCidades[value]) : [];
-                setEstadosFiltrados(estados);
-                setCidadesFiltradas([]);
+                const selectedCountry = countries.find(c => c.name === value);
+                const countryCode = selectedCountry?.isoCode || '';
                 
                 return {
                     ...newFormData,
-                    state: '', // Limpa o estado
-                    city: ''   // Limpa a cidade
+                    countryCode: countryCode,
+                    state: '',
+                    stateCode: '',
+                    city: ''
                 };
             }
             
-            // Lógica para atualizar cidades baseadas no estado selecionado
+            // Lógica para atualizar cidades baseado no estado selecionado
             if (name === 'state') {
-                const country = formData.country;
-                const cidades = paisesEstadosCidades[country] && paisesEstadosCidades[country][value] 
-                    ? paisesEstadosCidades[country][value] 
-                    : [];
-                setCidadesFiltradas(cidades);
+                const selectedState = estadosFiltrados.find(s => s.name === value);
+                const stateCode = selectedState?.isoCode || '';
                 
                 return {
                     ...newFormData,
-                    city: '' // Limpa a cidade
+                    stateCode: stateCode,
+                    city: ''
                 };
             }
             
             return newFormData;
         });
         
+        // Limpa o erro do campo (isso é síncrono, não precisa de callback)
         setErrors(prevErrors => ({
             ...prevErrors,
             [name]: ''
         }));
     };
 
-    // NOVO: Handler para o DatePicker
     const handleDateChange = (date) => {
         setFormData(prevState => ({
             ...prevState,
@@ -271,6 +323,9 @@ export default function EditProfile() {
         data.append('state', formData.state);
         data.append('city', formData.city);
         data.append('postal_code', formData.postal_code);
+        // Adiciona os códigos ISO para referência futura
+        data.append('country_code', formData.countryCode);
+        data.append('state_code', formData.stateCode);
         
         // NOVO: Adiciona a data de nascimento no formato ISO (YYYY-MM-DD)
         if (formData.birth_date) {
@@ -398,8 +453,10 @@ export default function EditProfile() {
                             onChange={handleChange}
                         >
                             <option value="">Select a country</option>
-                            {paises.map((pais, index) => (
-                                <option key={index} value={pais}>{pais}</option>
+                            {countries.map((country) => (
+                                <option key={country.isoCode} value={country.name}>
+                                    {country.name}
+                                </option>
                             ))}
                         </Input>
                         {errors.country && <Label className="text-danger">{errors.country}</Label>}
@@ -413,11 +470,13 @@ export default function EditProfile() {
                             name="state"
                             value={formData.state}
                             onChange={handleChange}
-                            disabled={!formData.country}
+                            disabled={!formData.country || estadosFiltrados.length === 0}
                         >
                             <option value="">Select a state</option>
-                            {estadosFiltrados.map((estado, index) => (
-                                <option key={index} value={estado}>{estado}</option>
+                            {estadosFiltrados.map((estado) => (
+                                <option key={estado.isoCode} value={estado.name}>
+                                    {estado.name}
+                                </option>
                             ))}
                         </Input>
                         {errors.state && <Label className="text-danger">{errors.state}</Label>}
@@ -431,7 +490,7 @@ export default function EditProfile() {
                             name="city"
                             value={formData.city}
                             onChange={handleChange}
-                            disabled={!formData.state}
+                            disabled={!formData.state || cidadesFiltradas.length === 0}
                         >
                             <option value="">Select a city</option>
                             {cidadesFiltradas.map((cidade, index) => (

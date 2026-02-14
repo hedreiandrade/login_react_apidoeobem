@@ -10,12 +10,12 @@ import { DatePicker } from 'rsuite';
 // Import do CSS do rsuite
 import 'rsuite/dist/rsuite.min.css';
 
-// Importa os dados de países, estados e cidades do arquivo JSON na raiz
-import locationData from '../../locations.json';
-
-// Extrai os dados do JSON importado
-const { paisesEstadosCidades } = locationData;
-const paises = locationData.paises; // Usa o array de países do JSON
+// Import do pacote country-state-city (funciona no navegador)
+import { 
+    Country,
+    State,
+    City
+} from 'country-state-city';
 
 export default class Login extends Component {
     constructor(props) {
@@ -36,14 +36,17 @@ export default class Login extends Component {
                 address: '',
                 number: '',
                 country: '',
+                countryCode: '',
                 state: '',
+                stateCode: '',
                 city: '',
                 zipCode: '',
-                birthDate: null // NOVO: campo para data de nascimento
+                birthDate: null
             },
             processingGoogleLogin: false,
             processingFacebookLogin: false,
-            // Estados e cidades filtradas
+            // Dados dos selects
+            countries: [],
             estadosFiltrados: [],
             cidadesFiltradas: []
         };
@@ -51,7 +54,90 @@ export default class Login extends Component {
 
     componentDidMount() {
         this.checkForSocialTokens();
+        this.loadCountries();
     }
+
+    // Carrega a lista de países do pacote
+    loadCountries = () => {
+        try {
+            // Country.getAllCountries() retorna um array diretamente
+            const countries = Country.getAllCountries();
+            
+            // Ordena por nome
+            const sortedCountries = countries.sort((a, b) => a.name.localeCompare(b.name));
+            
+            this.setState({ countries: sortedCountries });
+        } catch (error) {
+            console.error('Erro ao carregar países:', error);
+            this.setState({ message: 'Erro ao carregar lista de países' });
+        }
+    };
+
+    // Carrega estados baseado no país selecionado
+    loadStates = (countryCode) => {
+        try {
+            if (!countryCode) {
+                this.setState({ 
+                    estadosFiltrados: [], 
+                    cidadesFiltradas: [],
+                    formData: {
+                        ...this.state.formData,
+                        state: '',
+                        stateCode: '',
+                        city: ''
+                    }
+                });
+                return;
+            }
+
+            // State.getStatesOfCountry() retorna um array diretamente
+            const states = State.getStatesOfCountry(countryCode);
+            
+            // Ordena por nome
+            const sortedStates = states.sort((a, b) => a.name.localeCompare(b.name));
+            
+            this.setState({ 
+                estadosFiltrados: sortedStates,
+                cidadesFiltradas: [],
+                formData: {
+                    ...this.state.formData,
+                    state: '',
+                    stateCode: '',
+                    city: ''
+                }
+            });
+        } catch (error) {
+            console.error('Erro ao carregar estados:', error);
+            this.setState({ message: 'Erro ao carregar lista de estados' });
+        }
+    };
+
+    // Carrega cidades baseado no país e estado selecionados
+    loadCities = (countryCode, stateCode) => {
+        try {
+            if (!countryCode || !stateCode) {
+                this.setState({ 
+                    cidadesFiltradas: [],
+                    formData: {
+                        ...this.state.formData,
+                        city: ''
+                    }
+                });
+                return;
+            }
+
+            // City.getCitiesOfState() retorna um array diretamente
+            const cities = City.getCitiesOfState(countryCode, stateCode);
+            
+            // Extrai apenas os nomes das cidades e ordena
+            const cityNames = cities.map(city => city.name).sort((a, b) => a.localeCompare(b));
+            
+            this.setState({ cidadesFiltradas: cityNames });
+        } catch (error) {
+            console.error('Erro ao carregar cidades:', error);
+            this.setState({ message: 'Erro ao carregar lista de cidades' });
+        }
+    };
 
     checkForSocialTokens = () => {
         const hash = window.location.hash;
@@ -222,22 +308,28 @@ export default class Login extends Component {
     handleChange = (e) => {
         const { name, value } = e.target;
         
+        // Primeiro, atualiza o formData
         this.setState((prevState) => {
             const newFormData = {
                 ...prevState.formData,
                 [name]: value
             };
             
-            // Lógica para atualizar estados baseados no país selecionado
+            // Lógica para atualizar estados baseado no país selecionado
             if (name === 'country') {
-                const estados = paisesEstadosCidades[value] ? Object.keys(paisesEstadosCidades[value]) : [];
+                // Encontra o país selecionado pelo nome
+                const selectedCountry = prevState.countries.find(c => c.name === value);
+                const countryCode = selectedCountry?.isoCode || '';
+                
                 return {
                     formData: {
                         ...newFormData,
-                        state: '', // Limpa o estado
-                        city: ''   // Limpa a cidade
+                        countryCode: countryCode,
+                        state: '',
+                        stateCode: '',
+                        city: ''
                     },
-                    estadosFiltrados: estados,
+                    estadosFiltrados: [],
                     cidadesFiltradas: [],
                     errors: {
                         ...prevState.errors,
@@ -246,18 +338,19 @@ export default class Login extends Component {
                 };
             }
             
-            // Lógica para atualizar cidades baseadas no estado selecionado
+            // Lógica para atualizar cidades baseado no estado selecionado
             if (name === 'state') {
-                const country = prevState.formData.country;
-                const cidades = paisesEstadosCidades[country] && paisesEstadosCidades[country][value] 
-                    ? paisesEstadosCidades[country][value] 
-                    : [];
+                // Encontra o estado selecionado pelo nome
+                const selectedState = prevState.estadosFiltrados.find(s => s.name === value);
+                const stateCode = selectedState?.isoCode || '';
+                
                 return {
                     formData: {
                         ...newFormData,
-                        city: '' // Limpa a cidade
+                        stateCode: stateCode,
+                        city: ''
                     },
-                    cidadesFiltradas: cidades,
+                    cidadesFiltradas: [],
                     errors: {
                         ...prevState.errors,
                         [name]: ''
@@ -272,6 +365,25 @@ export default class Login extends Component {
                     [name]: ''
                 }
             };
+        }, () => {
+            // Callback executado APÓS o setState completar
+            if (name === 'country') {
+                const selectedCountry = this.state.countries.find(c => c.name === value);
+                const countryCode = selectedCountry?.isoCode || '';
+                
+                if (countryCode) {
+                    this.loadStates(countryCode);
+                }
+            }
+            
+            if (name === 'state') {
+                const selectedState = this.state.estadosFiltrados.find(s => s.name === value);
+                const stateCode = selectedState?.isoCode || '';
+                
+                if (this.state.formData.countryCode && stateCode) {
+                    this.loadCities(this.state.formData.countryCode, stateCode);
+                }
+            }
         });
     };
 
@@ -332,7 +444,7 @@ export default class Login extends Component {
                 errors.passwordConfirm = 'Passwords do not match';
                 isValid = false;
             }
-            // Validação dos novos campos
+            // Validação dos campos de endereço
             if (!address) {
                 errors.address = "Field is required";
                 isValid = false;
@@ -400,13 +512,17 @@ export default class Login extends Component {
         formData.append('email', this.state.formData.email);
         formData.append('password', this.state.formData.password);
         formData.append('photo', this.state.formData.photo);
-        // Adiciona os novos campos
+        // Adiciona os campos de endereço
         formData.append('address', this.state.formData.address);
         formData.append('number', this.state.formData.number);
         formData.append('country', this.state.formData.country);
         formData.append('state', this.state.formData.state);
         formData.append('city', this.state.formData.city);
         formData.append('postal_code', this.state.formData.zipCode);
+        // Adiciona os códigos ISO para referência futura
+        formData.append('country_code', this.state.formData.countryCode);
+        formData.append('state_code', this.state.formData.stateCode);
+        
         // Adiciona a data de nascimento no formato ISO (YYYY-MM-DD)
         if (this.state.formData.birthDate) {
             // Verifica se birthDate é um objeto Date válido
@@ -465,10 +581,12 @@ export default class Login extends Component {
                 address: '',
                 number: '',
                 country: '',
+                countryCode: '',
                 state: '',
+                stateCode: '',
                 city: '',
                 zipCode: '',
-                birthDate: null // Reset da data de nascimento
+                birthDate: null
             },
             estadosFiltrados: [],
             cidadesFiltradas: []
@@ -681,8 +799,10 @@ export default class Login extends Component {
                                                     onChange={this.handleChange}
                                                 >
                                                     <option value="">Select a country</option>
-                                                    {paises.map((pais, index) => (
-                                                        <option key={index} value={pais}>{pais}</option>
+                                                    {this.state.countries.map((country) => (
+                                                        <option key={country.isoCode} value={country.name}>
+                                                            {country.name}
+                                                        </option>
                                                     ))}
                                                 </Input>
                                                 {this.state.errors.country && <Label className="text-danger">{this.state.errors.country}</Label>}
@@ -696,11 +816,13 @@ export default class Login extends Component {
                                                     name="state" 
                                                     value={this.state.formData.state} 
                                                     onChange={this.handleChange}
-                                                    disabled={!this.state.formData.country}
+                                                    disabled={!this.state.formData.country || this.state.estadosFiltrados.length === 0}
                                                 >
                                                     <option value="">Select a state</option>
-                                                    {this.state.estadosFiltrados.map((estado, index) => (
-                                                        <option key={index} value={estado}>{estado}</option>
+                                                    {this.state.estadosFiltrados.map((estado) => (
+                                                        <option key={estado.isoCode} value={estado.name}>
+                                                            {estado.name}
+                                                        </option>
                                                     ))}
                                                 </Input>
                                                 {this.state.errors.state && <Label className="text-danger">{this.state.errors.state}</Label>}
@@ -714,7 +836,7 @@ export default class Login extends Component {
                                                     name="city" 
                                                     value={this.state.formData.city} 
                                                     onChange={this.handleChange}
-                                                    disabled={!this.state.formData.state}
+                                                    disabled={!this.state.formData.state || this.state.cidadesFiltradas.length === 0}
                                                 >
                                                     <option value="">Select a city</option>
                                                     {this.state.cidadesFiltradas.map((cidade, index) => (
@@ -750,7 +872,6 @@ export default class Login extends Component {
                                                         format="dd/MM/yyyy"
                                                         placement="bottomStart"
                                                         style={{ width: '100%' }}
-                                                        // disabledDate não está disponível em algumas versões 5.x, usando shouldDisableDate
                                                         shouldDisableDate={date => date > new Date() || date < new Date('1900-01-01')}
                                                     />
                                                 </div>

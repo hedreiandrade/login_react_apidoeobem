@@ -421,7 +421,7 @@ export default class Login extends Component {
     validateFields = () => {
         let errors = {};
         let isValid = true;
-        const { name, email, password, passwordConfirm, address, number, country, state, city, zipCode, birthDate } = this.state.formData;
+        const { name, email, password, passwordConfirm, address, number, country, state, zipCode, birthDate } = this.state.formData;
 
         if (!email) {
             errors.email = "Field is required";
@@ -461,10 +461,11 @@ export default class Login extends Component {
                 errors.state = "Field is required";
                 isValid = false;
             }
-            if (!city) {
+            // Pode haver estado sem cidades.
+            /*if (!city) {
                 errors.city = "Field is required";
                 isValid = false;
-            }
+            }*/
             if (!zipCode) {
                 errors.zipCode = "Field is required";
                 isValid = false;

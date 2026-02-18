@@ -289,10 +289,11 @@ export default function EditProfile() {
             isValid = false;
         }
 
-        if (!formData.city) {
+        // Pode haver estado sem cidades.
+            /*if (!formData.city) {
             errors.city = 'Field is required';
             isValid = false;
-        }
+        }*/
 
         if (!formData.postal_code) {
             errors.postal_code = 'Field is required';

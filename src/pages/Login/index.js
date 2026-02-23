@@ -33,6 +33,8 @@ export default class Login extends Component {
                 passwordConfirm: '',
                 photo: null,
                 photoPreview: null,
+                bio: '',              
+                website: '',           
                 address: '',
                 number: '',
                 country: '',
@@ -421,7 +423,7 @@ export default class Login extends Component {
     validateFields = () => {
         let errors = {};
         let isValid = true;
-        const { name, email, password, passwordConfirm, address, number, country, state, zipCode, birthDate } = this.state.formData;
+        const { name, email, password, passwordConfirm, address, number, country, state, zipCode, birthDate, website } = this.state.formData;
 
         if (!email) {
             errors.email = "Field is required";
@@ -475,6 +477,15 @@ export default class Login extends Component {
                 errors.birthDate = "Field is required";
                 isValid = false;
             }
+            
+            // Validação do website (se fornecido)
+            if (website) {
+                const urlPattern = /^(https?:\/\/)?(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)$/;
+                if (!urlPattern.test(website)) {
+                    errors.website = 'Please enter a valid URL';
+                    isValid = false;
+                }
+            }
         }
 
         this.setState({ errors });
@@ -513,6 +524,12 @@ export default class Login extends Component {
         formData.append('email', this.state.formData.email);
         formData.append('password', this.state.formData.password);
         formData.append('photo', this.state.formData.photo);
+        if (this.state.formData.bio) {
+            formData.append('bio', this.state.formData.bio);
+        }
+        if (this.state.formData.website) {
+            formData.append('website', this.state.formData.website);
+        }
         // Adiciona os campos de endereço
         formData.append('address', this.state.formData.address);
         formData.append('number', this.state.formData.number);
@@ -579,6 +596,8 @@ export default class Login extends Component {
                 passwordConfirm: '',
                 photo: null,
                 photoPreview: null,
+                bio: '',              
+                website: '',           
                 address: '',
                 number: '',
                 country: '',
@@ -761,6 +780,32 @@ export default class Login extends Component {
                                                         <img src={this.state.formData.photoPreview} alt="Profile Preview" className="photo-preview" />
                                                     </div>
                                                 )}
+                                            </FormGroup>
+                                            
+                                            <FormGroup>
+                                                <Label for="bio">Bio</Label>
+                                                <Input 
+                                                    type="input" 
+                                                    id="bio" 
+                                                    name="bio" 
+                                                    value={this.state.formData.bio} 
+                                                    onChange={this.handleChange} 
+                                                    placeholder="Tell us a little about yourself" 
+                                                    rows="1"
+                                                />
+                                            </FormGroup>
+                                            
+                                            <FormGroup>
+                                                <Label for="website">Website</Label>
+                                                <Input 
+                                                    type="url" 
+                                                    id="website" 
+                                                    name="website" 
+                                                    value={this.state.formData.website} 
+                                                    onChange={this.handleChange} 
+                                                    placeholder="https://www.yourwebsite.com" 
+                                                />
+                                                {this.state.errors.website && <Label className="text-danger">{this.state.errors.website}</Label>}
                                             </FormGroup>
                                             
                                             {/* CAMPOS DE ENDEREÇO */}

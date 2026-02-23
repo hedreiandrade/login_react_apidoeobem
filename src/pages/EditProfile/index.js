@@ -62,7 +62,9 @@ export default function EditProfile() {
         city: '',
         postal_code: '',
         // NOVO: campo para data de nascimento
-        birth_date: null
+        birth_date: null,
+        bio: '',
+        website: ''
     });
 
     // Dados dos selects
@@ -150,7 +152,7 @@ export default function EditProfile() {
                         Authorization: `Bearer ${token}`
                     }
                 });
-                const { name, photo, email, auth_provider, address, number, country, state, city, postal_code, birth_date, country_code, state_code } = response.data;
+                const { name, photo, email, auth_provider, address, number, country, state, city, postal_code, birth_date, country_code, state_code, bio, website } = response.data;
     
                 if (isMounted) {
                     setFormData({
@@ -167,7 +169,9 @@ export default function EditProfile() {
                         stateCode: state_code || '',
                         city: city || '',
                         postal_code: postal_code || '',
-                        birth_date: birth_date ? new Date(birth_date) : null
+                        birth_date: birth_date ? new Date(birth_date) : null,
+                        bio: bio || '',
+                        website: website || ''
                     });
                 }
             } catch (error) {
@@ -306,6 +310,14 @@ export default function EditProfile() {
             isValid = false;
         }
 
+        if (formData.website) {
+            const urlPattern = /^(https?:\/\/)?(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)$/;
+            if (!urlPattern.test(formData.website)) {
+                errors.website = 'Please enter a valid URL';
+                isValid = false;
+            }
+        }
+
         setErrors(errors);
         return isValid;
     };
@@ -341,6 +353,9 @@ export default function EditProfile() {
             }
             data.append('birth_date', birthDateFormatted);
         }
+        
+        data.append('bio', formData.bio || '');
+        data.append('website', formData.website || '');
         
         if (formData.photo) {
             data.append('photo', formData.photo);
@@ -415,6 +430,33 @@ export default function EditProfile() {
                             placeholder="Type your email"
                         />
                         {errors.email && <Label className="text-danger">{errors.email}</Label>}
+                    </FormGroup>
+                    
+                    <FormGroup>
+                        <Label for="bio">Bio</Label>
+                        <Input
+                            type="input"
+                            id="bio"
+                            name="bio"
+                            value={formData.bio}
+                            onChange={handleChange}
+                            placeholder="Tell us about yourself"
+                            rows="1"
+                        />
+                        {errors.bio && <Label className="text-danger">{errors.bio}</Label>}
+                    </FormGroup>
+
+                    <FormGroup>
+                        <Label for="website">Website</Label>
+                        <Input
+                            type="url"
+                            id="website"
+                            name="website"
+                            value={formData.website}
+                            onChange={handleChange}
+                            placeholder="https://yourwebsite.com"
+                        />
+                        {errors.website && <Label className="text-danger">{errors.website}</Label>}
                     </FormGroup>
                     
                     {/* CAMPOS DE ENDEREÇO */}

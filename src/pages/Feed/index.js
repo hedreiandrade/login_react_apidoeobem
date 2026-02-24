@@ -107,7 +107,7 @@ export default function FeedPage() {
                         rel="noopener noreferrer"
                         style={{
                             color: '#1d9bf0',
-                            textDecoration: 'underline',
+                            textDecoration: 'none',
                             wordBreak: 'break-word'
                         }}
                         onClick={(e) => e.stopPropagation()}
@@ -126,7 +126,7 @@ export default function FeedPage() {
                         rel="noopener noreferrer"
                         style={{
                             color: '#1d9bf0',
-                            textDecoration: 'underline',
+                            textDecoration: 'none',
                             wordBreak: 'break-word'
                         }}
                         onClick={(e) => e.stopPropagation()}

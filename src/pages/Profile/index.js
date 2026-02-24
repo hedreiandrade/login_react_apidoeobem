@@ -12,6 +12,7 @@ import { AiFillHeart } from "react-icons/ai";
 import { FaTrash, FaCommentDots, FaCamera } from "react-icons/fa";
 import { BiRepost } from "react-icons/bi";
 import { RiVerifiedBadgeFill } from "react-icons/ri";
+// FiExternalLink removido pois não está sendo usado
 
 export default function ProfilePage() {
     useExpireToken();
@@ -119,7 +120,7 @@ export default function ProfilePage() {
                         rel="noopener noreferrer"
                         style={{
                             color: '#1d9bf0',
-                            textDecoration: 'underline',
+                            textDecoration: 'none', 
                             wordBreak: 'break-word'
                         }}
                         onClick={(e) => e.stopPropagation()}
@@ -138,7 +139,7 @@ export default function ProfilePage() {
                         rel="noopener noreferrer"
                         style={{
                             color: '#1d9bf0',
-                            textDecoration: 'underline',
+                            textDecoration: 'none',
                             wordBreak: 'break-word'
                         }}
                         onClick={(e) => e.stopPropagation()}
@@ -847,9 +848,11 @@ export default function ProfilePage() {
             return {
                 photo: isValidPhoto(profileUser.photo) ? profileUser.photo : getInitialsImage(profileUser.name),
                 name: profileUser.name,
-                // ADICIONADO: cidade e país
+                // ADICIONADO: bio, cidade, país e website
+                bio: profileUser.bio || null,
                 city: profileUser.city || null,
                 country: profileUser.country || null,
+                website: profileUser.website || null,
                 joinedDate: profileUser.created_at ? new Date(profileUser.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'Joined recently',
                 cover_photo: profileUser.cover_photo,
                 verified_profile: profileUser.verified_profile || 0
@@ -861,9 +864,11 @@ export default function ProfilePage() {
             return {
                 photo: isValidPhoto(firstPost.photo) ? firstPost.photo : getInitialsImage(firstPost.name),
                 name: firstPost.name,
-                // ADICIONADO: cidade e país (se disponível no post)
+                // ADICIONADO: bio, cidade, país e website (se disponível no post)
+                bio: firstPost.bio || null,
                 city: firstPost.city || null,
                 country: firstPost.country || null,
+                website: firstPost.website || null,
                 joinedDate: 'Joined recently',
                 cover_photo: null,
                 verified_profile: firstPost.verified_profile || 0
@@ -874,9 +879,11 @@ export default function ProfilePage() {
             return {
                 photo: getInitialsImage("User"),
                 name: "User",
-                // ADICIONADO: cidade e país padrão
+                // ADICIONADO: bio, cidade, país e website padrão
+                bio: null,
                 city: null,
                 country: null,
+                website: null,
                 joinedDate: 'Joined recently',
                 cover_photo: null,
                 verified_profile: 0
@@ -976,33 +983,55 @@ export default function ProfilePage() {
                             </h2>
                         </div>
 
-                        {/* ADICIONADO: Exibição da cidade e país antes da data de ingresso */}
+                        {/* ADICIONADO: Bio abaixo do nome */}
+                        {profileInfo?.bio && (
+                            <div className="profile-bio">
+                                <p className="bio-text">{formatTextWithLinks(profileInfo.bio)}</p>
+                            </div>
+                        )}
+
+                        {/* ADICIONADO: Localização e website */}
                         <div className="profile-meta">
                             {/* Mostra cidade e país se disponíveis */}
-                            {profileInfo?.city && profileInfo?.country && (
-                                <span className="location-info">
-                                    {profileInfo.city}, {profileInfo.country}
-                                </span>
-                            )}
-                            
-                            {/* Mostra apenas cidade se só tiver cidade */}
-                            {profileInfo?.city && !profileInfo?.country && (
-                                <span className="location-info">
-                                    {profileInfo.city}
-                                </span>
-                            )}
-                            
-                            {/* Mostra apenas país se só tiver país */}
-                            {!profileInfo?.city && profileInfo?.country && (
-                                <span className="location-info">
-                                    {profileInfo.country}
-                                </span>
+                            {(profileInfo?.city || profileInfo?.country || profileInfo?.website) && (
+                                <div className="location-website-container">
+                                    {profileInfo?.city && profileInfo?.country && (
+                                        <span className="location-info">
+                                            {profileInfo.city}, {profileInfo.country}
+                                        </span>
+                                    )}
+                                    
+                                    {/* Mostra apenas cidade se só tiver cidade */}
+                                    {profileInfo?.city && !profileInfo?.country && (
+                                        <span className="location-info">
+                                            {profileInfo.city}
+                                        </span>
+                                    )}
+                                    
+                                    {/* Mostra apenas país se só tiver país */}
+                                    {!profileInfo?.city && profileInfo?.country && (
+                                        <span className="location-info">
+                                            {profileInfo.country}
+                                        </span>
+                                    )}
+                                    
+                                    {/* ADICIONADO: Website com link clicável usando formatTextWithLinks */}
+                                    {profileInfo?.website && (
+                                        <span className="website-info">
+                                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginLeft: '4px'}}>
+                                                🔗 {formatTextWithLinks(profileInfo.website)}
+                                            </span>
+                                        </span>
+                                    )}
+                                </div>
                             )}
                             
                             {/* Data de ingresso */}
-                            <span className="joined-date">
-                                {isLoadingProfile ? "Joined recently" : `Joined ${profileInfo.joinedDate}`}
-                            </span>
+                            <div className="joined-date-container">
+                                <span className="joined-date">
+                                    {isLoadingProfile ? "Joined recently" : `Joined ${profileInfo.joinedDate}`}
+                                </span>
+                            </div>
                         </div>
 
                         <div className="follow-counts">
@@ -1199,7 +1228,6 @@ export default function ProfilePage() {
                                         ) : null}
                                     </div>
                                     
-                                    {/* ALTERADO: descrição com links clicáveis */}
                                     <p className="post-description">
                                         {formatTextWithLinks(post.description)}
                                     </p>
@@ -1296,7 +1324,6 @@ export default function ProfilePage() {
                                                                                     <RiVerifiedBadgeFill className="verified-badge comment-verified-badge" title="Verified" />
                                                                                 )}
                                                                             </strong>
-                                                                            {/* ALTERADO: comentário com links clicáveis */}
                                                                             <p className="comment-text">
                                                                                 {formatTextWithLinks(comment.comment)}
                                                                             </p>

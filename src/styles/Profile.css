@@ -157,7 +157,8 @@ html {
 }
 
 .profile-name-section {
-    margin-bottom: 12px;
+    margin-bottom: -7px;
+    margin-top: -12px;
 }
 
 .profile-name {
@@ -288,6 +289,11 @@ html {
 .post-media:not([controls]) {
     max-width: 100%;
     height: auto;
+}
+
+.bio-text{
+    margin-top: -15x;
+    margin-bottom: 7px;
 }
 
 .text-center {

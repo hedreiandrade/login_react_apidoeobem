@@ -1,4 +1,4 @@
-import React, { Component } from 'react'; // teste
+import React, { Component } from 'react';
 import { Form, FormGroup, Label, Input, Button, Alert } from 'reactstrap';
 import Header from '../../components/Header';
 import { api } from '../../services/api';

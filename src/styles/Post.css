@@ -1,0 +1,159 @@
+/* Posts.css */
+.App-posts {
+    margin: 0 auto;
+    padding: 20px;
+    max-width: 600px;
+    min-height: 100vh;
+}
+
+.posts-container {
+    margin-top: 20px;
+}
+
+.posts-header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #e1e8ed;
+}
+
+.posts-header h2 {
+    color: #1d9bf0;
+    margin: 0;
+}
+
+.create-post-full {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.user-info-section {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+    gap: 12px;
+}
+
+.post-user-photo-large {
+    border-radius: 50%;
+}
+
+.user-name-label {
+    font-size: 16px;
+}
+
+.post-input-large {
+    width: 100%;
+    border: 1px solid #e1e8ed;
+    border-radius: 12px;
+    padding: 12px;
+    font-size: 16px;
+    resize: vertical;
+    margin-bottom: 20px;
+}
+
+.post-input-large:focus {
+    outline: none;
+    border-color: #1d9bf0;
+}
+
+.media-upload-section {
+    margin-bottom: 20px;
+}
+
+.post-file-input {
+    margin-bottom: 15px;
+}
+
+.preview-container-full {
+    position: relative;
+    margin-top: 15px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #f5f5f5;
+}
+
+.remove-preview-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    opacity: 0.9;
+}
+
+.text-preview {
+    margin-top: 20px;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 3px solid #1d9bf0;
+}
+
+.preview-text {
+    margin-top: 8px;
+    padding: 8px;
+    background: white;
+    border-radius: 4px;
+    word-wrap: break-word;
+}
+
+.post-actions-full {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+    justify-content: flex-end;
+}
+
+.submit-post-btn {
+    background-color: #1d9bf0;
+    border: none;
+    padding: 10px 32px;
+    border-radius: 9999px;
+    font-weight: bold;
+}
+
+.submit-post-btn:hover:not(:disabled) {
+    background-color: #0c8ad4;
+}
+
+.submit-post-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.cancel-post-btn {
+    background-color: #e1e8ed;
+    border: none;
+    color: #333;
+    padding: 10px 24px;
+    border-radius: 9999px;
+}
+
+.cancel-post-btn:hover {
+    background-color: #d1d8e0;
+}
+
+.post-media {
+    border-radius: 12px;
+}
+
+/* Responsivo */
+@media (max-width: 768px) {
+    .App-posts {
+        padding: 16px;
+    }
+    
+    .create-post-full {
+        padding: 16px;
+    }
+    
+    .post-actions-full {
+        flex-direction: column;
+    }
+    
+    .submit-post-btn,
+    .cancel-post-btn {
+        width: 100%;
+    }
+}

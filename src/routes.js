@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Switch, Route } from 'react-router-dom';
 import PrivateRoute from './auth';
 import Login from './pages/Login';
 import Feed from './pages/Feed';
+import Posts from './pages/Posts';
 import Logout from './pages/Logout';
 import EditProfile from './pages/EditProfile';
 import ChangePassword from './pages/ChangePassword';
@@ -20,6 +21,7 @@ const Routes = () => (
         <Switch>
             <Route exact path="/" component={Login} />
             <PrivateRoute path="/feed" component={Feed} />
+            <PrivateRoute path="/posts" component={Posts} />
             <PrivateRoute path="/edit-profile" component={EditProfile} />
             <PrivateRoute path="/change-password" component={ChangePassword} />
             <PrivateRoute path="/followers" component={Followers} />
@@ -36,5 +38,3 @@ const Routes = () => (
 );
 
 export default Routes;
-
-

@@ -15,10 +15,7 @@ import { BiRepost } from "react-icons/bi";
 export default function FeedPage() {
     useExpireToken();
 
-    const [description, setDescription] = useState('');
-    const [mediaFile, setMediaFile] = useState(null);
-    const [previewUrl, setPreviewUrl] = useState(null);
-    const [posting, setPosting] = useState(false);
+    // Removidos: description, mediaFile, previewUrl, posting, fileInputRef
     const [feed, setFeed] = useState([]);
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
@@ -36,7 +33,6 @@ export default function FeedPage() {
     const observer = useRef();
     const commentsEndRefs = useRef({});
     const [resetFeedTrigger, setResetFeedTrigger] = useState(0);
-    const fileInputRef = useRef(null);
     const userId = parseInt(localStorage.getItem('user_id'));
     const name = localStorage.getItem('name') || 'User';
     const rawPhoto = localStorage.getItem('photo');
@@ -54,45 +50,35 @@ export default function FeedPage() {
     const formatTextWithLinks = useCallback((text) => {
         if (!text || typeof text !== 'string') return text;
         
-        // Expressão regular para detectar URLs
-        // Captura: http://, https://, www., e domínios comuns sem www
         const urlRegex = /(\b(https?:\/\/|www\.)[^\s]+|\b[\w.-]+\.(com|org|net|br|io|co|info|edu|gov|me|dev|app)[^\s]*)/gi;
         
         const parts = [];
         let lastIndex = 0;
         let match;
         
-        // Usar exec para encontrar todas as URLs
         const regex = new RegExp(urlRegex.source, urlRegex.flags);
         while ((match = regex.exec(text)) !== null) {
-            // Adiciona texto antes da URL
             if (match.index > lastIndex) {
                 parts.push(text.substring(lastIndex, match.index));
             }
             
-            // Processa a URL encontrada
             let url = match[0];
             let displayUrl = url;
             let href = url;
             
-            // Adiciona protocolo se necessário
             if (url.startsWith('www.')) {
                 href = `https://${url}`;
             } else if (!url.startsWith('http://') && !url.startsWith('https://')) {
-                // Para domínios sem www nem protocolo
                 href = `https://${url}`;
             }
             
-            // Remove caracteres de pontuação do final (exceto se fizer parte da URL)
             const punctuationRegex = /[.,;!?]+$/;
             const punctuationMatch = punctuationRegex.exec(url);
             
             if (punctuationMatch) {
-                // Separa a URL da pontuação
                 const cleanUrl = url.substring(0, punctuationMatch.index);
                 const punctuation = punctuationMatch[0];
                 
-                // Atualiza o href sem pontuação
                 if (cleanUrl.startsWith('www.')) {
                     href = `https://${cleanUrl}`;
                 } else if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
@@ -140,27 +126,16 @@ export default function FeedPage() {
             lastIndex = match.index + match[0].length;
         }
         
-        // Adiciona o texto restante
         if (lastIndex < text.length) {
             parts.push(text.substring(lastIndex));
         }
         
-        // Se não encontrou URLs, retorna o texto normal
         if (parts.length === 0) {
             return text;
         }
         
         return parts;
     }, []);
-
-    // Adicionar useEffect para limpar URLs de preview
-    useEffect(() => {
-        return () => {
-            if (previewUrl) {
-                URL.revokeObjectURL(previewUrl);
-            }
-        };
-    }, [previewUrl]);
 
     // Função para fazer repost
     const handleRepost = useCallback(async (originalPostId, originalUserId, originalDescription, originalMediaLink, originalUserName) => {
@@ -193,8 +168,6 @@ export default function FeedPage() {
             if (response.data.status === 401) {
                 setError(response.data.error);
             } else {
-                // Atualiza o feed para refletir o novo repost
-                // Atualiza o contador de reposts localmente
                 setFeed(prevFeed => 
                     prevFeed.map(post => 
                         post.post_id === originalPostId 
@@ -268,7 +241,6 @@ export default function FeedPage() {
         if (loading) return;
         if (observer.current) observer.current.disconnect();
         
-        // Usar requestAnimationFrame para evitar loops
         requestAnimationFrame(() => {
             observer.current = new IntersectionObserver(entries => {
                 if (entries[0].isIntersecting && hasMore) {
@@ -492,67 +464,6 @@ export default function FeedPage() {
         }
     }, [token, userId]);
 
-    const handleMediaChange = useCallback((e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        
-        // Limpar URL anterior se existir
-        if (previewUrl) {
-            URL.revokeObjectURL(previewUrl);
-        }
-        
-        setMediaFile(file);
-        setPreviewUrl(URL.createObjectURL(file));
-    }, [previewUrl]);
-
-    const handlePost = useCallback(async () => {
-        if (!description.trim() && !mediaFile) return;
-        setPosting(true);
-        try {
-            const isValid = await getVerifyToken(token);
-            if (!isValid) {
-                window.location.href = "/";
-                return;
-            }
-            const formData = new FormData();
-            formData.append('user_id', userId);
-            formData.append('description', description);
-            if (mediaFile) {
-                formData.append('media_link', mediaFile);
-            }
-            const response = await apiFeed.post('/posts', formData, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    'Content-Type': 'multipart/form-data'
-                }
-            });
-            if(response.data.status === 401){
-                setError('Failed to create post');
-            }else{
-                setDescription('');
-                setMediaFile(null);
-                
-                // Limpar preview URL
-                if (previewUrl) {
-                    URL.revokeObjectURL(previewUrl);
-                    setPreviewUrl(null);
-                }
-                
-                if (fileInputRef.current) {
-                    fileInputRef.current.value = '';
-                }
-                setPage(1);
-                setFeed([]);
-                setHasMore(true);
-                setResetFeedTrigger(prev => prev + 1);
-            }
-        } catch (err) {
-            setError('Failed to create post');
-        } finally {
-            setPosting(false);
-        }
-    }, [description, mediaFile, token, userId, previewUrl]);
-
     const handleLike = useCallback(async (postId, currentLikes, isCurrentlyLiked) => {
         if (likingPosts[postId]) return;
         setLikingPosts(prev => ({ ...prev, [postId]: true }));
@@ -703,43 +614,9 @@ export default function FeedPage() {
                     </div>
                 </div>
                 </div>
-                <div className="create-post">
-                <img 
-                    src={user.photo} 
-                    alt="User" 
-                    className="post-user-photo"
-                    style={{
-                    width: '40px',
-                    height: '40px',
-                    objectFit: 'cover'
-                    }}
-                    onError={(e) => {
-                    e.target.src = getInitialsImage(name);
-                    }}
-                />
-                <Input
-                    type="textarea"
-                    value={description}
-                    onChange={e => setDescription(e.target.value)}
-                    placeholder="What's on your mind?"
-                    className="post-input"
-                />
-                <Input
-                    type="file"
-                    accept="image/*,video/*"
-                    onChange={handleMediaChange}
-                    className="post-file-input"
-                    innerRef={fileInputRef}
-                />
-                {previewUrl && (
-                    <div className="preview-container" style={{ marginTop: '10px' }}>
-                    {renderMedia(previewUrl, true)}
-                    </div>
-                )}
-                <Button color="primary" onClick={handlePost} disabled={posting} style={{ marginTop: '10px' }}>
-                    {posting ? 'Posting...' : 'Post'}
-                </Button>
-                </div>
+                
+                {/* Seção de criação de post REMOVIDA */}
+                
                 {error && <Alert color="danger" fade={false} className="text-center">{error}</Alert>}
 
                 {feed.map((post, index) => {
@@ -766,7 +643,7 @@ export default function FeedPage() {
                     className="post-item"
                     style={{ marginBottom: '20px' }}
                     >
-                    {/* Header do post com indicador de repost - IGUAL AO EXEMPLO DO X */}
+                    {/* Header do post com indicador de repost */}
                     <div className="post-header">
                         {post.is_repost ? (
                         <>
@@ -850,7 +727,6 @@ export default function FeedPage() {
                     </div>
 
                     <div className="post-actions" style={{ marginTop: '10px' }}>
-                        {/* Botões com números e ícones */}
                         <div className="post-buttons">
                         <Button 
                             color={hasLiked ? "primary" : "secondary"}
@@ -912,7 +788,6 @@ export default function FeedPage() {
                         <div className="comments-section">
                         <div className="comments-list">
                             {isCommentsLoading && postComments.length === 0 ? (
-                                // Mostra "Loading..." apenas quando está carregando pela primeira vez
                                 <p className="text-center">Loading comments...</p>
                             ) : postComments.length > 0 ? (
                                 <>
@@ -941,7 +816,6 @@ export default function FeedPage() {
                                             </Link>
                                             <div className="comment-content">
                                             <strong className="comment-user-name">{comment.name}</strong>
-                                            {/* Comentário com links clicáveis */}
                                             <p className="comment-text">
                                                 {formatTextWithLinks(comment.comment)}
                                             </p>
@@ -973,11 +847,9 @@ export default function FeedPage() {
                                     )}
                                 </>
                             ) : (
-                                // Só mostra "No comments yet" quando não está carregando e não há comentários
                                 <p className="text-muted text-center no-comments">No comments yet</p>
                             )}
                             
-                            {/* Loading de mais comentários (pagination) */}
                             {isCommentsLoading && postComments.length > 0 && (
                                 <p className="text-center">Loading more comments...</p>
                             )}
@@ -1013,15 +885,11 @@ export default function FeedPage() {
                 <br/>
                 {!hasMore && <p className="text-center text-muted">No more posts</p>}
                 
-                {/* Adiciona um espaço extra no final para não ficar coberto pelo footer fixo */}
                 <div style={{ height: '80px' }}></div>
             </div>
             </div>
             
-            {/* Footer flutuante */}
             <Footer showOnScroll={true} />
-            
-            {/* Footer original no final da página */}
             <Footer showOnScroll={false} />
         </div>
         );

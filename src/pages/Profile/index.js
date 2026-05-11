@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Footer from '../../components/Footer';
 import SocialHeader from '../../components/SocialHeader';
-import { Alert, Button, Input } from 'reactstrap';
+import { Alert, Button } from 'reactstrap';
 import { apiFeed, api } from '../../services/api';
 import '../../styles/Profile.css';
 import { useExpireToken } from "../../hooks/expireToken";
@@ -9,17 +9,13 @@ import { getInitialsImage } from "../../ultils/initialsImage";
 import { getVerifyToken } from "../../ultils/verifyToken";
 import { useParams, Link } from 'react-router-dom';
 import { AiFillHeart } from "react-icons/ai";
-import { FaTrash, FaCommentDots, FaCamera } from "react-icons/fa";
+import { FaTrash, FaCommentDots } from "react-icons/fa";
 import { BiRepost } from "react-icons/bi";
 import { RiVerifiedBadgeFill } from "react-icons/ri";
-// FiExternalLink removido pois não está sendo usado
 
 export default function ProfilePage() {
     useExpireToken();
 
-    const [description, setDescription] = useState('');
-    const [mediaFile, setMediaFile] = useState(null);
-    const [posting, setPosting] = useState(false);
     const [feed, setFeed] = useState([]);
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
@@ -40,8 +36,6 @@ export default function ProfilePage() {
     const [followersCount, setFollowersCount] = useState(0);
     const [followingCount, setFollowingCount] = useState(0);
     const [countsLoading, setCountsLoading] = useState(true);
-    const [uploadingCover, setUploadingCover] = useState(false);
-    const [showCoverUpload, setShowCoverUpload] = useState(false);
     const [repostingPosts, setRepostingPosts] = useState({});
     
     const observer = useRef();
@@ -52,8 +46,6 @@ export default function ProfilePage() {
     const rawPhoto = localStorage.getItem('photo');
     const token = localStorage.getItem('login_token');
     const userId = parseInt(localStorage.getItem('user_id'));
-    const fileInputRef = useRef(null);
-    const postFileInputRef = useRef(null);
 
     const isValidPhoto = useCallback((photo) => {
         return photo && photo.trim() !== '' && photo !== 'null' && photo !== 'undefined';
@@ -67,45 +59,34 @@ export default function ProfilePage() {
     const formatTextWithLinks = useCallback((text) => {
         if (!text || typeof text !== 'string') return text;
         
-        // Expressão regular para detectar URLs
-        // Captura: http://, https://, www., e domínios comuns sem www
         const urlRegex = /(\b(https?:\/\/|www\.)[^\s]+|\b[\w.-]+\.(com|org|net|br|io|co|info|edu|gov|me|dev|app)[^\s]*)/gi;
         
         const parts = [];
         let lastIndex = 0;
         let match;
         
-        // Usar exec para encontrar todas as URLs
         const regex = new RegExp(urlRegex.source, urlRegex.flags);
         while ((match = regex.exec(text)) !== null) {
-            // Adiciona texto antes da URL
             if (match.index > lastIndex) {
                 parts.push(text.substring(lastIndex, match.index));
             }
             
-            // Processa a URL encontrada
             let url = match[0];
-            let displayUrl = url;
             let href = url;
             
-            // Adiciona protocolo se necessário
             if (url.startsWith('www.')) {
                 href = `https://${url}`;
             } else if (!url.startsWith('http://') && !url.startsWith('https://')) {
-                // Para domínios sem www nem protocolo
                 href = `https://${url}`;
             }
             
-            // Remove caracteres de pontuação do final (exceto se fizer parte da URL)
             const punctuationRegex = /[.,;!?]+$/;
             const punctuationMatch = punctuationRegex.exec(url);
             
             if (punctuationMatch) {
-                // Separa a URL da pontuação
                 const cleanUrl = url.substring(0, punctuationMatch.index);
                 const punctuation = punctuationMatch[0];
                 
-                // Atualiza o href sem pontuação
                 if (cleanUrl.startsWith('www.')) {
                     href = `https://${cleanUrl}`;
                 } else if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
@@ -145,7 +126,7 @@ export default function ProfilePage() {
                         onClick={(e) => e.stopPropagation()}
                         className="text-link"
                     >
-                        {displayUrl}
+                        {url}
                     </a>
                 );
             }
@@ -153,12 +134,10 @@ export default function ProfilePage() {
             lastIndex = match.index + match[0].length;
         }
         
-        // Adiciona o texto restante
         if (lastIndex < text.length) {
             parts.push(text.substring(lastIndex));
         }
         
-        // Se não encontrou URLs, retorna o texto normal
         if (parts.length === 0) {
             return text;
         }
@@ -166,7 +145,7 @@ export default function ProfilePage() {
         return parts;
     }, []);
 
-    // Função para fazer repost - IGUAL AO FEED
+    // Função para fazer repost
     const handleRepost = useCallback(async (originalPostId, originalUserId, originalDescription, originalMediaLink, originalUserName) => {
         if (repostingPosts[originalPostId]) return;
 
@@ -197,8 +176,6 @@ export default function ProfilePage() {
             if (response.data.status === 401) {
                 setError(response.data.error);
             } else {
-                // Atualiza o feed para refletir o novo repost
-                // Atualiza o contador de reposts localmente - IGUAL AO FEED
                 setFeed(prevFeed => 
                     prevFeed.map(post => 
                         post.post_id === originalPostId 
@@ -285,7 +262,7 @@ export default function ProfilePage() {
                 }
             });
             if (followingResponse.data && typeof followingResponse.data.total === 'number') {
-                setFollowingCount(followersResponse.data.total);
+                setFollowingCount(followingResponse.data.total);
             }
         } catch (error) {
             console.error('Failed to fetch follow counts', error);
@@ -293,42 +270,6 @@ export default function ProfilePage() {
             setCountsLoading(false);
         }
     }, [id, token]);
-
-    // Função para fazer upload da foto de capa
-    const handleCoverUpload = async (event) => {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        setUploadingCover(true);
-        try {
-            const formData = new FormData();
-            formData.append('cover_photo', file);
-
-            const response = await api.post(`/user/${id}`, formData, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    'Content-Type': 'multipart/form-data'
-                }
-            });
-
-            // Atualizar o profileUser com a nova cover_photo
-            setProfileUser(prev => ({
-                ...prev,
-                cover_photo: response.data.cover_photo || response.data.user?.cover_photo || prev.cover_photo
-            }));
-
-            setShowCoverUpload(false);
-        } catch (err) {
-            console.error('Error uploading cover photo:', err);
-            setError('Failed to upload cover photo');
-        } finally {
-            setUploadingCover(false);
-            // Reset file input
-            if (fileInputRef.current) {
-                fileInputRef.current.value = '';
-            }
-        }
-    };
 
     // Função para seguir usuário
     const followUser = async () => {
@@ -379,56 +320,6 @@ export default function ProfilePage() {
             setFollowLoading(false);
         }
     };
-
-    // Função para fazer post no profile
-    const handlePost = useCallback(async () => {
-        if (!description.trim() && !mediaFile) return;
-        setPosting(true);
-        try {
-            const isValid = await getVerifyToken(token);
-            if (!isValid) {
-                window.location.href = "/";
-                return;
-            }
-            const formData = new FormData();
-            formData.append('user_id', userId);
-            formData.append('description', description);
-            if (mediaFile) {
-                formData.append('media_link', mediaFile);
-            }
-            const response = await apiFeed.post('/posts', formData, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    'Content-Type': 'multipart/form-data'
-                }
-            });
-            if(response.data.status === 401){
-                setError('Failed to create post');
-            }else{
-                setDescription('');
-                setMediaFile(null);
-                if (postFileInputRef.current) {
-                    postFileInputRef.current.value = '';
-                }
-                // Recarrega o feed
-                setPage(1);
-                setFeed([]);
-                setHasMore(true);
-                setResetFeedTrigger(prev => prev + 1);
-            }
-        } catch (err) {
-            setError('Failed to create post');
-        } finally {
-            setPosting(false);
-        }
-    }, [description, mediaFile, token, userId]);
-
-    // Função para lidar com a seleção de mídia (imagens/vídeos)
-    const handleMediaChange = useCallback((e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        setMediaFile(file);
-    }, []);
 
     const fetchFeed = useCallback(async (pageNum = page) => {
         let isMounted = true;
@@ -496,8 +387,6 @@ export default function ProfilePage() {
         setFollowersCount(0);
         setFollowingCount(0);
         setCountsLoading(true);
-        setDescription('');
-        setMediaFile(null);
         window.scrollTo(0,0);
     }, [id]);
 
@@ -848,7 +737,6 @@ export default function ProfilePage() {
             return {
                 photo: isValidPhoto(profileUser.photo) ? profileUser.photo : getInitialsImage(profileUser.name),
                 name: profileUser.name,
-                // ADICIONADO: bio, cidade, país e website
                 bio: profileUser.bio || null,
                 city: profileUser.city || null,
                 country: profileUser.country || null,
@@ -864,7 +752,6 @@ export default function ProfilePage() {
             return {
                 photo: isValidPhoto(firstPost.photo) ? firstPost.photo : getInitialsImage(firstPost.name),
                 name: firstPost.name,
-                // ADICIONADO: bio, cidade, país e website (se disponível no post)
                 bio: firstPost.bio || null,
                 city: firstPost.city || null,
                 country: firstPost.country || null,
@@ -879,7 +766,6 @@ export default function ProfilePage() {
             return {
                 photo: getInitialsImage("User"),
                 name: "User",
-                // ADICIONADO: bio, cidade, país e website padrão
                 bio: null,
                 city: null,
                 country: null,
@@ -909,36 +795,6 @@ export default function ProfilePage() {
                             className={`cover-image ${!profileInfo?.cover_photo ? 'default-cover' : ''}`}
                             style={profileInfo?.cover_photo ? { backgroundImage: `url(${profileInfo.cover_photo})` } : {}}
                         >
-                            {isOwnProfile && (
-                                <div className="cover-edit-overlay">
-                                    <button 
-                                        className="btn btn-light btn-sm cover-edit-btn"
-                                        onClick={() => setShowCoverUpload(!showCoverUpload)}
-                                    >
-                                        <FaCamera className="me-1" />
-                                        Edit
-                                    </button>
-                                    
-                                    {showCoverUpload && (
-                                        <div className="cover-upload-menu">
-                                            <input
-                                                ref={fileInputRef}
-                                                type="file"
-                                                accept="image/*"
-                                                onChange={handleCoverUpload}
-                                                style={{ display: 'none' }}
-                                            />
-                                            <button 
-                                                className="btn btn-primary btn-sm"
-                                                onClick={() => fileInputRef.current?.click()}
-                                                disabled={uploadingCover}
-                                            >
-                                                {uploadingCover ? 'Uploading...' : 'Upload photo'}
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
                         </div>
                         <div className="profile-info-section">
                             <div className="profile-avatar-container">
@@ -983,16 +839,13 @@ export default function ProfilePage() {
                             </h2>
                         </div>
 
-                        {/* ADICIONADO: Bio abaixo do nome */}
                         {profileInfo?.bio && (
                             <div className="profile-bio">
                                 <p className="bio-text">{formatTextWithLinks(profileInfo.bio)}</p>
                             </div>
                         )}
 
-                        {/* ADICIONADO: Localização e website */}
                         <div className="profile-meta">
-                            {/* Mostra cidade e país se disponíveis */}
                             {(profileInfo?.city || profileInfo?.country || profileInfo?.website) && (
                                 <div className="location-website-container">
                                     {profileInfo?.city && profileInfo?.country && (
@@ -1001,21 +854,18 @@ export default function ProfilePage() {
                                         </span>
                                     )}
                                     
-                                    {/* Mostra apenas cidade se só tiver cidade */}
                                     {profileInfo?.city && !profileInfo?.country && (
                                         <span className="location-info">
                                             {profileInfo.city}
                                         </span>
                                     )}
                                     
-                                    {/* Mostra apenas país se só tiver país */}
                                     {!profileInfo?.city && profileInfo?.country && (
                                         <span className="location-info">
                                             {profileInfo.country}
                                         </span>
                                     )}
                                     
-                                    {/* ADICIONADO: Website com link clicável usando formatTextWithLinks */}
                                     {profileInfo?.website && (
                                         <span className="website-info">
                                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginLeft: '4px'}}>
@@ -1026,7 +876,6 @@ export default function ProfilePage() {
                                 </div>
                             )}
                             
-                            {/* Data de ingresso */}
                             <div className="joined-date-container">
                                 <span className="joined-date">
                                     {isLoadingProfile ? "Joined recently" : `Joined ${profileInfo.joinedDate}`}
@@ -1107,36 +956,6 @@ export default function ProfilePage() {
 
                     {error && <Alert color="danger" fade={false} className="text-center">{error}</Alert>}
                     
-                    {/* Create Post Section (somente no próprio perfil) */}
-                    {isOwnProfile && (
-                        <div className="create-post-section">
-                            <div className="create-post">
-                                <div className="post-input-container">
-                                    <Input
-                                        type="textarea"
-                                        value={description}
-                                        onChange={e => setDescription(e.target.value)}
-                                        placeholder="What's on your mind?"
-                                        className="post-input"
-                                    />
-                                    <div className="post-actions-row">
-                                        <Input
-                                            type="file"
-                                            accept="image/*,video/*"
-                                            onChange={handleMediaChange}
-                                            className="post-file-input"
-                                            innerRef={postFileInputRef}
-                                        />
-                                        <Button color="primary" onClick={handlePost} disabled={posting}>
-                                            {posting ? 'Posting...' : 'Post'}
-                                        </Button>
-                                    </div>
-                                </div>
-                            </div>
-                            <hr />
-                        </div>
-                    )}
-
                     {/* Posts Section */}
                     <div className="posts-section">
                         <h4 className="posts-title">Posts</h4>
@@ -1160,7 +979,7 @@ export default function ProfilePage() {
                             const hasMoreComments = commentsData[post.post_id]?.hasMore || false;
                             const isDeleting = deletingPosts[post.post_id] || false;
                             const isPostOwner = parseInt(post.user_id) === userId;
-                            const isReposting = repostingPosts[post.post_id] || false; // IGUAL AO FEED
+                            const isReposting = repostingPosts[post.post_id] || false;
                             
                             return (
                                 <div
@@ -1168,7 +987,6 @@ export default function ProfilePage() {
                                     ref={isLast ? lastPostRef : null}
                                     className="profile-item"
                                 >
-                                    {/* Header do post com indicador de repost - IGUAL AO FEED */}
                                     <div className="post-header">
                                         {post.is_repost ? (
                                             <>
@@ -1209,7 +1027,6 @@ export default function ProfilePage() {
                                             <span className="post-date">{new Date(post.created_at).toLocaleDateString()}</span>
                                         </div>
                                         
-                                        {/* Botão de deletar disponível para posts do usuário (originais e reposts) */}
                                         {(isPostOwner || (post.is_repost && post.user_id === userId)) ? (
                                             <Button 
                                                 color="link" 
@@ -1234,7 +1051,6 @@ export default function ProfilePage() {
                                     {renderMedia(post.media_link)}
                                     
                                     <div className="post-actions">
-                                        {/* Botões com números e ícones - IGUAL AO FEED */}
                                         <div className="post-buttons">
                                             <Button 
                                                 color={hasLiked ? "primary" : "secondary"}
@@ -1267,7 +1083,6 @@ export default function ProfilePage() {
                                                 <FaCommentDots size={14} style={{ marginRight: '5px' }} />
                                                 {post.number_comments || 0}
                                             </Button>
-                                            {/* Botão de Repost - IGUAL AO FEED */}
                                             <Button 
                                                 color="primary"
                                                 size="sm"
@@ -1293,12 +1108,10 @@ export default function ProfilePage() {
                                         </div>
                                     </div>
 
-                                    {/* Área de Comentários - COM LÓGICA CORRIGIDA */}
                                     {isCommentsExpanded && (
                                         <div className="comments-section">
                                             <div className="comments-list">
                                                 {isCommentsLoading && postComments.length === 0 ? (
-                                                    // Mostra "Loading..." apenas quando está carregando pela primeira vez
                                                     <p className="text-center">Loading comments...</p>
                                                 ) : postComments.length > 0 ? (
                                                     <>
@@ -1355,26 +1168,23 @@ export default function ProfilePage() {
                                                         )}
                                                     </>
                                                 ) : (
-                                                    // Só mostra "No comments yet" quando não está carregando e não há comentários
                                                     <p className="text-muted text-center no-comments">No comments yet</p>
                                                 )}
                                                 
-                                                {/* Loading de mais comentários (pagination) */}
                                                 {isCommentsLoading && postComments.length > 0 && (
                                                     <p className="text-center">Loading more comments...</p>
                                                 )}
                                             </div>
 
-                                            {/* Input para adicionar comentário */}
                                             <div className="add-comment-form">
                                                 <div className="comment-input-container">
-                                                    <Input
-                                                        type="textarea"
+                                                    <textarea
                                                         value={currentCommentText}
                                                         onChange={e => handleCommentTextChange(post.post_id, e.target.value)}
                                                         placeholder="Write a comment..."
                                                         rows="1"
                                                         className="comment-input"
+                                                        style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
                                                     />
                                                     <Button 
                                                         color="primary" 
@@ -1382,6 +1192,7 @@ export default function ProfilePage() {
                                                         onClick={() => handleAddComment(post.post_id)}
                                                         disabled={!currentCommentText.trim() || isCommenting}
                                                         className="comment-submit-btn"
+                                                        style={{ marginTop: '8px' }}
                                                     >
                                                         {isCommenting ? '...' : 'Post'}
                                                     </Button>

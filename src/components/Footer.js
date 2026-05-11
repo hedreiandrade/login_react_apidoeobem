@@ -1,6 +1,6 @@
 // src/components/Footer.js
 import React, { useState, useEffect } from "react";
-import { FaSearch, FaUser } from "react-icons/fa";
+import { FaSearch, FaUser, FaPlus } from "react-icons/fa";
 import { IoMdHome } from "react-icons/io";
 import { Link, useLocation } from "react-router-dom";
 import '../styles/Footer.css';
@@ -62,6 +62,18 @@ export default function Footer({ showOnScroll = true }) {
           </div>
           <span className="footer-label">
             Home
+          </span>
+        </Link>
+
+        <Link 
+          to="/posts" 
+          className={`footer-link ${location.pathname === '/posts' ? 'active' : ''}`}
+        >
+          <div className="footer-icon">
+            <FaPlus />
+          </div>
+          <span className="footer-label">
+            Post
           </span>
         </Link>
 

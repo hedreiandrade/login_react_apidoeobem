@@ -827,7 +827,7 @@ export default function ProfilePage() {
                                 ) : (
                                     <>
                                         {profileInfo.name}
-                                        {profileInfo?.verified_profile === 1 ? (
+                                        {profileInfo?.verified_profile === true ? (
                                             <RiVerifiedBadgeFill className="verified-badge" title="Verified" />
                                         ) : isOwnProfile && (
                                             <Link to="/verified" className="get-verified-link-simple">

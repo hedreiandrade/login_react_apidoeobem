@@ -7,17 +7,16 @@ import { getInitialsImage } from "../../ultils/initialsImage";
 import { getVerifyToken } from "../../ultils/verifyToken";
 import SocialHeader from '../../components/SocialHeader';
 import Footer from '../../components/Footer';
+import { FaImage } from "react-icons/fa";
 import '../../styles/Post.css';
 
 export default function PostsPage() {
     useExpireToken();
     const history = useHistory();
-    const { id } = useParams(); // Captura o parâmetro id da URL
+    const { id } = useParams();
 
-    // Redireciona se estiver na rota /profile/:id
     useEffect(() => {
         if (id && history.location.pathname.startsWith('/profile/')) {
-            // Redireciona para /profile/id
             history.push(`/profile/${id}`);
         }
     }, [id, history]);
@@ -25,6 +24,7 @@ export default function PostsPage() {
     const [description, setDescription] = useState('');
     const [mediaFile, setMediaFile] = useState(null);
     const [previewUrl, setPreviewUrl] = useState(null);
+    const [mediaType, setMediaType] = useState(null);
     const [posting, setPosting] = useState(false);
     const [error, setError] = useState('');
     
@@ -42,7 +42,6 @@ export default function PostsPage() {
         photo: isValidPhoto(rawPhoto) ? rawPhoto : getInitialsImage(name)
     };
 
-    // Função para formatar texto com links clicáveis (para preview)
     const formatTextWithLinks = useCallback((text) => {
         if (!text || typeof text !== 'string') return text;
         
@@ -130,7 +129,6 @@ export default function PostsPage() {
         return parts;
     }, []);
 
-    // Limpar URL de preview
     useEffect(() => {
         return () => {
             if (previewUrl) {
@@ -139,15 +137,15 @@ export default function PostsPage() {
         };
     }, [previewUrl]);
 
-    const renderMedia = useCallback((url, isPreview = false) => {
-        if (!url || typeof url !== 'string') return null;
+    const renderMedia = useCallback((url, fileType) => {
+        if (!url) return null;
 
-        const isVideo = url.toLowerCase().match(/\.(mp4|webm|ogg|mov|avi|wmv|flv|mkv|m4v)$/);
-        const isImage = url.toLowerCase().match(/\.(jpeg|jpg|gif|png|webp|bmp|svg)$/);
+        const isVideo = fileType && fileType.startsWith('video/');
+        const isImage = fileType && fileType.startsWith('image/');
 
         if (isVideo) {
             return (
-                <div className="video-container" style={{ position: 'relative', width: '100%' }}>
+                <div className="video-container" style={{ position: 'relative', width: '100%', marginTop: '15px' }}>
                     <video 
                         src={url} 
                         controls 
@@ -160,16 +158,15 @@ export default function PostsPage() {
                             height: 'auto',
                             maxHeight: '400px',
                             objectFit: 'contain',
-                            backgroundColor: '#000'
+                            backgroundColor: '#000',
+                            borderRadius: '8px'
                         }}
                         onError={(e) => {
                             console.error('Error loading video:', url);
                             e.target.style.display = 'none';
                         }}
                     >
-                        <source src={url} type="video/mp4" />
-                        <source src={url} type="video/webm" />
-                        <source src={url} type="video/ogg" />
+                        <source src={url} type={fileType} />
                         Your browser does not support the video tag.
                     </video>
                 </div>
@@ -184,7 +181,9 @@ export default function PostsPage() {
                         width: '100%',
                         height: 'auto',
                         maxHeight: '400px',
-                        objectFit: 'contain'
+                        objectFit: 'contain',
+                        marginTop: '15px',
+                        borderRadius: '8px'
                     }}
                     loading="lazy"
                     onError={(e) => {
@@ -194,7 +193,7 @@ export default function PostsPage() {
                 />
             );
         }
-        return null;
+        return <p>Formato de arquivo não suportado</p>;
     }, []);
 
     const handleMediaChange = useCallback((e) => {
@@ -205,8 +204,14 @@ export default function PostsPage() {
             URL.revokeObjectURL(previewUrl);
         }
         
+        const newPreviewUrl = URL.createObjectURL(file);
         setMediaFile(file);
-        setPreviewUrl(URL.createObjectURL(file));
+        setPreviewUrl(newPreviewUrl);
+        setMediaType(file.type);
+        
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
     }, [previewUrl]);
 
     const handlePost = useCallback(async () => {
@@ -228,6 +233,7 @@ export default function PostsPage() {
             const formData = new FormData();
             formData.append('user_id', userId);
             formData.append('description', description);
+            
             if (mediaFile) {
                 formData.append('media_link', mediaFile);
             }
@@ -242,9 +248,9 @@ export default function PostsPage() {
             if(response.data.status === 401){
                 setError('Failed to create post');
             } else {
-                // Limpar formulário
                 setDescription('');
                 setMediaFile(null);
+                setMediaType(null);
                 
                 if (previewUrl) {
                     URL.revokeObjectURL(previewUrl);
@@ -255,7 +261,6 @@ export default function PostsPage() {
                     fileInputRef.current.value = '';
                 }
                 
-                // Redirecionar para o feed após postar
                 history.push('/feed');
             }
         } catch (err) {
@@ -264,6 +269,10 @@ export default function PostsPage() {
             setPosting(false);
         }
     }, [description, mediaFile, token, userId, previewUrl, history]);
+
+    const triggerFileInput = useCallback(() => {
+        fileInputRef.current.click();
+    }, []);
 
     return (
         <div>
@@ -309,48 +318,80 @@ export default function PostsPage() {
                                 onChange={handleMediaChange}
                                 className="post-file-input"
                                 innerRef={fileInputRef}
+                                style={{ display: 'none' }}
                             />
                             
-                            {previewUrl && (
-                                <div className="preview-container-full">
-                                    {renderMedia(previewUrl, true)}
-                                    <Button 
-                                        color="danger" 
-                                        size="sm"
-                                        className="remove-preview-btn"
-                                        onClick={() => {
-                                            if (previewUrl) {
-                                                URL.revokeObjectURL(previewUrl);
-                                                setPreviewUrl(null);
-                                                setMediaFile(null);
-                                                if (fileInputRef.current) {
-                                                    fileInputRef.current.value = '';
-                                                }
-                                            }
-                                        }}
-                                    >
-                                        Remove
-                                    </Button>
-                                </div>
-                            )}
+                            <div 
+                                onClick={triggerFileInput}
+                                style={{
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    padding: '10px',
+                                    backgroundColor: '#f0f2f5',
+                                    borderRadius: '8px',
+                                    transition: 'all 0.3s',
+                                    width: '44px',
+                                    height: '44px'
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.backgroundColor = '#e4e6e9';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.backgroundColor = '#f0f2f5';
+                                }}
+                            >
+                                <FaImage size={24} />
+                            </div>
                         </div>
-                        
-                        {/* Preview do texto com links */}
+
                         {description && (
-                            <div className="text-preview">
+                            <div className="text-preview" style={{ marginTop: '15px' }}>
                                 <small className="text-muted">Preview:</small>
-                                <div className="preview-text">
+                                <div className="preview-text" style={{
+                                    padding: '10px',
+                                    backgroundColor: '#f8f9fa',
+                                    borderRadius: '8px',
+                                    marginTop: '5px'
+                                }}>
                                     {formatTextWithLinks(description)}
                                 </div>
+                                {previewUrl && mediaType && (
+                                    <div className="preview-container-full" style={{ marginTop: '15px' }}>
+                                        {renderMedia(previewUrl, mediaType)}
+                                        <Button 
+                                            color="danger" 
+                                            size="sm"
+                                            className="remove-preview-btn"
+                                            onClick={() => {
+                                                if (previewUrl) {
+                                                    URL.revokeObjectURL(previewUrl);
+                                                    setPreviewUrl(null);
+                                                    setMediaFile(null);
+                                                    setMediaType(null);
+                                                    if (fileInputRef.current) {
+                                                        fileInputRef.current.value = '';
+                                                    }
+                                                }
+                                            }}
+                                            style={{ marginTop: '10px' }}
+                                        >
+                                            Remove
+                                        </Button>
+                                    </div>
+                                )}
                             </div>
                         )}
                         
-                        <div className="post-actions-full">
+                        {/* Botões de ação */}
+                        <div className="post-actions-full" style={{ marginTop: '20px', display: 'flex', gap: '10px', alignItems: 'center' }}>
                             <Button 
                                 color="primary" 
                                 onClick={handlePost} 
                                 disabled={posting || (!description.trim() && !mediaFile)}
                                 className="submit-post-btn"
+                                style={{ flex: 1 }}
                                 size="lg"
                             >
                                 {posting ? 'Posting...' : 'Post'}
@@ -367,7 +408,6 @@ export default function PostsPage() {
                     </div>
                 </div>
                 
-                {/* Espaço extra para não ficar coberto pelo footer */}
                 <div style={{ height: '80px' }}></div>
             </div>
             

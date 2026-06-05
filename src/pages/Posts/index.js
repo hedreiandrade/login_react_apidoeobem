@@ -346,6 +346,7 @@ export default function PostsPage() {
                             </div>
                         </div>
 
+                        {/* Preview do texto - só aparece se houver texto */}
                         {description && (
                             <div className="text-preview" style={{ marginTop: '15px' }}>
                                 <small className="text-muted">Preview:</small>
@@ -357,30 +358,32 @@ export default function PostsPage() {
                                 }}>
                                     {formatTextWithLinks(description)}
                                 </div>
-                                {previewUrl && mediaType && (
-                                    <div className="preview-container-full" style={{ marginTop: '15px' }}>
-                                        {renderMedia(previewUrl, mediaType)}
-                                        <Button 
-                                            color="danger" 
-                                            size="sm"
-                                            className="remove-preview-btn"
-                                            onClick={() => {
-                                                if (previewUrl) {
-                                                    URL.revokeObjectURL(previewUrl);
-                                                    setPreviewUrl(null);
-                                                    setMediaFile(null);
-                                                    setMediaType(null);
-                                                    if (fileInputRef.current) {
-                                                        fileInputRef.current.value = '';
-                                                    }
-                                                }
-                                            }}
-                                            style={{ marginTop: '10px' }}
-                                        >
-                                            Remove
-                                        </Button>
-                                    </div>
-                                )}
+                            </div>
+                        )}
+                        
+                        {/* Preview da mídia - aparece independente de ter texto ou não */}
+                        {previewUrl && mediaType && (
+                            <div className="preview-container-full" style={{ marginTop: description ? '15px' : '15px' }}>
+                                {renderMedia(previewUrl, mediaType)}
+                                <Button 
+                                    color="danger" 
+                                    size="sm"
+                                    className="remove-preview-btn"
+                                    onClick={() => {
+                                        if (previewUrl) {
+                                            URL.revokeObjectURL(previewUrl);
+                                            setPreviewUrl(null);
+                                            setMediaFile(null);
+                                            setMediaType(null);
+                                            if (fileInputRef.current) {
+                                                fileInputRef.current.value = '';
+                                            }
+                                        }
+                                    }}
+                                    style={{ marginTop: '10px' }}
+                                >
+                                    Remove
+                                </Button>
                             </div>
                         )}
                         

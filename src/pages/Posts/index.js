@@ -34,6 +34,9 @@ export default function PostsPage() {
     const rawPhoto = localStorage.getItem('photo');
     const token = localStorage.getItem('login_token');
 
+    // Ref para controlar se o componente está montado
+    const isMountedRef = useRef(true);
+
     const isValidPhoto = useCallback((photo) => {
         return photo && photo.trim() !== '' && photo !== 'null' && photo !== 'undefined';
     }, []);
@@ -130,7 +133,10 @@ export default function PostsPage() {
     }, []);
 
     useEffect(() => {
+        isMountedRef.current = true;
+        
         return () => {
+            isMountedRef.current = false;
             if (previewUrl) {
                 URL.revokeObjectURL(previewUrl);
             }
@@ -216,16 +222,20 @@ export default function PostsPage() {
 
     const handlePost = useCallback(async () => {
         if (!description.trim() && !mediaFile) {
-            setError('Please add a description or media to post');
+            if (isMountedRef.current) {
+                setError('Please add a description or media to post');
+            }
             return;
         }
         
-        setPosting(true);
-        setError('');
+        if (isMountedRef.current) {
+            setPosting(true);
+            setError('');
+        }
         
         try {
             const isValid = await getVerifyToken(token);
-            if (!isValid) {
+            if (!isValid && isMountedRef.current) {
                 window.location.href = "/";
                 return;
             }
@@ -245,28 +255,34 @@ export default function PostsPage() {
                 }
             });
             
-            if(response.data.status === 401){
-                setError('Failed to create post');
-            } else {
-                setDescription('');
-                setMediaFile(null);
-                setMediaType(null);
-                
-                if (previewUrl) {
-                    URL.revokeObjectURL(previewUrl);
-                    setPreviewUrl(null);
+            if (isMountedRef.current) {
+                if(response.data.status === 401){
+                    setError('Failed to create post');
+                } else {
+                    setDescription('');
+                    setMediaFile(null);
+                    setMediaType(null);
+                    
+                    if (previewUrl) {
+                        URL.revokeObjectURL(previewUrl);
+                        setPreviewUrl(null);
+                    }
+                    
+                    if (fileInputRef.current) {
+                        fileInputRef.current.value = '';
+                    }
+                    
+                    history.push('/feed');
                 }
-                
-                if (fileInputRef.current) {
-                    fileInputRef.current.value = '';
-                }
-                
-                history.push('/feed');
             }
         } catch (err) {
-            setError('Failed to create post');
+            if (isMountedRef.current) {
+                setError('Failed to create post');
+            }
         } finally {
-            setPosting(false);
+            if (isMountedRef.current) {
+                setPosting(false);
+            }
         }
     }, [description, mediaFile, token, userId, previewUrl, history]);
 
@@ -346,44 +362,48 @@ export default function PostsPage() {
                             </div>
                         </div>
 
-                        {/* Preview do texto - só aparece se houver texto */}
-                        {description && (
+                        {/* Preview - só aparece se houver texto OU imagem */}
+                        {(description || previewUrl) && (
                             <div className="text-preview" style={{ marginTop: '15px' }}>
                                 <small className="text-muted">Preview:</small>
-                                <div className="preview-text" style={{
+                                <div className="preview-content" style={{
                                     padding: '10px',
-                                    backgroundColor: '#f8f9fa',
                                     borderRadius: '8px',
                                     marginTop: '5px'
                                 }}>
-                                    {formatTextWithLinks(description)}
+                                    {/* Preview do texto */}
+                                    {description && (
+                                        <div className="preview-text">
+                                            {formatTextWithLinks(description)}
+                                        </div>
+                                    )}
+                                    
+                                    {/* Preview da mídia */}
+                                    {previewUrl && mediaType && (
+                                        <div className="preview-container-full" style={{ marginTop: description ? '15px' : '0' }}>
+                                            {renderMedia(previewUrl, mediaType)}
+                                            <Button 
+                                                color="danger" 
+                                                size="sm"
+                                                className="remove-preview-btn"
+                                                onClick={() => {
+                                                    if (previewUrl) {
+                                                        URL.revokeObjectURL(previewUrl);
+                                                        setPreviewUrl(null);
+                                                        setMediaFile(null);
+                                                        setMediaType(null);
+                                                        if (fileInputRef.current) {
+                                                            fileInputRef.current.value = '';
+                                                        }
+                                                    }
+                                                }}
+                                                style={{ marginTop: '10px' }}
+                                            >
+                                                Remove
+                                            </Button>
+                                        </div>
+                                    )}
                                 </div>
-                            </div>
-                        )}
-                        
-                        {/* Preview da mídia - aparece independente de ter texto ou não */}
-                        {previewUrl && mediaType && (
-                            <div className="preview-container-full" style={{ marginTop: description ? '15px' : '15px' }}>
-                                {renderMedia(previewUrl, mediaType)}
-                                <Button 
-                                    color="danger" 
-                                    size="sm"
-                                    className="remove-preview-btn"
-                                    onClick={() => {
-                                        if (previewUrl) {
-                                            URL.revokeObjectURL(previewUrl);
-                                            setPreviewUrl(null);
-                                            setMediaFile(null);
-                                            setMediaType(null);
-                                            if (fileInputRef.current) {
-                                                fileInputRef.current.value = '';
-                                            }
-                                        }
-                                    }}
-                                    style={{ marginTop: '10px' }}
-                                >
-                                    Remove
-                                </Button>
                             </div>
                         )}
                         

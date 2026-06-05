@@ -37,6 +37,9 @@ export default function FeedPage() {
     const name = localStorage.getItem('name') || 'User';
     const rawPhoto = localStorage.getItem('photo');
     const token = localStorage.getItem('login_token');
+    
+    // Ref para controlar se o componente está montado
+    const isMountedRef = useRef(true);
 
     const isValidPhoto = useCallback((photo) => {
         return photo && photo.trim() !== '' && photo !== 'null' && photo !== 'undefined';
@@ -145,7 +148,7 @@ export default function FeedPage() {
 
         try {
             const isValid = await getVerifyToken(token);
-            if (!isValid) {
+            if (!isValid && isMountedRef.current) {
                 window.location.href = "/";
                 return;
             }
@@ -165,40 +168,45 @@ export default function FeedPage() {
                     'Content-Type': 'application/json'
                 }
             });
-            if (response.data.status === 401) {
-                setError(response.data.error);
-            } else {
-                setFeed(prevFeed => 
-                    prevFeed.map(post => 
-                        post.post_id === originalPostId 
-                            ? { 
-                                ...post, 
-                                number_reposts: (post.number_reposts || 0) + 1
-                            } 
-                            : post
-                    )
-                );
-                setPage(1);
-                setFeed([]);
-                setHasMore(true);
-                setResetFeedTrigger(prev => prev + 1);
+            
+            if (isMountedRef.current) {
+                if (response.data.status === 401) {
+                    setError(response.data.error);
+                } else {
+                    setFeed(prevFeed => 
+                        prevFeed.map(post => 
+                            post.post_id === originalPostId 
+                                ? { 
+                                    ...post, 
+                                    number_reposts: (post.number_reposts || 0) + 1
+                                } 
+                                : post
+                        )
+                    );
+                    setPage(1);
+                    setFeed([]);
+                    setHasMore(true);
+                    setResetFeedTrigger(prev => prev + 1);
+                }
             }
         } catch (err) {
-            setError('Failed to repost');
+            if (isMountedRef.current) {
+                setError('Failed to repost');
+            }
         } finally {
-            setRepostingPosts(prev => ({ ...prev, [originalPostId]: false }));
+            if (isMountedRef.current) {
+                setRepostingPosts(prev => ({ ...prev, [originalPostId]: false }));
+            }
         }
     }, [token, repostingPosts, userId]);
 
     const fetchFeed = useCallback(async (pageNum = page) => {
-        let isMounted = true;
-
-        if (isMounted) setLoading(true);
-        if (isMounted) setError('');
+        if (isMountedRef.current) setLoading(true);
+        if (isMountedRef.current) setError('');
         
         try {
             const isValid = await getVerifyToken(token);
-            if (!isValid) {
+            if (!isValid && isMountedRef.current) {
                 window.location.href = "/";
                 return;
             }
@@ -209,7 +217,7 @@ export default function FeedPage() {
                 }
             });
 
-            if (isMounted && response.data.data.length > 0) {
+            if (isMountedRef.current && response.data.data.length > 0) {
                 setFeed(prev => {
                     const existingIds = new Set(prev.map(post => post.post_id));
                     const newPosts = response.data.data.filter(post => !existingIds.has(post.post_id));
@@ -217,24 +225,26 @@ export default function FeedPage() {
                 });
             }
 
-            if (isMounted && pageNum >= response.data.last_page) {
+            if (isMountedRef.current && pageNum >= response.data.last_page) {
                 setHasMore(false);
             }
         } catch (err) {
-            if (isMounted) setError('Failed to load feed');
+            if (isMountedRef.current) setError('Failed to load feed');
         } finally {
-            if (isMounted) setLoading(false);
+            if (isMountedRef.current) setLoading(false);
         }
-
-        return () => {
-            isMounted = false;
-        };
     }, [token, page, userId]);
 
     useEffect(() => {
+        isMountedRef.current = true;
+        
         if (hasMore) {
             fetchFeed(page);
         }
+        
+        return () => {
+            isMountedRef.current = false;
+        };
     }, [fetchFeed, hasMore, resetFeedTrigger, page]);
 
     const lastPostRef = useCallback(node => {
@@ -243,7 +253,7 @@ export default function FeedPage() {
         
         requestAnimationFrame(() => {
             observer.current = new IntersectionObserver(entries => {
-                if (entries[0].isIntersecting && hasMore) {
+                if (entries[0].isIntersecting && hasMore && isMountedRef.current) {
                     setPage(prevPage => prevPage + 1);
                 }
             }, {
@@ -262,7 +272,7 @@ export default function FeedPage() {
 
         try {
             const isValid = await getVerifyToken(token);
-            if (!isValid) {
+            if (!isValid && isMountedRef.current) {
                 window.location.href = "/";
                 return;
             }
@@ -272,15 +282,22 @@ export default function FeedPage() {
                     'Content-Type': 'application/json'
                 }
             });
-            if(response.data.status === 401){
-                setError('Failed to delete a post');
-            }else{
-                setFeed(prevFeed => prevFeed.filter(post => post.post_id !== postId));
+            
+            if (isMountedRef.current) {
+                if(response.data.status === 401){
+                    setError('Failed to delete a post');
+                }else{
+                    setFeed(prevFeed => prevFeed.filter(post => post.post_id !== postId));
+                }
             }
         } catch (err) {
-            setError('Failed to delete post');
+            if (isMountedRef.current) {
+                setError('Failed to delete post');
+            }
         } finally {
-            setDeletingPosts(prev => ({ ...prev, [postId]: false }));
+            if (isMountedRef.current) {
+                setDeletingPosts(prev => ({ ...prev, [postId]: false }));
+            }
         }
     }, [token, deletingPosts]);
 
@@ -291,7 +308,7 @@ export default function FeedPage() {
         
         try {
             const isValid = await getVerifyToken(token);
-            if (!isValid) {
+            if (!isValid && isMountedRef.current) {
                 window.location.href = "/";
                 return;
             }
@@ -302,22 +319,28 @@ export default function FeedPage() {
                 }
             });
 
-            setCommentsData(prev => ({
-                ...prev,
-                [postId]: {
-                    data: pageNum === 1 
-                        ? response.data.data || []
-                        : [...(prev[postId]?.data || []), ...(response.data.data || [])],
-                    currentPage: pageNum,
-                    lastPage: response.data.last_page,
-                    hasMore: pageNum < response.data.last_page
-                }
-            }));
+            if (isMountedRef.current) {
+                setCommentsData(prev => ({
+                    ...prev,
+                    [postId]: {
+                        data: pageNum === 1 
+                            ? response.data.data || []
+                            : [...(prev[postId]?.data || []), ...(response.data.data || [])],
+                        currentPage: pageNum,
+                        lastPage: response.data.last_page,
+                        hasMore: pageNum < response.data.last_page
+                    }
+                }));
+            }
 
         } catch (err) {
-            setError('Failed to load comments');
+            if (isMountedRef.current) {
+                setError('Failed to load comments');
+            }
         } finally {
-            setCommentsLoading(prev => ({ ...prev, [postId]: false }));
+            if (isMountedRef.current) {
+                setCommentsLoading(prev => ({ ...prev, [postId]: false }));
+            }
         }
     }, [token, commentsLoading]);
 
@@ -346,7 +369,7 @@ export default function FeedPage() {
 
         const observer = new IntersectionObserver(
             (entries) => {
-                if (entries[0].isIntersecting) {
+                if (entries[0].isIntersecting && isMountedRef.current) {
                     const postComments = commentsData[postId];
                     if (postComments?.hasMore && !commentsLoading[postId]) {
                         const nextPage = postComments.currentPage + 1;
@@ -383,7 +406,7 @@ export default function FeedPage() {
         setCommentingPosts(prev => ({ ...prev, [postId]: true }));
         try {
             const isValid = await getVerifyToken(token);
-            if (!isValid) {
+            if (!isValid && isMountedRef.current) {
                 window.location.href = "/";
                 return;
             }
@@ -398,36 +421,43 @@ export default function FeedPage() {
                     'Content-Type': 'application/json'
                 }
             });
-            if(response.data.status === 401){
-                setError(`Failed to comment a post`);
-            }else{
-                await fetchComments(postId, 1);
-                setCommentTexts(prev => ({
-                    ...prev,
-                    [postId]: ''
-                }));
-                setFeed(prevFeed => 
-                    prevFeed.map(post => 
-                        post.post_id === postId 
-                            ? { 
-                                ...post, 
-                                number_comments: (post.number_comments || 0) + 1
-                            } 
-                            : post
-                    )
-                );
+            
+            if (isMountedRef.current) {
+                if(response.data.status === 401){
+                    setError(`Failed to comment a post`);
+                }else{
+                    await fetchComments(postId, 1);
+                    setCommentTexts(prev => ({
+                        ...prev,
+                        [postId]: ''
+                    }));
+                    setFeed(prevFeed => 
+                        prevFeed.map(post => 
+                            post.post_id === postId 
+                                ? { 
+                                    ...post, 
+                                    number_comments: (post.number_comments || 0) + 1
+                                } 
+                                : post
+                        )
+                    );
+                }
             }
         } catch (err) {
-            setError('Failed to comment a post');
+            if (isMountedRef.current) {
+                setError('Failed to comment a post');
+            }
         } finally {
-            setCommentingPosts(prev => ({ ...prev, [postId]: false }));
+            if (isMountedRef.current) {
+                setCommentingPosts(prev => ({ ...prev, [postId]: false }));
+            }
         }
     }, [token, commentTexts, fetchComments, userId]);
 
     const handleDeleteComment = useCallback(async (postId, commentId) => {
         try {
             const isValid = await getVerifyToken(token);
-            if (!isValid) {
+            if (!isValid && isMountedRef.current) {
                 window.location.href = "/";
                 return;
             }
@@ -438,29 +468,34 @@ export default function FeedPage() {
                     'Content-Type': 'application/json'
                 }
             });
-            if(response.data.status === 401){
-                setError(`Failed to delete comment`);
-            }else{
-                setCommentsData(prev => ({
-                    ...prev,
-                    [postId]: {
-                        ...prev[postId],
-                        data: prev[postId]?.data?.filter(comment => comment.id !== commentId) || []
-                    }
-                }));
-                setFeed(prevFeed => 
-                    prevFeed.map(post => 
-                        post.post_id === postId 
-                            ? { 
-                                ...post, 
-                                number_comments: Math.max(0, (post.number_comments || 1) - 1)
-                            } 
-                            : post
-                    )
-                );
+            
+            if (isMountedRef.current) {
+                if(response.data.status === 401){
+                    setError(`Failed to delete comment`);
+                }else{
+                    setCommentsData(prev => ({
+                        ...prev,
+                        [postId]: {
+                            ...prev[postId],
+                            data: prev[postId]?.data?.filter(comment => comment.id !== commentId) || []
+                        }
+                    }));
+                    setFeed(prevFeed => 
+                        prevFeed.map(post => 
+                            post.post_id === postId 
+                                ? { 
+                                    ...post, 
+                                    number_comments: Math.max(0, (post.number_comments || 1) - 1)
+                                } 
+                                : post
+                        )
+                    );
+                }
             }
         } catch (err) {
-            setError('Failed to delete comment');
+            if (isMountedRef.current) {
+                setError('Failed to delete comment');
+            }
         }
     }, [token, userId]);
 
@@ -469,7 +504,7 @@ export default function FeedPage() {
         setLikingPosts(prev => ({ ...prev, [postId]: true }));
         try {
             const isValid = await getVerifyToken(token);
-            if (!isValid) {
+            if (!isValid && isMountedRef.current) {
                 window.location.href = "/";
                 return;
             }
@@ -484,25 +519,32 @@ export default function FeedPage() {
                     'Content-Type': 'application/json'
                 }
             });
-            if(response.data.status === 401){
-                setError(`Failed to ${isCurrentlyLiked ? 'unlike' : 'like'} post`);
-            }else{
-                setFeed(prevFeed => 
-                    prevFeed.map(post => 
-                        post.post_id === postId 
-                            ? { 
-                                ...post, 
-                                number_likes: isCurrentlyLiked ? currentLikes - 1 : currentLikes + 1,
-                                user_has_liked: !isCurrentlyLiked
-                            } 
-                            : post
-                    )
-                );
+            
+            if (isMountedRef.current) {
+                if(response.data.status === 401){
+                    setError(`Failed to ${isCurrentlyLiked ? 'unlike' : 'like'} post`);
+                }else{
+                    setFeed(prevFeed => 
+                        prevFeed.map(post => 
+                            post.post_id === postId 
+                                ? { 
+                                    ...post, 
+                                    number_likes: isCurrentlyLiked ? currentLikes - 1 : currentLikes + 1,
+                                    user_has_liked: !isCurrentlyLiked
+                                } 
+                                : post
+                        )
+                    );
+                }
             }
         } catch (err) {
-            setError(`Failed to ${isCurrentlyLiked ? 'unlike' : 'like'} post`);
+            if (isMountedRef.current) {
+                setError(`Failed to ${isCurrentlyLiked ? 'unlike' : 'like'} post`);
+            }
         } finally {
-            setLikingPosts(prev => ({ ...prev, [postId]: false }));
+            if (isMountedRef.current) {
+                setLikingPosts(prev => ({ ...prev, [postId]: false }));
+            }
         }
     }, [token, likingPosts, userId]);
 

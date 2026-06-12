@@ -91,7 +91,7 @@ export default function Footer({ showOnScroll = true }) {
 
         <Link 
           to={`/profile/${userId}`} 
-          className={`footer-link ${location.pathname === '/edit-profile' ? 'active' : ''}`}
+          className={`footer-link ${location.pathname.startsWith('/profile/') ? 'active' : ''}`}
         >
           <div className="footer-icon">
             <FaUser />

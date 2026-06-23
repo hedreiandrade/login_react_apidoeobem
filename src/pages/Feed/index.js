@@ -229,7 +229,15 @@ export default function FeedPage() {
                 setHasMore(false);
             }
         } catch (err) {
-            if (isMountedRef.current) setError('Failed to load feed');
+            if (isMountedRef.current) {
+                // TRATAMENTO ESPECÍFICO PARA 401
+                if (err.response?.status === 401) {
+                    // Token expirou durante a requisição
+                    window.location.href = "/";
+                    return;
+                }
+                setError('Failed to load feed');
+            }
         } finally {
             if (isMountedRef.current) setLoading(false);
         }

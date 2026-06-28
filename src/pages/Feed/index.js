@@ -15,12 +15,23 @@ import { BiRepost } from "react-icons/bi";
 export default function FeedPage() {
     useExpireToken();
 
-    // Removidos: description, mediaFile, previewUrl, posting, fileInputRef
+    // Tab state
+    const [activeTab, setActiveTab] = useState('feed'); // 'feed' or 'explore'
+
+    // Feed state
     const [feed, setFeed] = useState([]);
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+
+    // Explore state
+    const [explorePosts, setExplorePosts] = useState([]);
+    const [explorePage, setExplorePage] = useState(1);
+    const [exploreHasMore, setExploreHasMore] = useState(true);
+    const [exploreLoading, setExploreLoading] = useState(false);
+
+    // Shared states
     const [likingPosts, setLikingPosts] = useState({});
     const [commentingPosts, setCommentingPosts] = useState({});
     const [expandedComments, setExpandedComments] = useState({});
@@ -31,6 +42,7 @@ export default function FeedPage() {
     const [repostingPosts, setRepostingPosts] = useState({});
     
     const observer = useRef();
+    const exploreObserver = useRef();
     const commentsEndRefs = useRef({});
     const [resetFeedTrigger, setResetFeedTrigger] = useState(0);
     const userId = parseInt(localStorage.getItem('user_id'));
@@ -173,8 +185,19 @@ export default function FeedPage() {
                 if (response.data.status === 401) {
                     setError(response.data.error);
                 } else {
+                    // Update both feed and explore lists
                     setFeed(prevFeed => 
                         prevFeed.map(post => 
+                            post.post_id === originalPostId 
+                                ? { 
+                                    ...post, 
+                                    number_reposts: (post.number_reposts || 0) + 1
+                                } 
+                                : post
+                        )
+                    );
+                    setExplorePosts(prevExplore => 
+                        prevExplore.map(post => 
                             post.post_id === originalPostId 
                                 ? { 
                                     ...post, 
@@ -187,6 +210,13 @@ export default function FeedPage() {
                     setFeed([]);
                     setHasMore(true);
                     setResetFeedTrigger(prev => prev + 1);
+                    
+                    // If explore tab is active, refresh explore data
+                    if (activeTab === 'explore') {
+                        setExplorePage(1);
+                        setExplorePosts([]);
+                        setExploreHasMore(true);
+                    }
                 }
             }
         } catch (err) {
@@ -198,7 +228,7 @@ export default function FeedPage() {
                 setRepostingPosts(prev => ({ ...prev, [originalPostId]: false }));
             }
         }
-    }, [token, repostingPosts, userId]);
+    }, [token, repostingPosts, userId, activeTab]);
 
     const fetchFeed = useCallback(async (pageNum = page) => {
         if (isMountedRef.current) setLoading(true);
@@ -243,20 +273,82 @@ export default function FeedPage() {
         }
     }, [token, page, userId]);
 
+    // Fetch Explore
+    const fetchExplore = useCallback(async (pageNum = explorePage) => {
+        if (isMountedRef.current) setExploreLoading(true);
+        if (isMountedRef.current) setError('');
+        
+        try {
+            const isValid = await getVerifyToken(token);
+            if (!isValid && isMountedRef.current) {
+                window.location.href = "/";
+                return;
+            }
+            
+            const response = await apiFeed.get(`/explore/${userId}/${pageNum}/5`, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+
+            if (isMountedRef.current && response.data.data.length > 0) {
+                setExplorePosts(prev => {
+                    const existingIds = new Set(prev.map(post => post.post_id));
+                    const newPosts = response.data.data.filter(post => !existingIds.has(post.post_id));
+                    return [...prev, ...newPosts];
+                });
+            }
+
+            if (isMountedRef.current && pageNum >= response.data.last_page) {
+                setExploreHasMore(false);
+            }
+        } catch (err) {
+            if (isMountedRef.current) {
+                if (err.response?.status === 401) {
+                    window.location.href = "/";
+                    return;
+                }
+                setError('Failed to load explore posts');
+            }
+        } finally {
+            if (isMountedRef.current) setExploreLoading(false);
+        }
+    }, [token, explorePage, userId]);
+
     useEffect(() => {
         isMountedRef.current = true;
         
-        if (hasMore) {
-            fetchFeed(page);
+        if (activeTab === 'feed') {
+            if (hasMore) {
+                fetchFeed(page);
+            }
+        } else {
+            if (exploreHasMore) {
+                fetchExplore(explorePage);
+            }
         }
         
         return () => {
             isMountedRef.current = false;
         };
-    }, [fetchFeed, hasMore, resetFeedTrigger, page]);
+    }, [fetchFeed, fetchExplore, hasMore, exploreHasMore, resetFeedTrigger, page, explorePage, activeTab]);
+
+    // Reset and fetch when tab changes
+    useEffect(() => {
+        if (activeTab === 'feed') {
+            if (feed.length === 0 && hasMore) {
+                fetchFeed(1);
+            }
+        } else {
+            if (explorePosts.length === 0 && exploreHasMore) {
+                fetchExplore(1);
+            }
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activeTab]);
 
     const lastPostRef = useCallback(node => {
-        if (loading) return;
+        if (loading || activeTab !== 'feed') return;
         if (observer.current) observer.current.disconnect();
         
         requestAnimationFrame(() => {
@@ -271,7 +363,25 @@ export default function FeedPage() {
             
             if (node) observer.current.observe(node);
         });
-    }, [loading, hasMore]);
+    }, [loading, hasMore, activeTab]);
+
+    const lastExplorePostRef = useCallback(node => {
+        if (exploreLoading || activeTab !== 'explore') return;
+        if (exploreObserver.current) exploreObserver.current.disconnect();
+        
+        requestAnimationFrame(() => {
+            exploreObserver.current = new IntersectionObserver(entries => {
+                if (entries[0].isIntersecting && exploreHasMore && isMountedRef.current) {
+                    setExplorePage(prevPage => prevPage + 1);
+                }
+            }, {
+                rootMargin: '100px',
+                threshold: 0.1
+            });
+            
+            if (node) exploreObserver.current.observe(node);
+        });
+    }, [exploreLoading, exploreHasMore, activeTab]);
 
     const handleDeletePost = useCallback(async (postId) => {
         if (deletingPosts[postId]) return;
@@ -296,6 +406,7 @@ export default function FeedPage() {
                     setError('Failed to delete a post');
                 }else{
                     setFeed(prevFeed => prevFeed.filter(post => post.post_id !== postId));
+                    setExplorePosts(prevExplore => prevExplore.filter(post => post.post_id !== postId));
                 }
             }
         } catch (err) {
@@ -439,8 +550,19 @@ export default function FeedPage() {
                         ...prev,
                         [postId]: ''
                     }));
+                    // Update both feed and explore
                     setFeed(prevFeed => 
                         prevFeed.map(post => 
+                            post.post_id === postId 
+                                ? { 
+                                    ...post, 
+                                    number_comments: (post.number_comments || 0) + 1
+                                } 
+                                : post
+                        )
+                    );
+                    setExplorePosts(prevExplore => 
+                        prevExplore.map(post => 
                             post.post_id === postId 
                                 ? { 
                                     ...post, 
@@ -488,8 +610,19 @@ export default function FeedPage() {
                             data: prev[postId]?.data?.filter(comment => comment.id !== commentId) || []
                         }
                     }));
+                    // Update both feed and explore
                     setFeed(prevFeed => 
                         prevFeed.map(post => 
+                            post.post_id === postId 
+                                ? { 
+                                    ...post, 
+                                    number_comments: Math.max(0, (post.number_comments || 1) - 1)
+                                } 
+                                : post
+                        )
+                    );
+                    setExplorePosts(prevExplore => 
+                        prevExplore.map(post => 
                             post.post_id === postId 
                                 ? { 
                                     ...post, 
@@ -532,8 +665,20 @@ export default function FeedPage() {
                 if(response.data.status === 401){
                     setError(`Failed to ${isCurrentlyLiked ? 'unlike' : 'like'} post`);
                 }else{
+                    // Update both feed and explore
                     setFeed(prevFeed => 
                         prevFeed.map(post => 
+                            post.post_id === postId 
+                                ? { 
+                                    ...post, 
+                                    number_likes: isCurrentlyLiked ? currentLikes - 1 : currentLikes + 1,
+                                    user_has_liked: !isCurrentlyLiked
+                                } 
+                                : post
+                        )
+                    );
+                    setExplorePosts(prevExplore => 
+                        prevExplore.map(post => 
                             post.post_id === postId 
                                 ? { 
                                     ...post, 
@@ -637,310 +782,724 @@ export default function FeedPage() {
         }));
     }, []);
 
+    // Render user profile header
+    const renderUserHeader = () => (
+        <div className="user-info-header" style={{ marginBottom: '20px', marginTop: '20px' }}>
+            <Link to={`/profile/${userId}`}>
+                <img 
+                    src={user.photo} 
+                    alt="User" 
+                    className="header-user-photo"
+                    style={{
+                        width: '130px',
+                        height: '130px',
+                        objectFit: 'cover',
+                        borderRadius: '50%'
+                    }}
+                    onError={(e) => {
+                        e.target.src = getInitialsImage(name);
+                    }}
+                />
+            </Link>
+            <div className="header-user-details">
+                <h3 className="header-user-name">{name}</h3>
+            </div>
+        </div>
+    );
+
     return (
         <div>
             <SocialHeader user={user} />
-            <div className="col-md-6 App-feed">
-            <div className="feed-container">
-                <div className="feed-header-container">
-                <div className="user-info-header">
-                    <Link to={`/profile/${userId}`}>
-                    <img 
-                        src={user.photo} 
-                        alt="User" 
-                        className="header-user-photo"
-                        style={{
-                        width: '130px',
-                        height: '130px',
-                        objectFit: 'cover'
-                        }}
-                        onError={(e) => {
-                        e.target.src = getInitialsImage(name);
-                        }}
-                    />
-                    </Link>
-                    <div className="header-user-details">
-                    <h3 className="header-user-name">{name}</h3>
-                    </div>
-                </div>
-                </div>
-                
-                {/* Seção de criação de post REMOVIDA */}
-                
-                {error && <Alert color="danger" fade={false} className="text-center">{error}</Alert>}
-
-                {feed.map((post, index) => {
-                const isLast = index === feed.length - 1;
-                const photo = isValidPhoto(post.photo)
-                    ? post.photo
-                    : getInitialsImage(post.name);
-                const hasLiked = userHasLiked(post);
-                const isLiking = likingPosts[post.post_id] || false;
-                const isCommenting = commentingPosts[post.post_id] || false;
-                const isCommentsExpanded = expandedComments[post.post_id] || false;
-                const postComments = commentsData[post.post_id]?.data || [];
-                const currentCommentText = commentTexts[post.post_id] || '';
-                const isCommentsLoading = commentsLoading[post.post_id] || false;
-                const hasMoreComments = commentsData[post.post_id]?.hasMore || false;
-                const isDeleting = deletingPosts[post.post_id] || false;
-                const isPostOwner = parseInt(post.user_id) === userId;
-                const isReposting = repostingPosts[post.post_id] || false;
-
-                return (
-                    <div
-                    key={post.post_id}
-                    ref={isLast ? lastPostRef : null}
-                    className="post-item"
-                    style={{ marginBottom: '20px' }}
-                    >
-                    {/* Header do post com indicador de repost */}
-                    <div className="post-header">
-                        {post.is_repost ? (
-                        <>
-                            <div className="repost-indicator">
-                            <BiRepost size={14} style={{ marginRight: '5px' }} />
-                            <small className="text-muted">
-                                <strong>{post.name}</strong> reposted
-                            </small>
-                            </div>
-                            <Link to={`/profile/${post.original_user_id}`}>
-                            <img 
-                                src={isValidPhoto(post.original_user_photo) 
-                                ? post.original_user_photo 
-                                : getInitialsImage(post.original_user_name || 'User')} 
-                                alt={post.original_user_name} 
-                                className="post-user-photo"
-                                style={{
-                                width: '40px',
-                                height: '40px',
-                                objectFit: 'cover'
-                                }}
-                                onError={(e) => {
-                                e.target.src = getInitialsImage(post.original_user_name || 'User');
-                                }}
-                            />
-                            </Link>
-                        </>
-                        ) : (
-                        <Link to={`/profile/${post.user_id}`}>
-                            <img 
-                            src={photo} 
-                            alt={post.name} 
-                            className="post-user-photo"
+            
+            {/* Faixa azul #27CCF5 ocupando toda a largura */}
+            <div style={{ 
+                backgroundColor: '#27ADF5',
+                width: '100%',
+                padding: '0',
+                margin: '0',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+            }}>
+                <div className="col-md-6" style={{ margin: '0 auto', padding: '0' }}>
+                    <div style={{ 
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        padding: '0'
+                    }}>
+                        <div 
+                            className="tab-item feed-tab"
+                            onClick={() => setActiveTab('feed')}
                             style={{
-                                width: '40px',
-                                height: '40px',
-                                objectFit: 'cover'
+                                flex: 1,
+                                padding: '14px 0',
+                                textAlign: 'center',
+                                cursor: 'pointer',
+                                fontWeight: 'bold',
+                                color: '#ffffff',
+                                fontSize: '16px',
+                                position: 'relative',
+                                transition: 'all 0.3s ease',
+                                backgroundColor: 'transparent',
+                                letterSpacing: '0.5px',
+                                textTransform: 'uppercase'
                             }}
-                            onError={(e) => {
-                                e.target.src = getInitialsImage(post.name);
+                        >
+                            Feed
+                            {activeTab === 'feed' && (
+                                <div style={{
+                                    position: 'absolute',
+                                    bottom: '0',
+                                    left: '30%',
+                                    right: '30%',
+                                    height: '3px',
+                                    backgroundColor: '#F5A927',
+                                    borderRadius: '3px 3px 0 0'
+                                }} />
+                            )}
+                        </div>
+                        <div 
+                            className="tab-item explore-tab"
+                            onClick={() => setActiveTab('explore')}
+                            style={{
+                                flex: 1,
+                                padding: '14px 0',
+                                textAlign: 'center',
+                                cursor: 'pointer',
+                                fontWeight: 'bold',
+                                color: '#ffffff',
+                                fontSize: '16px',
+                                position: 'relative',
+                                transition: 'all 0.3s ease',
+                                backgroundColor: 'transparent',
+                                letterSpacing: '0.5px',
+                                textTransform: 'uppercase'
                             }}
-                            />
-                        </Link>
-                        )}
-                        <div className="post-user-info">
-                        <div className="post-user-name-container">
-                            <strong className="post-user-name">
-                            {post.is_repost ? post.original_user_name : post.name}
-                            </strong>
-                        </div>
-                        <span className="post-date">{new Date(post.created_at).toLocaleDateString()}</span>
-                        </div>
-
-                        {/* Botão de deletar disponível para posts do usuário (originais e reposts) */}
-                        {(isPostOwner || (post.is_repost && post.user_id === userId)) ? (
-                        <Button 
-                            color="link" 
-                            size="sm"
-                            className="post-delete-btn"
-                            onClick={() => handleDeletePost(post.post_id)}
-                            disabled={isDeleting}
-                            title={post.is_repost ? "Delete repost" : "Delete post"}
                         >
-                            {isDeleting ? (
-                            <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                            ) : (
-                            <FaTrash size={16} />
+                            Explore
+                            {activeTab === 'explore' && (
+                                <div style={{
+                                    position: 'absolute',
+                                    bottom: '0',
+                                    left: '30%',
+                                    right: '30%',
+                                    height: '3px',
+                                    backgroundColor: '#F5A927',
+                                    borderRadius: '3px 3px 0 0'
+                                }} />
                             )}
-                        </Button>
-                        ) : null}
-                    </div>
-
-                    {/* Descrição com links clicáveis */}
-                    <p className="post-description">
-                        {formatTextWithLinks(post.description)}
-                    </p>
-
-                    {/* Container de mídia responsivo */}
-                    <div className="media-container" style={{ marginTop: '10px' }}>
-                        {renderMedia(post.media_link)}
-                    </div>
-
-                    <div className="post-actions" style={{ marginTop: '10px' }}>
-                        <div className="post-buttons">
-                        <Button 
-                            color={hasLiked ? "primary" : "secondary"}
-                            size="sm"
-                            onClick={() => handleLike(post.post_id, post.number_likes, hasLiked)}
-                            disabled={isLiking}
-                            className="like-button"
-                        >
-                            {isLiking ? (
-                            '...'
-                            ) : (
-                            <>
-                                <AiFillHeart 
-                                size={16} 
-                                style={{ 
-                                    marginRight: '5px',
-                                    color: hasLiked ? '#dc3545' : '#6c757d'
-                                }} 
-                                />
-                                {post.number_likes || 0}
-                            </>
-                            )}
-                        </Button>
-                        <Button 
-                            color="info"
-                            size="sm"
-                            onClick={() => toggleComments(post.post_id)}
-                            className="comment-button"
-                        >
-                            <FaCommentDots size={14} style={{ marginRight: '5px' }} />
-                            {post.number_comments || 0}
-                        </Button>
-                        <Button 
-                            color="primary"
-                            size="sm"
-                            onClick={() => handleRepost(
-                            post.post_id, 
-                            post.original_user_id || post.user_id, 
-                            post.description, 
-                            post.media_link,
-                            post.name
-                            )}
-                            disabled={isReposting}
-                            className="repost-button"
-                        >
-                            {isReposting ? (
-                            '...'
-                            ) : (
-                            <>
-                                <BiRepost size={16} style={{ marginRight: '5px' }} /> 
-                                {post.number_reposts || 0}
-                            </>
-                            )}
-                        </Button>
                         </div>
                     </div>
-
-                    {isCommentsExpanded && (
-                        <div className="comments-section">
-                        <div className="comments-list">
-                            {isCommentsLoading && postComments.length === 0 ? (
-                                <p className="text-center">Loading comments...</p>
-                            ) : postComments.length > 0 ? (
-                                <>
-                                    {postComments.map((comment) => {
-                                    const commentUserPhoto = isValidPhoto(comment.photo) 
-                                        ? comment.photo 
-                                        : getInitialsImage(comment.name);
-
-                                    return (
-                                        <div key={comment.id} className="comment-item">
-                                        <div className="comment-header">
-                                            <Link to={`/profile/${comment.user_id}`}>
-                                            <img 
-                                                src={commentUserPhoto} 
-                                                alt={comment.name} 
-                                                className="comment-user-photo"
-                                                style={{
-                                                width: '30px',
-                                                height: '30px',
-                                                objectFit: 'cover'
-                                                }}
-                                                onError={(e) => {
-                                                e.target.src = getInitialsImage(comment.name);
-                                                }}
-                                            />
-                                            </Link>
-                                            <div className="comment-content">
-                                            <strong className="comment-user-name">{comment.name}</strong>
-                                            <p className="comment-text">
-                                                {formatTextWithLinks(comment.comment)}
-                                            </p>
-                                            <small className="comment-date">
-                                                {new Date(comment.created_at).toLocaleString()}
-                                            </small>
-                                            </div>
-                                            {(parseInt(comment.user_id) === userId || parseInt(post.user_id) === userId) && (
-                                            <Button 
-                                                color="link" 
-                                                size="sm"
-                                                className="comment-delete-btn"
-                                                onClick={() => handleDeleteComment(post.post_id, comment.id)}
-                                                title="Delete comment"
-                                            >
-                                                ×
-                                            </Button>
-                                            )}
-                                        </div>
-                                        </div>
-                                    );
-                                    })}
-
-                                    {hasMoreComments && (
-                                    <div 
-                                        ref={el => commentsEndRefs.current[post.post_id] = el}
-                                        style={{ height: '1px', marginTop: '10px' }}
-                                    />
-                                    )}
-                                </>
-                            ) : (
-                                <p className="text-muted text-center no-comments">No comments yet</p>
-                            )}
-                            
-                            {isCommentsLoading && postComments.length > 0 && (
-                                <p className="text-center">Loading more comments...</p>
-                            )}
-                        </div>
-
-                        <div className="add-comment-form">
-                            <div className="comment-input-container">
-                            <Input
-                                type="textarea"
-                                value={currentCommentText}
-                                onChange={e => handleCommentTextChange(post.post_id, e.target.value)}
-                                placeholder="Write a comment..."
-                                rows="1"
-                                className="comment-input"
-                            />
-                            <Button 
-                                color="primary" 
-                                size="sm"
-                                onClick={() => handleAddComment(post.post_id)}
-                                disabled={!currentCommentText.trim() || isCommenting}
-                                className="comment-submit-btn"
-                            >
-                                {isCommenting ? '...' : 'Post'}
-                            </Button>
-                            </div>
-                        </div>
-                        </div>
-                    )}
-                    </div>
-                );
-                })}
-                {loading && <p className="text-center">Loading...</p>}
-                <br/>
-                {!hasMore && <p className="text-center text-muted">No more posts</p>}
-                
-                <div style={{ height: '80px' }}></div>
+                </div>
             </div>
+
+            <div className="col-md-6 App-feed">
+                <div className="feed-container" style={{ paddingTop: '20px' }}>
+                    {/* Conteúdo da aba Feed */}
+                    {activeTab === 'feed' && (
+                        <>
+                            {renderUserHeader()}
+                            {error && <Alert color="danger" fade={false} className="text-center">{error}</Alert>}
+                            {feed.map((post, index) => {
+                                const isLast = index === feed.length - 1;
+                                const photo = isValidPhoto(post.photo)
+                                    ? post.photo
+                                    : getInitialsImage(post.name);
+                                const hasLiked = userHasLiked(post);
+                                const isLiking = likingPosts[post.post_id] || false;
+                                const isCommenting = commentingPosts[post.post_id] || false;
+                                const isCommentsExpanded = expandedComments[post.post_id] || false;
+                                const postComments = commentsData[post.post_id]?.data || [];
+                                const currentCommentText = commentTexts[post.post_id] || '';
+                                const isCommentsLoading = commentsLoading[post.post_id] || false;
+                                const hasMoreComments = commentsData[post.post_id]?.hasMore || false;
+                                const isDeleting = deletingPosts[post.post_id] || false;
+                                const isPostOwner = parseInt(post.user_id) === userId;
+                                const isReposting = repostingPosts[post.post_id] || false;
+
+                                return (
+                                    <div
+                                        key={post.post_id}
+                                        ref={isLast ? lastPostRef : null}
+                                        className="post-item"
+                                        style={{ marginBottom: '20px' }}
+                                    >
+                                        {/* Header do post com indicador de repost */}
+                                        <div className="post-header">
+                                            {post.is_repost ? (
+                                                <>
+                                                    <div className="repost-indicator">
+                                                        <BiRepost size={14} style={{ marginRight: '5px' }} />
+                                                        <small className="text-muted">
+                                                            <strong>{post.name}</strong> reposted
+                                                        </small>
+                                                    </div>
+                                                    <Link to={`/profile/${post.original_user_id}`}>
+                                                        <img 
+                                                            src={isValidPhoto(post.original_user_photo) 
+                                                                ? post.original_user_photo 
+                                                                : getInitialsImage(post.original_user_name || 'User')} 
+                                                            alt={post.original_user_name} 
+                                                            className="post-user-photo"
+                                                            style={{
+                                                                width: '40px',
+                                                                height: '40px',
+                                                                objectFit: 'cover'
+                                                            }}
+                                                            onError={(e) => {
+                                                                e.target.src = getInitialsImage(post.original_user_name || 'User');
+                                                            }}
+                                                        />
+                                                    </Link>
+                                                </>
+                                            ) : (
+                                                <Link to={`/profile/${post.user_id}`}>
+                                                    <img 
+                                                        src={photo} 
+                                                        alt={post.name} 
+                                                        className="post-user-photo"
+                                                        style={{
+                                                            width: '40px',
+                                                            height: '40px',
+                                                            objectFit: 'cover'
+                                                        }}
+                                                        onError={(e) => {
+                                                            e.target.src = getInitialsImage(post.name);
+                                                        }}
+                                                    />
+                                                </Link>
+                                            )}
+                                            <div className="post-user-info">
+                                                <div className="post-user-name-container">
+                                                    <strong className="post-user-name">
+                                                        {post.is_repost ? post.original_user_name : post.name}
+                                                    </strong>
+                                                </div>
+                                                <span className="post-date">{new Date(post.created_at).toLocaleDateString()}</span>
+                                            </div>
+
+                                            {/* Botão de deletar disponível para posts do usuário (originais e reposts) */}
+                                            {(isPostOwner || (post.is_repost && post.user_id === userId)) ? (
+                                                <Button 
+                                                    color="link" 
+                                                    size="sm"
+                                                    className="post-delete-btn"
+                                                    onClick={() => handleDeletePost(post.post_id)}
+                                                    disabled={isDeleting}
+                                                    title={post.is_repost ? "Delete repost" : "Delete post"}
+                                                >
+                                                    {isDeleting ? (
+                                                        <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                                    ) : (
+                                                        <FaTrash size={16} />
+                                                    )}
+                                                </Button>
+                                            ) : null}
+                                        </div>
+
+                                        {/* Descrição com links clicáveis */}
+                                        <p className="post-description">
+                                            {formatTextWithLinks(post.description)}
+                                        </p>
+
+                                        {/* Container de mídia responsivo */}
+                                        <div className="media-container" style={{ marginTop: '10px' }}>
+                                            {renderMedia(post.media_link)}
+                                        </div>
+
+                                        <div className="post-actions" style={{ marginTop: '10px' }}>
+                                            <div className="post-buttons" style={{ 
+                                                display: 'flex', 
+                                                justifyContent: 'space-between', 
+                                                alignItems: 'center',
+                                                width: '100%',
+                                                gap: '8px'
+                                            }}>
+                                                <Button 
+                                                    color={hasLiked ? "primary" : "secondary"}
+                                                    size="sm"
+                                                    onClick={() => handleLike(post.post_id, post.number_likes, hasLiked)}
+                                                    disabled={isLiking}
+                                                    className="like-button"
+                                                    style={{ 
+                                                        flex: 1,
+                                                        padding: '4px 8px',
+                                                        fontSize: '14px',
+                                                        minHeight: '32px',
+                                                        borderRadius: '20px'
+                                                    }}
+                                                >
+                                                    {isLiking ? (
+                                                        '...'
+                                                    ) : (
+                                                        <>
+                                                            <AiFillHeart 
+                                                                size={20} 
+                                                                style={{ 
+                                                                    marginRight: '5px',
+                                                                    color: hasLiked ? '#dc3545' : '#6c757d'
+                                                                }} 
+                                                            />
+                                                            {post.number_likes || 0}
+                                                        </>
+                                                    )}
+                                                </Button>
+                                                <Button 
+                                                    color="info"
+                                                    size="sm"
+                                                    onClick={() => toggleComments(post.post_id)}
+                                                    className="comment-button"
+                                                    style={{ 
+                                                        flex: 1,
+                                                        padding: '4px 8px',
+                                                        fontSize: '14px',
+                                                        minHeight: '32px',
+                                                        borderRadius: '20px'
+                                                    }}
+                                                >
+                                                    <FaCommentDots size={20} style={{ marginRight: '5px' }} />
+                                                    {post.number_comments || 0}
+                                                </Button>
+                                                <Button 
+                                                    color="primary"
+                                                    size="sm"
+                                                    onClick={() => handleRepost(
+                                                        post.post_id, 
+                                                        post.original_user_id || post.user_id, 
+                                                        post.description, 
+                                                        post.media_link,
+                                                        post.name
+                                                    )}
+                                                    disabled={isReposting}
+                                                    className="repost-button"
+                                                    style={{ 
+                                                        flex: 1,
+                                                        padding: '4px 8px',
+                                                        fontSize: '14px',
+                                                        minHeight: '32px',
+                                                        borderRadius: '20px'
+                                                    }}
+                                                >
+                                                    {isReposting ? (
+                                                        '...'
+                                                    ) : (
+                                                        <>
+                                                            <BiRepost size={20} style={{ marginRight: '5px' }} /> 
+                                                            {post.number_reposts || 0}
+                                                        </>
+                                                    )}
+                                                </Button>
+                                            </div>
+                                        </div>
+
+                                        {isCommentsExpanded && (
+                                            <div className="comments-section">
+                                                <div className="comments-list">
+                                                    {isCommentsLoading && postComments.length === 0 ? (
+                                                        <p className="text-center">Loading comments...</p>
+                                                    ) : postComments.length > 0 ? (
+                                                        <>
+                                                            {postComments.map((comment) => {
+                                                                const commentUserPhoto = isValidPhoto(comment.photo) 
+                                                                    ? comment.photo 
+                                                                    : getInitialsImage(comment.name);
+
+                                                                return (
+                                                                    <div key={comment.id} className="comment-item">
+                                                                        <div className="comment-header">
+                                                                            <Link to={`/profile/${comment.user_id}`}>
+                                                                                <img 
+                                                                                    src={commentUserPhoto} 
+                                                                                    alt={comment.name} 
+                                                                                    className="comment-user-photo"
+                                                                                    style={{
+                                                                                        width: '30px',
+                                                                                        height: '30px',
+                                                                                        objectFit: 'cover'
+                                                                                    }}
+                                                                                    onError={(e) => {
+                                                                                        e.target.src = getInitialsImage(comment.name);
+                                                                                    }}
+                                                                                />
+                                                                            </Link>
+                                                                            <div className="comment-content">
+                                                                                <strong className="comment-user-name">{comment.name}</strong>
+                                                                                <p className="comment-text">
+                                                                                    {formatTextWithLinks(comment.comment)}
+                                                                                </p>
+                                                                                <small className="comment-date">
+                                                                                    {new Date(comment.created_at).toLocaleString()}
+                                                                                </small>
+                                                                            </div>
+                                                                            {(parseInt(comment.user_id) === userId || parseInt(post.user_id) === userId) && (
+                                                                                <Button 
+                                                                                    color="link" 
+                                                                                    size="sm"
+                                                                                    className="comment-delete-btn"
+                                                                                    onClick={() => handleDeleteComment(post.post_id, comment.id)}
+                                                                                    title="Delete comment"
+                                                                                >
+                                                                                    ×
+                                                                                </Button>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })}
+
+                                                            {hasMoreComments && (
+                                                                <div 
+                                                                    ref={el => commentsEndRefs.current[post.post_id] = el}
+                                                                    style={{ height: '1px', marginTop: '10px' }}
+                                                                />
+                                                            )}
+                                                        </>
+                                                    ) : (
+                                                        <p className="text-muted text-center no-comments">No comments yet</p>
+                                                    )}
+                                                    
+                                                    {isCommentsLoading && postComments.length > 0 && (
+                                                        <p className="text-center">Loading more comments...</p>
+                                                    )}
+                                                </div>
+
+                                                <div className="add-comment-form">
+                                                    <div className="comment-input-container">
+                                                        <Input
+                                                            type="textarea"
+                                                            value={currentCommentText}
+                                                            onChange={e => handleCommentTextChange(post.post_id, e.target.value)}
+                                                            placeholder="Write a comment..."
+                                                            rows="1"
+                                                            className="comment-input"
+                                                        />
+                                                        <Button 
+                                                            color="primary" 
+                                                            size="sm"
+                                                            onClick={() => handleAddComment(post.post_id)}
+                                                            disabled={!currentCommentText.trim() || isCommenting}
+                                                            className="comment-submit-btn"
+                                                        >
+                                                            {isCommenting ? '...' : 'Post'}
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                            {loading && <p className="text-center">Loading...</p>}
+                            <br/>
+                            {!hasMore && <p className="text-center text-muted">No more posts</p>}
+                        </>
+                    )}
+
+                    {/* Conteúdo da aba Explore */}
+                    {activeTab === 'explore' && (
+                        <>
+                            {renderUserHeader()}
+                            {error && <Alert color="danger" fade={false} className="text-center">{error}</Alert>}
+                            {explorePosts.map((post, index) => {
+                                const isLast = index === explorePosts.length - 1;
+                                const photo = isValidPhoto(post.photo)
+                                    ? post.photo
+                                    : getInitialsImage(post.name);
+                                const hasLiked = userHasLiked(post);
+                                const isLiking = likingPosts[post.post_id] || false;
+                                const isCommenting = commentingPosts[post.post_id] || false;
+                                const isCommentsExpanded = expandedComments[post.post_id] || false;
+                                const postComments = commentsData[post.post_id]?.data || [];
+                                const currentCommentText = commentTexts[post.post_id] || '';
+                                const isCommentsLoading = commentsLoading[post.post_id] || false;
+                                const hasMoreComments = commentsData[post.post_id]?.hasMore || false;
+                                const isDeleting = deletingPosts[post.post_id] || false;
+                                const isPostOwner = parseInt(post.user_id) === userId;
+                                const isReposting = repostingPosts[post.post_id] || false;
+
+                                return (
+                                    <div
+                                        key={post.post_id}
+                                        ref={isLast ? lastExplorePostRef : null}
+                                        className="post-item"
+                                        style={{ marginBottom: '20px' }}
+                                    >
+                                        {/* Header do post com indicador de repost */}
+                                        <div className="post-header">
+                                            {post.is_repost ? (
+                                                <>
+                                                    <div className="repost-indicator">
+                                                        <BiRepost size={14} style={{ marginRight: '5px' }} />
+                                                        <small className="text-muted">
+                                                            <strong>{post.name}</strong> reposted
+                                                        </small>
+                                                    </div>
+                                                    <Link to={`/profile/${post.original_user_id}`}>
+                                                        <img 
+                                                            src={isValidPhoto(post.original_user_photo) 
+                                                                ? post.original_user_photo 
+                                                                : getInitialsImage(post.original_user_name || 'User')} 
+                                                            alt={post.original_user_name} 
+                                                            className="post-user-photo"
+                                                            style={{
+                                                                width: '40px',
+                                                                height: '40px',
+                                                                objectFit: 'cover'
+                                                            }}
+                                                            onError={(e) => {
+                                                                e.target.src = getInitialsImage(post.original_user_name || 'User');
+                                                            }}
+                                                        />
+                                                    </Link>
+                                                </>
+                                            ) : (
+                                                <Link to={`/profile/${post.user_id}`}>
+                                                    <img 
+                                                        src={photo} 
+                                                        alt={post.name} 
+                                                        className="post-user-photo"
+                                                        style={{
+                                                            width: '40px',
+                                                            height: '40px',
+                                                            objectFit: 'cover'
+                                                        }}
+                                                        onError={(e) => {
+                                                            e.target.src = getInitialsImage(post.name);
+                                                        }}
+                                                    />
+                                                </Link>
+                                            )}
+                                            <div className="post-user-info">
+                                                <div className="post-user-name-container">
+                                                    <strong className="post-user-name">
+                                                        {post.is_repost ? post.original_user_name : post.name}
+                                                    </strong>
+                                                </div>
+                                                <span className="post-date">{new Date(post.created_at).toLocaleDateString()}</span>
+                                            </div>
+
+                                            {/* Botão de deletar disponível para posts do usuário (originais e reposts) */}
+                                            {(isPostOwner || (post.is_repost && post.user_id === userId)) ? (
+                                                <Button 
+                                                    color="link" 
+                                                    size="sm"
+                                                    className="post-delete-btn"
+                                                    onClick={() => handleDeletePost(post.post_id)}
+                                                    disabled={isDeleting}
+                                                    title={post.is_repost ? "Delete repost" : "Delete post"}
+                                                >
+                                                    {isDeleting ? (
+                                                        <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                                    ) : (
+                                                        <FaTrash size={16} />
+                                                    )}
+                                                </Button>
+                                            ) : null}
+                                        </div>
+
+                                        {/* Descrição com links clicáveis */}
+                                        <p className="post-description">
+                                            {formatTextWithLinks(post.description)}
+                                        </p>
+
+                                        {/* Container de mídia responsivo */}
+                                        <div className="media-container" style={{ marginTop: '10px' }}>
+                                            {renderMedia(post.media_link)}
+                                        </div>
+
+                                        <div className="post-actions" style={{ marginTop: '10px' }}>
+                                            <div className="post-buttons" style={{ 
+                                                display: 'flex', 
+                                                justifyContent: 'space-between', 
+                                                alignItems: 'center',
+                                                width: '100%',
+                                                gap: '8px'
+                                            }}>
+                                                <Button 
+                                                    color={hasLiked ? "primary" : "secondary"}
+                                                    size="sm"
+                                                    onClick={() => handleLike(post.post_id, post.number_likes, hasLiked)}
+                                                    disabled={isLiking}
+                                                    className="like-button"
+                                                    style={{ 
+                                                        flex: 1,
+                                                        padding: '4px 8px',
+                                                        fontSize: '14px',
+                                                        minHeight: '32px',
+                                                        borderRadius: '20px'
+                                                    }}
+                                                >
+                                                    {isLiking ? (
+                                                        '...'
+                                                    ) : (
+                                                        <>
+                                                            <AiFillHeart 
+                                                                size={20} 
+                                                                style={{ 
+                                                                    marginRight: '5px',
+                                                                    color: hasLiked ? '#dc3545' : '#6c757d'
+                                                                }} 
+                                                            />
+                                                            {post.number_likes || 0}
+                                                        </>
+                                                    )}
+                                                </Button>
+                                                <Button 
+                                                    color="info"
+                                                    size="sm"
+                                                    onClick={() => toggleComments(post.post_id)}
+                                                    className="comment-button"
+                                                    style={{ 
+                                                        flex: 1,
+                                                        padding: '4px 8px',
+                                                        fontSize: '14px',
+                                                        minHeight: '32px',
+                                                        borderRadius: '20px'
+                                                    }}
+                                                >
+                                                    <FaCommentDots size={20} style={{ marginRight: '5px' }} />
+                                                    {post.number_comments || 0}
+                                                </Button>
+                                                <Button 
+                                                    color="primary"
+                                                    size="sm"
+                                                    onClick={() => handleRepost(
+                                                        post.post_id, 
+                                                        post.original_user_id || post.user_id, 
+                                                        post.description, 
+                                                        post.media_link,
+                                                        post.name
+                                                    )}
+                                                    disabled={isReposting}
+                                                    className="repost-button"
+                                                    style={{ 
+                                                        flex: 1,
+                                                        padding: '4px 8px',
+                                                        fontSize: '14px',
+                                                        minHeight: '32px',
+                                                        borderRadius: '20px'
+                                                    }}
+                                                >
+                                                    {isReposting ? (
+                                                        '...'
+                                                    ) : (
+                                                        <>
+                                                            <BiRepost size={20} style={{ marginRight: '5px' }} /> 
+                                                            {post.number_reposts || 0}
+                                                        </>
+                                                    )}
+                                                </Button>
+                                            </div>
+                                        </div>
+
+                                        {isCommentsExpanded && (
+                                            <div className="comments-section">
+                                                <div className="comments-list">
+                                                    {isCommentsLoading && postComments.length === 0 ? (
+                                                        <p className="text-center">Loading comments...</p>
+                                                    ) : postComments.length > 0 ? (
+                                                        <>
+                                                            {postComments.map((comment) => {
+                                                                const commentUserPhoto = isValidPhoto(comment.photo) 
+                                                                    ? comment.photo 
+                                                                    : getInitialsImage(comment.name);
+
+                                                                return (
+                                                                    <div key={comment.id} className="comment-item">
+                                                                        <div className="comment-header">
+                                                                            <Link to={`/profile/${comment.user_id}`}>
+                                                                                <img 
+                                                                                    src={commentUserPhoto} 
+                                                                                    alt={comment.name} 
+                                                                                    className="comment-user-photo"
+                                                                                    style={{
+                                                                                        width: '30px',
+                                                                                        height: '30px',
+                                                                                        objectFit: 'cover'
+                                                                                    }}
+                                                                                    onError={(e) => {
+                                                                                        e.target.src = getInitialsImage(comment.name);
+                                                                                    }}
+                                                                                />
+                                                                            </Link>
+                                                                            <div className="comment-content">
+                                                                                <strong className="comment-user-name">{comment.name}</strong>
+                                                                                <p className="comment-text">
+                                                                                    {formatTextWithLinks(comment.comment)}
+                                                                                </p>
+                                                                                <small className="comment-date">
+                                                                                    {new Date(comment.created_at).toLocaleString()}
+                                                                                </small>
+                                                                            </div>
+                                                                            {(parseInt(comment.user_id) === userId || parseInt(post.user_id) === userId) && (
+                                                                                <Button 
+                                                                                    color="link" 
+                                                                                    size="sm"
+                                                                                    className="comment-delete-btn"
+                                                                                    onClick={() => handleDeleteComment(post.post_id, comment.id)}
+                                                                                    title="Delete comment"
+                                                                                >
+                                                                                    ×
+                                                                                </Button>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })}
+
+                                                            {hasMoreComments && (
+                                                                <div 
+                                                                    ref={el => commentsEndRefs.current[post.post_id] = el}
+                                                                    style={{ height: '1px', marginTop: '10px' }}
+                                                                />
+                                                            )}
+                                                        </>
+                                                    ) : (
+                                                        <p className="text-muted text-center no-comments">No comments yet</p>
+                                                    )}
+                                                    
+                                                    {isCommentsLoading && postComments.length > 0 && (
+                                                        <p className="text-center">Loading more comments...</p>
+                                                    )}
+                                                </div>
+
+                                                <div className="add-comment-form">
+                                                    <div className="comment-input-container">
+                                                        <Input
+                                                            type="textarea"
+                                                            value={currentCommentText}
+                                                            onChange={e => handleCommentTextChange(post.post_id, e.target.value)}
+                                                            placeholder="Write a comment..."
+                                                            rows="1"
+                                                            className="comment-input"
+                                                        />
+                                                        <Button 
+                                                            color="primary" 
+                                                            size="sm"
+                                                            onClick={() => handleAddComment(post.post_id)}
+                                                            disabled={!currentCommentText.trim() || isCommenting}
+                                                            className="comment-submit-btn"
+                                                        >
+                                                            {isCommenting ? '...' : 'Post'}
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                            {exploreLoading && <p className="text-center">Loading...</p>}
+                            <br/>
+                            {!exploreHasMore && <p className="text-center text-muted">No more posts</p>}
+                        </>
+                    )}
+                    
+                    <div style={{ height: '80px' }}></div>
+                </div>
             </div>
             
             <Footer showOnScroll={true} />
             <Footer showOnScroll={false} />
         </div>
-        );
+    );
 }

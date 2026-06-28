@@ -1033,7 +1033,7 @@ export default function FeedPage() {
                                                     ) : (
                                                         <>
                                                             <AiFillHeart 
-                                                                size={20} 
+                                                                size={16} 
                                                                 style={{ 
                                                                     marginRight: '5px',
                                                                     color: hasLiked ? '#dc3545' : '#6c757d'
@@ -1056,7 +1056,7 @@ export default function FeedPage() {
                                                         borderRadius: '20px'
                                                     }}
                                                 >
-                                                    <FaCommentDots size={20} style={{ marginRight: '5px' }} />
+                                                    <FaCommentDots size={16} style={{ marginRight: '5px' }} />
                                                     {post.number_comments || 0}
                                                 </Button>
                                                 <Button 
@@ -1083,7 +1083,7 @@ export default function FeedPage() {
                                                         '...'
                                                     ) : (
                                                         <>
-                                                            <BiRepost size={20} style={{ marginRight: '5px' }} /> 
+                                                            <BiRepost size={16} style={{ marginRight: '5px' }} /> 
                                                             {post.number_reposts || 0}
                                                         </>
                                                     )}
@@ -1333,7 +1333,7 @@ export default function FeedPage() {
                                                     ) : (
                                                         <>
                                                             <AiFillHeart 
-                                                                size={20} 
+                                                                size={16} 
                                                                 style={{ 
                                                                     marginRight: '5px',
                                                                     color: hasLiked ? '#dc3545' : '#6c757d'
@@ -1356,7 +1356,7 @@ export default function FeedPage() {
                                                         borderRadius: '20px'
                                                     }}
                                                 >
-                                                    <FaCommentDots size={20} style={{ marginRight: '5px' }} />
+                                                    <FaCommentDots size={16} style={{ marginRight: '5px' }} />
                                                     {post.number_comments || 0}
                                                 </Button>
                                                 <Button 
@@ -1383,7 +1383,7 @@ export default function FeedPage() {
                                                         '...'
                                                     ) : (
                                                         <>
-                                                            <BiRepost size={20} style={{ marginRight: '5px' }} /> 
+                                                            <BiRepost size={16} style={{ marginRight: '5px' }} /> 
                                                             {post.number_reposts || 0}
                                                         </>
                                                     )}

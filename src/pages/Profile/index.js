@@ -1051,20 +1051,33 @@ export default function ProfilePage() {
                                     {renderMedia(post.media_link)}
                                     
                                     <div className="post-actions">
-                                        <div className="post-buttons">
+                                        <div className="post-buttons" style={{ 
+                                            display: 'flex', 
+                                            justifyContent: 'space-between', 
+                                            alignItems: 'center',
+                                            width: '100%',
+                                            gap: '8px'
+                                        }}>
                                             <Button 
                                                 color={hasLiked ? "primary" : "secondary"}
                                                 size="sm"
                                                 onClick={() => handleLike(post.post_id, post.number_likes, hasLiked)}
                                                 disabled={isLiking}
                                                 className="like-button"
+                                                style={{ 
+                                                    flex: 1,
+                                                    padding: '4px 8px',
+                                                    fontSize: '14px',
+                                                    minHeight: '32px',
+                                                    borderRadius: '20px'
+                                                }}
                                             >
                                                 {isLiking ? (
                                                     '...'
                                                 ) : (
                                                     <>
                                                         <AiFillHeart 
-                                                            size={16} 
+                                                            size={20} 
                                                             style={{ 
                                                                 marginRight: '5px',
                                                                 color: hasLiked ? '#dc3545' : '#6c757d'
@@ -1079,8 +1092,15 @@ export default function ProfilePage() {
                                                 size="sm"
                                                 onClick={() => toggleComments(post.post_id)}
                                                 className="comment-button"
+                                                style={{ 
+                                                    flex: 1,
+                                                    padding: '4px 8px',
+                                                    fontSize: '14px',
+                                                    minHeight: '32px',
+                                                    borderRadius: '20px'
+                                                }}
                                             >
-                                                <FaCommentDots size={14} style={{ marginRight: '5px' }} />
+                                                <FaCommentDots size={20} style={{ marginRight: '5px' }} />
                                                 {post.number_comments || 0}
                                             </Button>
                                             <Button 
@@ -1095,12 +1115,19 @@ export default function ProfilePage() {
                                                 )}
                                                 disabled={isReposting}
                                                 className="repost-button"
+                                                style={{ 
+                                                    flex: 1,
+                                                    padding: '4px 8px',
+                                                    fontSize: '14px',
+                                                    minHeight: '32px',
+                                                    borderRadius: '20px'
+                                                }}
                                             >
                                                 {isReposting ? (
                                                     '...'
                                                 ) : (
                                                     <>
-                                                        <BiRepost size={16} style={{ marginRight: '5px' }} /> 
+                                                        <BiRepost size={20} style={{ marginRight: '5px' }} /> 
                                                         {post.number_reposts || 0}
                                                     </>
                                                 )}
@@ -1184,7 +1211,22 @@ export default function ProfilePage() {
                                                         placeholder="Write a comment..."
                                                         rows="1"
                                                         className="comment-input"
-                                                        style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
+                                                        style={{ 
+                                                            width: '100%', 
+                                                            padding: '8px', 
+                                                            borderRadius: '4px', 
+                                                            border: '1px solid #1d9bf0',
+                                                            outline: 'none',
+                                                            transition: 'border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out'
+                                                        }}
+                                                        onFocus={(e) => {
+                                                            e.target.style.borderColor = '#1d9bf0';
+                                                            e.target.style.boxShadow = '0 0 0 0.2rem rgba(29, 155, 240, 0.25)';
+                                                        }}
+                                                        onBlur={(e) => {
+                                                            e.target.style.borderColor = '#1d9bf0';
+                                                            e.target.style.boxShadow = 'none';
+                                                        }}
                                                     />
                                                     <Button 
                                                         color="primary" 

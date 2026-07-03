@@ -38,6 +38,10 @@ export default function ProfilePage() {
     const [countsLoading, setCountsLoading] = useState(true);
     const [repostingPosts, setRepostingPosts] = useState({});
     
+    // Estados para o modal de imagem
+    const [modalImage, setModalImage] = useState(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
     const observer = useRef();
     const commentsEndRefs = useRef({});
     const [resetFeedTrigger, setResetFeedTrigger] = useState(0);
@@ -46,6 +50,19 @@ export default function ProfilePage() {
     const rawPhoto = localStorage.getItem('photo');
     const token = localStorage.getItem('login_token');
     const userId = parseInt(localStorage.getItem('user_id'));
+
+    // Funções para abrir/fechar modal
+    const openImageModal = useCallback((url) => {
+        setModalImage(url);
+        setIsModalOpen(true);
+        document.body.style.overflow = 'hidden';
+    }, []);
+
+    const closeImageModal = useCallback(() => {
+        setIsModalOpen(false);
+        setModalImage(null);
+        document.body.style.overflow = 'unset';
+    }, []);
 
     const isValidPhoto = useCallback((photo) => {
         return photo && photo.trim() !== '' && photo !== 'null' && photo !== 'undefined';
@@ -666,13 +683,17 @@ export default function ProfilePage() {
             );
         } else if (isImage) {
             return (
-                <div className="media-container">
+                <div 
+                    className="media-container" 
+                    onClick={() => openImageModal(url)}
+                    style={{ cursor: 'pointer' }}
+                >
                     <img src={url} alt="Post media" className="post-media" />
                 </div>
             );
         }
         return null;
-    }, []);
+    }, [openImageModal]);
 
     const userHasLiked = useCallback((post) => {
         return post.user_has_liked === 1 || post.user_has_liked === true;
@@ -1251,6 +1272,75 @@ export default function ProfilePage() {
                     </div>
                 </div>
             </div>
+
+            {/* Modal de imagem com botão de fechar no canto superior direito da tela (fora da imagem) */}
+            {isModalOpen && modalImage && (
+                <div 
+                    style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '100%',
+                        backgroundColor: 'rgba(0,0,0,0.9)',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        zIndex: 9999,
+                        cursor: 'pointer'
+                    }}
+                    onClick={closeImageModal}
+                >
+                    <div 
+                        style={{
+                            maxWidth: '90%',
+                            maxHeight: '90%',
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center'
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <img 
+                            src={modalImage} 
+                            alt="Full screen" 
+                            style={{
+                                maxWidth: '100%',
+                                maxHeight: '90vh',
+                                objectFit: 'contain',
+                                borderRadius: '8px'
+                            }}
+                        />
+                    </div>
+                    {/* Botão de fechar posicionado fixo no canto superior direito da tela */}
+                    <button
+                        onClick={closeImageModal}
+                        style={{
+                            position: 'fixed',
+                            top: '20px',
+                            right: '20px',
+                            background: 'rgba(0,0,0,0.6)',
+                            color: 'white',
+                            border: 'none',
+                            fontSize: '30px',
+                            width: '44px',
+                            height: '44px',
+                            borderRadius: '50%',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'background 0.2s',
+                            zIndex: 10000
+                        }}
+                        onMouseEnter={(e) => e.target.style.background = 'rgba(255,255,255,0.2)'}
+                        onMouseLeave={(e) => e.target.style.background = 'rgba(0,0,0,0.6)'}
+                    >
+                        ×
+                    </button>
+                </div>
+            )}
+
             <Footer />
         </div>
     );

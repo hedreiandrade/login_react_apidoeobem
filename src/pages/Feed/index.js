@@ -9,7 +9,7 @@ import { getInitialsImage } from "../../ultils/initialsImage";
 import { getVerifyToken } from "../../ultils/verifyToken";
 import { Link } from 'react-router-dom';
 import { AiFillHeart } from "react-icons/ai";
-import { FaTrash, FaCommentDots } from "react-icons/fa";
+import { FaTrash, FaCommentDots, FaTimes } from "react-icons/fa";
 import { BiRepost } from "react-icons/bi";
 
 export default function FeedPage() {
@@ -40,6 +40,9 @@ export default function FeedPage() {
     const [commentsLoading, setCommentsLoading] = useState({});
     const [deletingPosts, setDeletingPosts] = useState({});
     const [repostingPosts, setRepostingPosts] = useState({});
+    
+    // Modal state for image preview
+    const [modalImage, setModalImage] = useState(null);
     
     const observer = useRef();
     const exploreObserver = useRef();
@@ -221,7 +224,7 @@ export default function FeedPage() {
             }
         } catch (err) {
             if (isMountedRef.current) {
-                setError('Failed to repost');
+                setError('Falha ao repostar');
             }
         } finally {
             if (isMountedRef.current) {
@@ -266,7 +269,7 @@ export default function FeedPage() {
                     window.location.href = "/";
                     return;
                 }
-                setError('Failed to load feed');
+                setError('Falha ao carregar feed');
             }
         } finally {
             if (isMountedRef.current) setLoading(false);
@@ -308,7 +311,7 @@ export default function FeedPage() {
                     window.location.href = "/";
                     return;
                 }
-                setError('Failed to load explore posts');
+                setError('Falha ao carregar posts explorar');
             }
         } finally {
             if (isMountedRef.current) setExploreLoading(false);
@@ -403,7 +406,7 @@ export default function FeedPage() {
             
             if (isMountedRef.current) {
                 if(response.data.status === 401){
-                    setError('Failed to delete a post');
+                    setError('Falha ao deletar o post');
                 }else{
                     setFeed(prevFeed => prevFeed.filter(post => post.post_id !== postId));
                     setExplorePosts(prevExplore => prevExplore.filter(post => post.post_id !== postId));
@@ -411,7 +414,7 @@ export default function FeedPage() {
             }
         } catch (err) {
             if (isMountedRef.current) {
-                setError('Failed to delete post');
+                setError('Falha ao deletar post');
             }
         } finally {
             if (isMountedRef.current) {
@@ -454,7 +457,7 @@ export default function FeedPage() {
 
         } catch (err) {
             if (isMountedRef.current) {
-                setError('Failed to load comments');
+                setError('Falha ao carregar comentários');
             }
         } finally {
             if (isMountedRef.current) {
@@ -543,7 +546,7 @@ export default function FeedPage() {
             
             if (isMountedRef.current) {
                 if(response.data.status === 401){
-                    setError(`Failed to comment a post`);
+                    setError(`Falha ao comentar no post`);
                 }else{
                     await fetchComments(postId, 1);
                     setCommentTexts(prev => ({
@@ -575,7 +578,7 @@ export default function FeedPage() {
             }
         } catch (err) {
             if (isMountedRef.current) {
-                setError('Failed to comment a post');
+                setError('Falha ao comentar no post');
             }
         } finally {
             if (isMountedRef.current) {
@@ -601,7 +604,7 @@ export default function FeedPage() {
             
             if (isMountedRef.current) {
                 if(response.data.status === 401){
-                    setError(`Failed to delete comment`);
+                    setError(`Falha ao deletar comentário`);
                 }else{
                     setCommentsData(prev => ({
                         ...prev,
@@ -635,7 +638,7 @@ export default function FeedPage() {
             }
         } catch (err) {
             if (isMountedRef.current) {
-                setError('Failed to delete comment');
+                setError('Falha ao deletar comentário');
             }
         }
     }, [token, userId]);
@@ -663,7 +666,7 @@ export default function FeedPage() {
             
             if (isMountedRef.current) {
                 if(response.data.status === 401){
-                    setError(`Failed to ${isCurrentlyLiked ? 'unlike' : 'like'} post`);
+                    setError(`Falha ao ${isCurrentlyLiked ? 'descurtir' : 'curtir'} post`);
                 }else{
                     // Update both feed and explore
                     setFeed(prevFeed => 
@@ -692,7 +695,7 @@ export default function FeedPage() {
             }
         } catch (err) {
             if (isMountedRef.current) {
-                setError(`Failed to ${isCurrentlyLiked ? 'unlike' : 'like'} post`);
+                setError(`Falha ao ${isCurrentlyLiked ? 'descurtir' : 'curtir'} post`);
             }
         } finally {
             if (isMountedRef.current) {
@@ -725,12 +728,12 @@ export default function FeedPage() {
                             backgroundColor: '#000'
                         }}
                         onError={(e) => {
-                            console.error('Error loading video:', url);
+                            console.error('Erro ao carregar vídeo:', url);
                             e.target.style.display = 'none';
                             e.target.parentElement.innerHTML = `
                                 <div class="video-error" style="padding: 20px; text-align: center; background: #f8f9fa;">
-                                    <p>Video cannot be loaded</p>
-                                    <a href="${url}" target="_blank" rel="noopener noreferrer">Open video</a>
+                                    <p>Não foi possível carregar o vídeo</p>
+                                    <a href="${url}" target="_blank" rel="noopener noreferrer">Abrir vídeo</a>
                                 </div>
                             `;
                         }}
@@ -738,7 +741,7 @@ export default function FeedPage() {
                         <source src={url} type="video/mp4" />
                         <source src={url} type="video/webm" />
                         <source src={url} type="video/ogg" />
-                        Your browser does not support the video tag.
+                        Seu navegador não suporta a tag de vídeo.
                     </video>
                 </div>
             );
@@ -746,22 +749,24 @@ export default function FeedPage() {
             return (
                 <img 
                     src={url} 
-                    alt="Post media" 
+                    alt="Mídia do post" 
                     className="post-media"
                     style={{
                         width: '100%',
                         height: 'auto',
                         maxHeight: '500px',
-                        objectFit: 'contain'
+                        objectFit: 'contain',
+                        cursor: 'pointer'
                     }}
                     loading="lazy"
+                    onClick={() => setModalImage(url)}
                     onError={(e) => {
-                        console.error('Error loading image:', url);
+                        console.error('Erro ao carregar imagem:', url);
                         e.target.style.display = 'none';
                         e.target.parentElement.innerHTML = `
                             <div class="image-error" style="padding: 20px; text-align: center; background: #f8f9fa;">
-                                <p>Image cannot be loaded</p>
-                                <a href="${url}" target="_blank" rel="noopener noreferrer">Open image</a>
+                                <p>Não foi possível carregar a imagem</p>
+                                <a href="${url}" target="_blank" rel="noopener noreferrer">Abrir imagem</a>
                             </div>
                         `;
                     }}
@@ -788,7 +793,7 @@ export default function FeedPage() {
             <Link to={`/profile/${userId}`}>
                 <img 
                     src={user.photo} 
-                    alt="User" 
+                    alt="Usuário" 
                     className="header-user-photo"
                     style={{
                         width: '130px',
@@ -806,6 +811,61 @@ export default function FeedPage() {
             </div>
         </div>
     );
+
+    // Render modal for image preview
+    const renderImageModal = () => {
+        if (!modalImage) return null;
+        return (
+            <div 
+                style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(0,0,0,0.9)',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    zIndex: 9999,
+                    cursor: 'pointer'
+                }}
+                onClick={() => setModalImage(null)}
+            >
+                <img 
+                    src={modalImage} 
+                    alt="Prévia ampliada" 
+                    style={{
+                        maxWidth: '90%',
+                        maxHeight: '90%',
+                        objectFit: 'contain'
+                    }}
+                />
+                <button
+                    onClick={() => setModalImage(null)}
+                    style={{
+                        position: 'absolute',
+                        top: '20px',
+                        right: '20px',
+                        backgroundColor: 'rgba(0,0,0,0.7)',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '50%',
+                        width: '40px',
+                        height: '40px',
+                        fontSize: '20px',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        cursor: 'pointer',
+                        zIndex: 10000
+                    }}
+                >
+                    <FaTimes />
+                </button>
+            </div>
+        );
+    };
 
     return (
         <div>
@@ -875,7 +935,7 @@ export default function FeedPage() {
                                 textTransform: 'uppercase'
                             }}
                         >
-                            Explore
+                            Explorar
                             {activeTab === 'explore' && (
                                 <div style={{
                                     position: 'absolute',
@@ -930,14 +990,14 @@ export default function FeedPage() {
                                                     <div className="repost-indicator">
                                                         <BiRepost size={14} style={{ marginRight: '5px' }} />
                                                         <small className="text-muted">
-                                                            <strong>{post.name}</strong> reposted
+                                                            <strong>{post.name}</strong> repostou
                                                         </small>
                                                     </div>
                                                     <Link to={`/profile/${post.original_user_id}`}>
                                                         <img 
                                                             src={isValidPhoto(post.original_user_photo) 
                                                                 ? post.original_user_photo 
-                                                                : getInitialsImage(post.original_user_name || 'User')} 
+                                                                : getInitialsImage(post.original_user_name || 'Usuário')} 
                                                             alt={post.original_user_name} 
                                                             className="post-user-photo"
                                                             style={{
@@ -946,7 +1006,7 @@ export default function FeedPage() {
                                                                 objectFit: 'cover'
                                                             }}
                                                             onError={(e) => {
-                                                                e.target.src = getInitialsImage(post.original_user_name || 'User');
+                                                                e.target.src = getInitialsImage(post.original_user_name || 'Usuário');
                                                             }}
                                                         />
                                                     </Link>
@@ -985,7 +1045,7 @@ export default function FeedPage() {
                                                     className="post-delete-btn"
                                                     onClick={() => handleDeletePost(post.post_id)}
                                                     disabled={isDeleting}
-                                                    title={post.is_repost ? "Delete repost" : "Delete post"}
+                                                    title={post.is_repost ? "Deletar repost" : "Deletar post"}
                                                 >
                                                     {isDeleting ? (
                                                         <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
@@ -1095,7 +1155,7 @@ export default function FeedPage() {
                                             <div className="comments-section">
                                                 <div className="comments-list">
                                                     {isCommentsLoading && postComments.length === 0 ? (
-                                                        <p className="text-center">Loading comments...</p>
+                                                        <p className="text-center">Carregando comentários...</p>
                                                     ) : postComments.length > 0 ? (
                                                         <>
                                                             {postComments.map((comment) => {
@@ -1136,7 +1196,7 @@ export default function FeedPage() {
                                                                                     size="sm"
                                                                                     className="comment-delete-btn"
                                                                                     onClick={() => handleDeleteComment(post.post_id, comment.id)}
-                                                                                    title="Delete comment"
+                                                                                    title="Deletar comentário"
                                                                                 >
                                                                                     ×
                                                                                 </Button>
@@ -1154,11 +1214,11 @@ export default function FeedPage() {
                                                             )}
                                                         </>
                                                     ) : (
-                                                        <p className="text-muted text-center no-comments">No comments yet</p>
+                                                        <p className="text-muted text-center no-comments">Nenhum comentário ainda</p>
                                                     )}
                                                     
                                                     {isCommentsLoading && postComments.length > 0 && (
-                                                        <p className="text-center">Loading more comments...</p>
+                                                        <p className="text-center">Carregando mais comentários...</p>
                                                     )}
                                                 </div>
 
@@ -1168,7 +1228,7 @@ export default function FeedPage() {
                                                             type="textarea"
                                                             value={currentCommentText}
                                                             onChange={e => handleCommentTextChange(post.post_id, e.target.value)}
-                                                            placeholder="Write a comment..."
+                                                            placeholder="Escreva um comentário..."
                                                             rows="1"
                                                             className="comment-input"
                                                         />
@@ -1179,7 +1239,7 @@ export default function FeedPage() {
                                                             disabled={!currentCommentText.trim() || isCommenting}
                                                             className="comment-submit-btn"
                                                         >
-                                                            {isCommenting ? '...' : 'Post'}
+                                                            {isCommenting ? '...' : 'Publicar'}
                                                         </Button>
                                                     </div>
                                                 </div>
@@ -1188,9 +1248,9 @@ export default function FeedPage() {
                                     </div>
                                 );
                             })}
-                            {loading && <p className="text-center">Loading...</p>}
+                            {loading && <p className="text-center">Carregando...</p>}
                             <br/>
-                            {!hasMore && <p className="text-center text-muted">No more posts</p>}
+                            {!hasMore && <p className="text-center text-muted">Não há mais posts</p>}
                         </>
                     )}
 
@@ -1230,14 +1290,14 @@ export default function FeedPage() {
                                                     <div className="repost-indicator">
                                                         <BiRepost size={14} style={{ marginRight: '5px' }} />
                                                         <small className="text-muted">
-                                                            <strong>{post.name}</strong> reposted
+                                                            <strong>{post.name}</strong> repostou
                                                         </small>
                                                     </div>
                                                     <Link to={`/profile/${post.original_user_id}`}>
                                                         <img 
                                                             src={isValidPhoto(post.original_user_photo) 
                                                                 ? post.original_user_photo 
-                                                                : getInitialsImage(post.original_user_name || 'User')} 
+                                                                : getInitialsImage(post.original_user_name || 'Usuário')} 
                                                             alt={post.original_user_name} 
                                                             className="post-user-photo"
                                                             style={{
@@ -1246,7 +1306,7 @@ export default function FeedPage() {
                                                                 objectFit: 'cover'
                                                             }}
                                                             onError={(e) => {
-                                                                e.target.src = getInitialsImage(post.original_user_name || 'User');
+                                                                e.target.src = getInitialsImage(post.original_user_name || 'Usuário');
                                                             }}
                                                         />
                                                     </Link>
@@ -1285,7 +1345,7 @@ export default function FeedPage() {
                                                     className="post-delete-btn"
                                                     onClick={() => handleDeletePost(post.post_id)}
                                                     disabled={isDeleting}
-                                                    title={post.is_repost ? "Delete repost" : "Delete post"}
+                                                    title={post.is_repost ? "Deletar repost" : "Deletar post"}
                                                 >
                                                     {isDeleting ? (
                                                         <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
@@ -1395,7 +1455,7 @@ export default function FeedPage() {
                                             <div className="comments-section">
                                                 <div className="comments-list">
                                                     {isCommentsLoading && postComments.length === 0 ? (
-                                                        <p className="text-center">Loading comments...</p>
+                                                        <p className="text-center">Carregando comentários...</p>
                                                     ) : postComments.length > 0 ? (
                                                         <>
                                                             {postComments.map((comment) => {
@@ -1436,7 +1496,7 @@ export default function FeedPage() {
                                                                                     size="sm"
                                                                                     className="comment-delete-btn"
                                                                                     onClick={() => handleDeleteComment(post.post_id, comment.id)}
-                                                                                    title="Delete comment"
+                                                                                    title="Deletar comentário"
                                                                                 >
                                                                                     ×
                                                                                 </Button>
@@ -1454,11 +1514,11 @@ export default function FeedPage() {
                                                             )}
                                                         </>
                                                     ) : (
-                                                        <p className="text-muted text-center no-comments">No comments yet</p>
+                                                        <p className="text-muted text-center no-comments">Nenhum comentário ainda</p>
                                                     )}
                                                     
                                                     {isCommentsLoading && postComments.length > 0 && (
-                                                        <p className="text-center">Loading more comments...</p>
+                                                        <p className="text-center">Carregando mais comentários...</p>
                                                     )}
                                                 </div>
 
@@ -1468,7 +1528,7 @@ export default function FeedPage() {
                                                             type="textarea"
                                                             value={currentCommentText}
                                                             onChange={e => handleCommentTextChange(post.post_id, e.target.value)}
-                                                            placeholder="Write a comment..."
+                                                            placeholder="Escreva um comentário..."
                                                             rows="1"
                                                             className="comment-input"
                                                         />
@@ -1479,7 +1539,7 @@ export default function FeedPage() {
                                                             disabled={!currentCommentText.trim() || isCommenting}
                                                             className="comment-submit-btn"
                                                         >
-                                                            {isCommenting ? '...' : 'Post'}
+                                                            {isCommenting ? '...' : 'Publicar'}
                                                         </Button>
                                                     </div>
                                                 </div>
@@ -1488,15 +1548,18 @@ export default function FeedPage() {
                                     </div>
                                 );
                             })}
-                            {exploreLoading && <p className="text-center">Loading...</p>}
+                            {exploreLoading && <p className="text-center">Carregando...</p>}
                             <br/>
-                            {!exploreHasMore && <p className="text-center text-muted">No more posts</p>}
+                            {!exploreHasMore && <p className="text-center text-muted">Não há mais posts</p>}
                         </>
                     )}
                     
                     <div style={{ height: '80px' }}></div>
                 </div>
             </div>
+            
+            {/* Modal de imagem */}
+            {renderImageModal()}
             
             <Footer showOnScroll={true} />
             <Footer showOnScroll={false} />

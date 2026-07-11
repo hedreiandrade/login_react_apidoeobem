@@ -9,7 +9,7 @@ import { getInitialsImage } from "../../ultils/initialsImage";
 import { getVerifyToken } from "../../ultils/verifyToken";
 import { useParams, Link } from 'react-router-dom';
 import { AiFillHeart } from "react-icons/ai";
-import { FaTrash, FaCommentDots } from "react-icons/fa";
+import { FaTrash, FaCommentDots, FaCamera } from "react-icons/fa";
 import { BiRepost } from "react-icons/bi";
 import { RiVerifiedBadgeFill } from "react-icons/ri";
 
@@ -42,6 +42,10 @@ export default function ProfilePage() {
     const [modalImage, setModalImage] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
+    // Estados para upload da capa
+    const [uploadingCover, setUploadingCover] = useState(false);
+    const fileInputRef = useRef(null);
+
     const observer = useRef();
     const commentsEndRefs = useRef({});
     const [resetFeedTrigger, setResetFeedTrigger] = useState(0);
@@ -63,6 +67,53 @@ export default function ProfilePage() {
         setModalImage(null);
         document.body.style.overflow = 'unset';
     }, []);
+
+    // Função para atualizar a capa do perfil
+    const updateCoverPhoto = useCallback(async (file) => {
+        if (!file) return;
+        setUploadingCover(true);
+        setError('');
+
+        try {
+            const isValid = await getVerifyToken(token);
+            if (!isValid) {
+                window.location.href = "/";
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('cover_photo', file);
+
+            const response = await api.post(`/user/${id}`, formData, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'multipart/form-data'
+                }
+            });
+
+            if (response.data.status === 401) {
+                setError('Failed to update cover photo');
+            } else {
+                // Atualiza o perfil localmente
+                setProfileUser(prev => ({
+                    ...prev,
+                    cover_photo: response.data.cover_photo || URL.createObjectURL(file)
+                }));
+            }
+        } catch (err) {
+            setError('Failed to update cover photo');
+        } finally {
+            setUploadingCover(false);
+        }
+    }, [id, token]);
+
+    const handleCoverChange = useCallback((e) => {
+        const file = e.target.files[0];
+        if (file) {
+            updateCoverPhoto(file);
+        }
+        e.target.value = ''; // reset para poder selecionar o mesmo arquivo novamente
+    }, [updateCoverPhoto]);
 
     const isValidPhoto = useCallback((photo) => {
         return photo && photo.trim() !== '' && photo !== 'null' && photo !== 'undefined';
@@ -816,6 +867,50 @@ export default function ProfilePage() {
                             className={`cover-image ${!profileInfo?.cover_photo ? 'default-cover' : ''}`}
                             style={profileInfo?.cover_photo ? { backgroundImage: `url(${profileInfo.cover_photo})` } : {}}
                         >
+                            {/* Botão de atualizar capa (apenas para o próprio perfil) */}
+                            {isOwnProfile && (
+                                <>
+                                    <input
+                                        type="file"
+                                        ref={fileInputRef}
+                                        onChange={handleCoverChange}
+                                        accept="image/*"
+                                        style={{ display: 'none' }}
+                                    />
+                                    <button
+                                        onClick={() => fileInputRef.current?.click()}
+                                        disabled={uploadingCover}
+                                        style={{
+                                            position: 'absolute',
+                                            top: '12px',
+                                            right: '12px',
+                                            background: 'rgba(0,0,0,0.5)',
+                                            color: '#fff',
+                                            border: 'none',
+                                            borderRadius: '50%',
+                                            width: '38px',
+                                            height: '38px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            cursor: 'pointer',
+                                            transition: 'background 0.2s',
+                                            fontSize: '18px',
+                                            zIndex: 5,
+                                            backdropFilter: 'blur(2px)'
+                                        }}
+                                        onMouseEnter={(e) => e.target.style.background = 'rgba(0,0,0,0.7)'}
+                                        onMouseLeave={(e) => e.target.style.background = 'rgba(0,0,0,0.5)'}
+                                        title="Update cover photo"
+                                    >
+                                        {uploadingCover ? (
+                                            <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" />
+                                        ) : (
+                                            <FaCamera />
+                                        )}
+                                    </button>
+                                </>
+                            )}
                         </div>
                         <div className="profile-info-section">
                             <div className="profile-avatar-container">

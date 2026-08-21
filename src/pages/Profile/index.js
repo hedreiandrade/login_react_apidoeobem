@@ -38,13 +38,16 @@ export default function ProfilePage() {
     const [countsLoading, setCountsLoading] = useState(true);
     const [repostingPosts, setRepostingPosts] = useState({});
     
-    // Estados para o modal de imagem
+    // Modal de imagem
     const [modalImage, setModalImage] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    // Estados para upload da capa
+    // Upload da capa
     const [uploadingCover, setUploadingCover] = useState(false);
     const fileInputRef = useRef(null);
+
+    // --- ABA ATIVA ---
+    const [activeTab, setActiveTab] = useState('posts'); // 'posts' | 'likes' | 'media'
 
     const observer = useRef();
     const commentsEndRefs = useRef({});
@@ -55,7 +58,8 @@ export default function ProfilePage() {
     const token = localStorage.getItem('login_token');
     const userId = parseInt(localStorage.getItem('user_id'));
 
-    // Funções para abrir/fechar modal
+    // ======================== FUNÇÕES AUXILIARES ========================
+
     const openImageModal = useCallback((url) => {
         setModalImage(url);
         setIsModalOpen(true);
@@ -68,7 +72,6 @@ export default function ProfilePage() {
         document.body.style.overflow = 'unset';
     }, []);
 
-    // Função para atualizar a capa do perfil
     const updateCoverPhoto = useCallback(async (file) => {
         if (!file) return;
         setUploadingCover(true);
@@ -94,7 +97,6 @@ export default function ProfilePage() {
             if (response.data.status === 401) {
                 setError('Failed to update cover photo');
             } else {
-                // Atualiza o perfil localmente
                 setProfileUser(prev => ({
                     ...prev,
                     cover_photo: response.data.cover_photo || URL.createObjectURL(file)
@@ -112,7 +114,7 @@ export default function ProfilePage() {
         if (file) {
             updateCoverPhoto(file);
         }
-        e.target.value = ''; // reset para poder selecionar o mesmo arquivo novamente
+        e.target.value = '';
     }, [updateCoverPhoto]);
 
     const isValidPhoto = useCallback((photo) => {
@@ -123,7 +125,6 @@ export default function ProfilePage() {
         photo: isValidPhoto(rawPhoto) ? rawPhoto : getInitialsImage(name)
     };
 
-    // Função para formatar texto com links clicáveis
     const formatTextWithLinks = useCallback((text) => {
         if (!text || typeof text !== 'string') return text;
         
@@ -213,7 +214,7 @@ export default function ProfilePage() {
         return parts;
     }, []);
 
-    // Função para fazer repost
+    // ======================== REPOST ========================
     const handleRepost = useCallback(async (originalPostId, originalUserId, originalDescription, originalMediaLink, originalUserName) => {
         if (repostingPosts[originalPostId]) return;
 
@@ -266,7 +267,7 @@ export default function ProfilePage() {
         }
     }, [token, repostingPosts, userId]);
 
-    // Função para buscar informações do usuário do perfil
+    // ======================== PERFIL DO USUÁRIO ========================
     const fetchProfileUser = useCallback(async () => {
         try {
             setProfileUserError(false);
@@ -283,7 +284,6 @@ export default function ProfilePage() {
         }
     }, [id, token]);
 
-    // Função para verificar se já segue o usuário
     const checkIsFollowed = useCallback(async () => {
         try {
             setCheckingFollowStatus(true);
@@ -305,7 +305,6 @@ export default function ProfilePage() {
         }
     }, [id, userId, token]);
 
-    // Função para buscar contagem de seguidores e seguindo
     const fetchFollowCounts = useCallback(async () => {
         try {
             setCountsLoading(true);
@@ -339,7 +338,6 @@ export default function ProfilePage() {
         }
     }, [id, token]);
 
-    // Função para seguir usuário
     const followUser = async () => {
         setFollowLoading(true);
         try {
@@ -364,7 +362,6 @@ export default function ProfilePage() {
         }
     };
 
-    // Função para deixar de seguir usuário
     const unfollowUser = async () => {
         setFollowLoading(true);
         try {
@@ -389,11 +386,11 @@ export default function ProfilePage() {
         }
     };
 
-    const fetchFeed = useCallback(async (pageNum = page) => {
+    // ======================== FEED (com suporte a abas) ========================
+    const fetchFeed = useCallback(async (pageNum = page, tab = activeTab) => {
         let isMounted = true;
-
-        if (isMounted) setLoading(true);
-        if (isMounted) setError('');
+        setLoading(true);
+        setError('');
         
         try {
             const isValid = await getVerifyToken(token);
@@ -401,8 +398,19 @@ export default function ProfilePage() {
                 window.location.href = "/";
                 return;
             }
-            
-            const response = await apiFeed.get(`/profile/${id}/${pageNum}/5?user_session=${userId}`, {
+
+            let endpoint;
+            if (tab === 'posts') {
+                endpoint = `/profile/${id}/${pageNum}/5?user_session=${userId}`;
+            } else if (tab === 'likes') {
+                endpoint = `/profileLikes/${id}/${pageNum}/5?user_session=${userId}`;
+            } else if (tab === 'media') {
+                endpoint = `/profileMedia/${id}/${pageNum}/5?user_session=${userId}`;
+            } else {
+                endpoint = `/profile/${id}/${pageNum}/5?user_session=${userId}`;
+            }
+
+            const response = await apiFeed.get(endpoint, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
@@ -428,14 +436,26 @@ export default function ProfilePage() {
         return () => {
             isMounted = false;
         };
-    }, [token, page, id, userId]);
+    }, [token, id, userId, activeTab, page]);
 
+    // Efeito para buscar quando página, aba ou reset mudar
     useEffect(() => {
         if (hasMore) {
             fetchFeed(page);
         }
-    }, [fetchFeed, hasMore, resetFeedTrigger, page]);
+    }, [fetchFeed, hasMore, resetFeedTrigger, page, activeTab]);
 
+    // Função para trocar de aba
+    const changeTab = useCallback((tab) => {
+        if (tab === activeTab) return;
+        setActiveTab(tab);
+        setFeed([]);
+        setPage(1);
+        setHasMore(true);
+        setResetFeedTrigger(prev => prev + 1);
+    }, [activeTab]);
+
+    // Efeitos iniciais
     useEffect(() => {
         if (id && userId && token) {
             checkIsFollowed();
@@ -456,6 +476,7 @@ export default function ProfilePage() {
         setFollowingCount(0);
         setCountsLoading(true);
         window.scrollTo(0,0);
+        setActiveTab('posts');
     }, [id]);
 
     const lastPostRef = useCallback(node => {
@@ -469,6 +490,7 @@ export default function ProfilePage() {
         if (node) observer.current.observe(node);
     }, [loading, hasMore]);
 
+    // ======================== CRUD POSTS ========================
     const handleDeletePost = useCallback(async (postId) => {
         if (deletingPosts[postId]) return;
 
@@ -498,6 +520,7 @@ export default function ProfilePage() {
         }
     }, [token, deletingPosts]);
 
+    // ======================== COMENTÁRIOS ========================
     const fetchComments = useCallback(async (postId, pageNum = 1) => {
         if (commentsLoading[postId]) return;
         
@@ -678,6 +701,7 @@ export default function ProfilePage() {
         }
     }, [token, userId]);
 
+    // ======================== LIKES ========================
     const handleLike = useCallback(async (postId, currentLikes, isCurrentlyLiked) => {
         if (likingPosts[postId]) return;
         setLikingPosts(prev => ({ ...prev, [postId]: true }));
@@ -720,6 +744,7 @@ export default function ProfilePage() {
         }
     }, [token, likingPosts, userId]);
 
+    // ======================== RENDER MEDIA ========================
     const renderMedia = useCallback((url) => {
         if (!url || typeof url !== 'string') return null;
 
@@ -757,6 +782,7 @@ export default function ProfilePage() {
         }));
     }, []);
 
+    // ======================== BOTÃO FOLLOW ========================
     const renderFollowButton = () => {
         if (userId === parseInt(id)) {
             return (
@@ -803,7 +829,7 @@ export default function ProfilePage() {
         }
     };
 
-    // Determinar informações do perfil
+    // ======================== INFORMAÇÕES DO PERFIL ========================
     const getProfileInfo = () => {
         if (profileUser) {
             return {
@@ -855,6 +881,7 @@ export default function ProfilePage() {
     const isLoadingProfile = !profileInfo && !profileUserError;
     const isOwnProfile = userId === parseInt(id);
 
+    // ======================== RENDER PRINCIPAL ========================
     return (
         <div>
             <SocialHeader user={user} />
@@ -867,7 +894,6 @@ export default function ProfilePage() {
                             className={`cover-image ${!profileInfo?.cover_photo ? 'default-cover' : ''}`}
                             style={profileInfo?.cover_photo ? { backgroundImage: `url(${profileInfo.cover_photo})` } : {}}
                         >
-                            {/* Botão de atualizar capa (apenas para o próprio perfil) */}
                             {isOwnProfile && (
                                 <>
                                     <input
@@ -1072,12 +1098,41 @@ export default function ProfilePage() {
 
                     {error && <Alert color="danger" fade={false} className="text-center">{error}</Alert>}
                     
+                    {/* ==================== BARRA DE ABAS (NOVO DESIGN) ==================== */}
+                    <div className="tab-bar-sticky">
+                        <div className="tab-bar-inner">
+                            <div 
+                                className={`tab-item ${activeTab === 'posts' ? 'active' : ''}`}
+                                onClick={() => changeTab('posts')}
+                            >
+                                POSTS
+                                {activeTab === 'posts' && <span className="tab-indicator" />}
+                            </div>
+                            <div 
+                                className={`tab-item ${activeTab === 'likes' ? 'active' : ''}`}
+                                onClick={() => changeTab('likes')}
+                            >
+                                LIKES
+                                {activeTab === 'likes' && <span className="tab-indicator" />}
+                            </div>
+                            <div 
+                                className={`tab-item ${activeTab === 'media' ? 'active' : ''}`}
+                                onClick={() => changeTab('media')}
+                            >
+                                MEDIA
+                                {activeTab === 'media' && <span className="tab-indicator" />}
+                            </div>
+                        </div>
+                    </div>
+
                     {/* Posts Section */}
                     <div className="posts-section">
-                        <h4 className="posts-title">Posts</h4>
-                        
                         {feed.length === 0 && !loading && (
-                            <p className="text-center text-muted no-posts">No posts found</p>
+                            <p className="text-center text-muted no-posts">
+                                {activeTab === 'posts' && 'No posts found'}
+                                {activeTab === 'likes' && 'No liked posts found'}
+                                {activeTab === 'media' && 'No media posts found'}
+                            </p>
                         )}
                         
                         {feed.map((post, index) => {
@@ -1368,7 +1423,7 @@ export default function ProfilePage() {
                 </div>
             </div>
 
-            {/* Modal de imagem com botão de fechar no canto superior direito da tela (fora da imagem) */}
+            {/* Modal de imagem */}
             {isModalOpen && modalImage && (
                 <div 
                     style={{
@@ -1407,7 +1462,6 @@ export default function ProfilePage() {
                             }}
                         />
                     </div>
-                    {/* Botão de fechar posicionado fixo no canto superior direito da tela */}
                     <button
                         onClick={closeImageModal}
                         style={{

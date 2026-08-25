@@ -859,8 +859,8 @@ export default function FeedPage() {
                             e.target.style.display = 'none';
                             e.target.parentElement.innerHTML = `
                                 <div class="video-error" style="padding: 20px; text-align: center; background: #f8f9fa;">
-                                    <p>Não foi possível carregar o vídeo</p>
-                                    <a href="${url}" target="_blank" rel="noopener noreferrer">Abrir vídeo</a>
+                                    <p>The video could not be loaded.</p>
+                                    <a href="${url}" target="_blank" rel="noopener noreferrer">Open video</a>
                                 </div>
                             `;
                         }}
@@ -868,7 +868,7 @@ export default function FeedPage() {
                         <source src={url} type="video/mp4" />
                         <source src={url} type="video/webm" />
                         <source src={url} type="video/ogg" />
-                        Seu navegador não suporta a tag de vídeo.
+                        Your browser does not support the video tag.
                     </video>
                 </div>
             );
@@ -892,8 +892,8 @@ export default function FeedPage() {
                         e.target.style.display = 'none';
                         e.target.parentElement.innerHTML = `
                             <div class="image-error" style="padding: 20px; text-align: center; background: #f8f9fa;">
-                                <p>Não foi possível carregar a imagem</p>
-                                <a href="${url}" target="_blank" rel="noopener noreferrer">Abrir imagem</a>
+                                <p>The image could not be loaded.</p>
+                                <a href="${url}" target="_blank" rel="noopener noreferrer">Open image</a>
                             </div>
                         `;
                     }}
@@ -1314,7 +1314,7 @@ export default function FeedPage() {
                                             <div className="comments-section">
                                                 <div className="comments-list">
                                                     {isCommentsLoading && postComments.length === 0 ? (
-                                                        <p className="text-center">Carregando comentários...</p>
+                                                        <p className="text-center">Loading comments...</p>
                                                     ) : postComments.length > 0 ? (
                                                         <>
                                                             {postComments.map((comment) => {
@@ -1373,11 +1373,11 @@ export default function FeedPage() {
                                                             )}
                                                         </>
                                                     ) : (
-                                                        <p className="text-muted text-center no-comments">Nenhum comentário ainda</p>
+                                                        <p className="text-muted text-center no-comments">No comments yet</p>
                                                     )}
                                                     
                                                     {isCommentsLoading && postComments.length > 0 && (
-                                                        <p className="text-center">Carregando mais comentários...</p>
+                                                        <p className="text-center">Loading more comments...</p>
                                                     )}
                                                 </div>
 
@@ -1387,7 +1387,7 @@ export default function FeedPage() {
                                                             type="textarea"
                                                             value={currentCommentText}
                                                             onChange={e => handleCommentTextChange(post.post_id, e.target.value)}
-                                                            placeholder="Escreva um comentário..."
+                                                            placeholder="Write a comment..."
                                                             rows="1"
                                                             className="comment-input"
                                                         />
@@ -1398,7 +1398,7 @@ export default function FeedPage() {
                                                             disabled={!currentCommentText.trim() || isCommenting}
                                                             className="comment-submit-btn"
                                                         >
-                                                            {isCommenting ? '...' : 'Publicar'}
+                                                            {isCommenting ? '...' : 'Post'}
                                                         </Button>
                                                     </div>
                                                 </div>
@@ -1407,9 +1407,9 @@ export default function FeedPage() {
                                     </div>
                                 );
                             })}
-                            {exploreLoading && <p className="text-center">Carregando...</p>}
+                            {exploreLoading && <p className="text-center">Loading...</p>}
                             <br/>
-                            {!exploreHasMore && <p className="text-center text-muted">Não há mais posts</p>}
+                            {!exploreHasMore && <p className="text-center text-muted">No more posts</p>}
                         </>
                     )}
 
@@ -1614,7 +1614,7 @@ export default function FeedPage() {
                                             <div className="comments-section">
                                                 <div className="comments-list">
                                                     {isCommentsLoading && postComments.length === 0 ? (
-                                                        <p className="text-center">Carregando comentários...</p>
+                                                        <p className="text-center">Loading comments...</p>
                                                     ) : postComments.length > 0 ? (
                                                         <>
                                                             {postComments.map((comment) => {
@@ -1673,11 +1673,11 @@ export default function FeedPage() {
                                                             )}
                                                         </>
                                                     ) : (
-                                                        <p className="text-muted text-center no-comments">Nenhum comentário ainda</p>
+                                                        <p className="text-muted text-center no-comments">No comments yet</p>
                                                     )}
                                                     
                                                     {isCommentsLoading && postComments.length > 0 && (
-                                                        <p className="text-center">Carregando mais comentários...</p>
+                                                        <p className="text-center">Loading more comments...</p>
                                                     )}
                                                 </div>
 
@@ -1687,7 +1687,7 @@ export default function FeedPage() {
                                                             type="textarea"
                                                             value={currentCommentText}
                                                             onChange={e => handleCommentTextChange(post.post_id, e.target.value)}
-                                                            placeholder="Escreva um comentário..."
+                                                            placeholder="Write a comment..."
                                                             rows="1"
                                                             className="comment-input"
                                                         />
@@ -1698,7 +1698,7 @@ export default function FeedPage() {
                                                             disabled={!currentCommentText.trim() || isCommenting}
                                                             className="comment-submit-btn"
                                                         >
-                                                            {isCommenting ? '...' : 'Publicar'}
+                                                            {isCommenting ? '...' : 'Post'}
                                                         </Button>
                                                     </div>
                                                 </div>
@@ -1707,9 +1707,9 @@ export default function FeedPage() {
                                     </div>
                                 );
                             })}
-                            {reelsLoading && <p className="text-center">Carregando...</p>}
+                            {reelsLoading && <p className="text-center">Loading...</p>}
                             <br/>
-                            {!reelsHasMore && <p className="text-center text-muted">Não há mais reels</p>}
+                            {!reelsHasMore && <p className="text-center text-muted">There are no more reels.</p>}
                         </>
                     )}
 
@@ -1914,7 +1914,7 @@ export default function FeedPage() {
                                             <div className="comments-section">
                                                 <div className="comments-list">
                                                     {isCommentsLoading && postComments.length === 0 ? (
-                                                        <p className="text-center">Carregando comentários...</p>
+                                                        <p className="text-center">Loading comments...</p>
                                                     ) : postComments.length > 0 ? (
                                                         <>
                                                             {postComments.map((comment) => {
@@ -1973,11 +1973,11 @@ export default function FeedPage() {
                                                             )}
                                                         </>
                                                     ) : (
-                                                        <p className="text-muted text-center no-comments">Nenhum comentário ainda</p>
+                                                        <p className="text-muted text-center no-comments">No comments yet</p>
                                                     )}
                                                     
                                                     {isCommentsLoading && postComments.length > 0 && (
-                                                        <p className="text-center">Carregando mais comentários...</p>
+                                                        <p className="text-center">Loading more comments...</p>
                                                     )}
                                                 </div>
 
@@ -1987,7 +1987,7 @@ export default function FeedPage() {
                                                             type="textarea"
                                                             value={currentCommentText}
                                                             onChange={e => handleCommentTextChange(post.post_id, e.target.value)}
-                                                            placeholder="Escreva um comentário..."
+                                                            placeholder="Write a comment..."
                                                             rows="1"
                                                             className="comment-input"
                                                         />
@@ -1998,7 +1998,7 @@ export default function FeedPage() {
                                                             disabled={!currentCommentText.trim() || isCommenting}
                                                             className="comment-submit-btn"
                                                         >
-                                                            {isCommenting ? '...' : 'Publicar'}
+                                                            {isCommenting ? '...' : 'Post'}
                                                         </Button>
                                                     </div>
                                                 </div>
@@ -2007,9 +2007,9 @@ export default function FeedPage() {
                                     </div>
                                 );
                             })}
-                            {loading && <p className="text-center">Carregando...</p>}
+                            {loading && <p className="text-center">Loading...</p>}
                             <br/>
-                            {!hasMore && <p className="text-center text-muted">Não há mais posts</p>}
+                            {!hasMore && <p className="text-center text-muted">No more posts</p>}
                         </>
                     )}
                     

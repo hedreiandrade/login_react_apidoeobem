@@ -170,7 +170,7 @@ export default class Login extends Component {
             
             if (accessToken) {
                 this.setState({ 
-                    message: 'Processando login com Google...',
+                    message: 'Processing Google login...',
                     processingGoogleLogin: true 
                 });
                 
@@ -225,7 +225,7 @@ export default class Login extends Component {
             
             if (accessToken) {
                 this.setState({ 
-                    message: 'Processando login com Facebook...',
+                    message: 'Processing Facebook login...',
                     processingFacebookLogin: true 
                 });
                 
@@ -693,7 +693,7 @@ export default class Login extends Component {
                 {this.state.message && (
                     <Alert 
                         color={
-                            this.state.message.includes('Processando') || 
+                            this.state.message.includes('Processing') || 
                             this.state.message.toLowerCase().includes('sending') ? 'info' :  
                             this.state.message.includes('Password reset email sent') || 
                             this.state.message.includes('Account created successfully') || 
@@ -712,8 +712,8 @@ export default class Login extends Component {
                         <div className="spinner-border text-primary" role="status">
                         </div>
                         <p>
-                            {processingGoogleLogin && 'Processando login com Google...'}
-                            {processingFacebookLogin && 'Processando login com Facebook...'}
+                            {processingGoogleLogin && 'Processing Google login...'}
+                            {processingFacebookLogin && 'Processing Facebook login...'}
                         </p>
                     </div>
                 ) : (

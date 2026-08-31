@@ -1,6 +1,6 @@
 <div align="center">
-  <img src="socialmidiaweb.gif" alt="GIF demonstração web">
   <img src="socialmidiaresponsive.gif" alt="GIF demonstração mobile">
+  <img src="socialmidiaweb.gif" alt="GIF demonstração web">
 </div>
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).

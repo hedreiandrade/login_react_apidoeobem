@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Switch, Route } from 'react-router-dom';
 import PrivateRoute from './auth';
 import Login from './pages/Login';
 import Feed from './pages/Feed';
+import Reels from './pages/Reels';
 import Posts from './pages/Posts';
 import Logout from './pages/Logout';
 import EditProfile from './pages/EditProfile';
@@ -21,6 +22,7 @@ const Routes = () => (
         <Switch>
             <Route exact path="/" component={Login} />
             <PrivateRoute path="/feed" component={Feed} />
+            <PrivateRoute path="/reels" component={Reels} />
             <PrivateRoute path="/posts" component={Posts} />
             <PrivateRoute path="/edit-profile" component={EditProfile} />
             <PrivateRoute path="/change-password" component={ChangePassword} />

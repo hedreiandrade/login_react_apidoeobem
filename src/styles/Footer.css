@@ -70,7 +70,7 @@
 /* Ícones */
 .footer-icon {
   color: white;
-  font-size: 20px; /* Reduzido para caber 3 itens */
+  font-size: 25px; /* Reduzido para caber 3 itens */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -113,7 +113,7 @@
   }
   
   .footer-icon {
-    font-size: 18px;
+    font-size: 25px;
     width: 30px;
     height: 30px;
   }
@@ -136,7 +136,7 @@
   }
   
   .footer-icon {
-    font-size: 16px;
+    font-size: 25px;
     width: 28px;
     height: 28px;
   }
@@ -154,7 +154,7 @@
   }
   
   .footer-icon {
-    font-size: 15px;
+    font-size: 20px;
     width: 26px;
     height: 26px;
   }

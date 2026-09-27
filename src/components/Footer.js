@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { FaSearch, FaUser, FaPlus } from "react-icons/fa";
 import { IoMdHome } from "react-icons/io";
+import { MdVideoLibrary } from "react-icons/md";
 import { Link, useLocation } from "react-router-dom";
 import '../styles/Footer.css';
 
@@ -62,6 +63,18 @@ export default function Footer({ showOnScroll = true }) {
           </div>
           <span className="footer-label">
             Home
+          </span>
+        </Link>
+
+        <Link 
+          to="/reels" 
+          className={`footer-link ${location.pathname === '/reels' ? 'active' : ''}`}
+        >
+          <div className="footer-icon">
+            <MdVideoLibrary />
+          </div>
+          <span className="footer-label">
+            Vertical
           </span>
         </Link>
 

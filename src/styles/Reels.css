@@ -217,7 +217,7 @@
     position: absolute;
     left: 16px;
     right: 90px;
-    bottom: 24px;
+    bottom: 90px;
     z-index: 10;
     color: #fff;
     text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
@@ -228,7 +228,7 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-bottom: 67px;
+    margin-bottom: 8px;
     flex-wrap: wrap;
 }
 
@@ -533,7 +533,7 @@
     .reel-info {
         left: 12px;
         right: 80px;
-        bottom: 20px;
+        bottom: 80px;
     }
 
     .reel-username {

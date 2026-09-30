@@ -487,6 +487,39 @@
     max-width: 90%;
 }
 
+.reel-follow-btn {
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+    border: 1px solid #fff;
+    border-radius: 20px;
+    padding: 4px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.reel-follow-primary-btn {
+    background: #0095f6;
+    border-color: #0095f6;
+    color: #fff;
+}
+
+.reel-follow-primary-btn:hover {
+    background: #0081d6;
+    border-color: #0081d6;
+}
+
+.reel-following-btn {
+    background: transparent;
+    color: #fff;
+    border: 1px solid #fff;
+}
+
+.reel-following-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
 /* ============================================
    Responsivo
    ============================================ */

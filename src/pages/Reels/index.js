@@ -31,6 +31,11 @@ export default function ReelsPage() {
     const [commentsLoading, setCommentsLoading] = useState({});
     const [repostingPosts, setRepostingPosts] = useState({});
 
+    // Follow states (por user_id)
+    const [followStatuses, setFollowStatuses] = useState({});
+    const [checkingFollowStatuses, setCheckingFollowStatuses] = useState({});
+    const [followLoadingStates, setFollowLoadingStates] = useState({});
+
     // Video states
     const [pausedStates, setPausedStates] = useState({});
     const [mutedStates, setMutedStates] = useState({});
@@ -177,7 +182,7 @@ export default function ReelsPage() {
                     window.location.href = "/";
                     return;
                 }
-                setError('Falha ao carregar reels');
+                setError('Failed to load reels');
             }
         } finally {
             if (isMountedRef.current) setReelsLoading(false);
@@ -265,6 +270,133 @@ export default function ReelsPage() {
         setMutedStates(prev => ({ ...prev, [postId]: video.muted }));
     }, []);
 
+    // ======================== FOLLOW ========================
+    const checkIsFollowed = useCallback(async (targetUserId) => {
+        // Não verifica o próprio perfil
+        if (parseInt(targetUserId) === userId) return;
+        if (checkingFollowStatuses[targetUserId]) return;
+        if (followStatuses[targetUserId] !== undefined) return;
+
+        setCheckingFollowStatuses(prev => ({ ...prev, [targetUserId]: true }));
+
+        try {
+            const response = await apiFeed.post('/isFollowed', {
+                user_id: parseInt(targetUserId),
+                follower_id: userId
+            }, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+
+            if (isMountedRef.current) {
+                setFollowStatuses(prev => ({
+                    ...prev,
+                    [targetUserId]: !!response.data.is_followed
+                }));
+            }
+        } catch (err) {
+            console.error('Error checking follow status:', err);
+            if (isMountedRef.current) {
+                setFollowStatuses(prev => ({ ...prev, [targetUserId]: false }));
+            }
+        } finally {
+            if (isMountedRef.current) {
+                setCheckingFollowStatuses(prev => ({ ...prev, [targetUserId]: false }));
+            }
+        }
+    }, [userId, token, checkingFollowStatuses, followStatuses]);
+
+    const followUser = useCallback(async (targetUserId) => {
+        setFollowLoadingStates(prev => ({ ...prev, [targetUserId]: true }));
+        try {
+            const isValid = await getVerifyToken(token);
+            if (!isValid && isMountedRef.current) {
+                window.location.href = "/";
+                return;
+            }
+
+            const response = await apiFeed.post('/follow', {
+                user_id: parseInt(targetUserId),
+                follower_id: userId
+            }, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+
+            if (isMountedRef.current) {
+                if (response.data.status === 401) {
+                    setError(response.data.response || 'Failed to follow user');
+                } else {
+                    setFollowStatuses(prev => ({ ...prev, [targetUserId]: true }));
+                }
+            }
+        } catch (err) {
+            if (isMountedRef.current) {
+                setError('Failed to follow user');
+            }
+        } finally {
+            if (isMountedRef.current) {
+                setFollowLoadingStates(prev => ({ ...prev, [targetUserId]: false }));
+            }
+        }
+    }, [token, userId]);
+
+    const unfollowUser = useCallback(async (targetUserId) => {
+        setFollowLoadingStates(prev => ({ ...prev, [targetUserId]: true }));
+        try {
+            const isValid = await getVerifyToken(token);
+            if (!isValid && isMountedRef.current) {
+                window.location.href = "/";
+                return;
+            }
+
+            const response = await apiFeed.post('/unFollow', {
+                user_id: parseInt(targetUserId),
+                follower_id: userId
+            }, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+
+            if (isMountedRef.current) {
+                if (response.data.status === 401) {
+                    setError(response.data.response || 'Failed to unfollow user');
+                } else {
+                    setFollowStatuses(prev => ({ ...prev, [targetUserId]: false }));
+                }
+            }
+        } catch (err) {
+            if (isMountedRef.current) {
+                setError('Failed to unfollow user');
+            }
+        } finally {
+            if (isMountedRef.current) {
+                setFollowLoadingStates(prev => ({ ...prev, [targetUserId]: false }));
+            }
+        }
+    }, [token, userId]);
+
+    // Verifica follow status para novos usuários que aparecerem no feed
+    useEffect(() => {
+        if (!reelsPosts.length) return;
+
+        const uniqueUserIds = [...new Set(reelsPosts.map(p => p.user_id))];
+
+        uniqueUserIds.forEach(uid => {
+            if (
+                parseInt(uid) !== userId &&
+                followStatuses[uid] === undefined &&
+                !checkingFollowStatuses[uid]
+            ) {
+                checkIsFollowed(uid);
+            }
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [reelsPosts, userId]);
+
     // ---------- Handlers ----------
     const handleLike = useCallback(async (postId, currentLikes, isCurrentlyLiked) => {
         if (likingPosts[postId]) return;
@@ -289,7 +421,7 @@ export default function ReelsPage() {
 
             if (isMountedRef.current) {
                 if (response.data.status === 401) {
-                    setError(`Falha ao ${isCurrentlyLiked ? 'descurtir' : 'curtir'} reel`);
+                    setError(`Failed to ${isCurrentlyLiked ? 'unlike' : 'like'} reel`);
                 } else {
                     setReelsPosts(prev =>
                         prev.map(post =>
@@ -306,7 +438,7 @@ export default function ReelsPage() {
             }
         } catch (err) {
             if (isMountedRef.current) {
-                setError(`Falha ao ${isCurrentlyLiked ? 'descurtir' : 'curtir'} reel`);
+                setError(`Failed to ${isCurrentlyLiked ? 'unlike' : 'like'} reel`);
             }
         } finally {
             if (isMountedRef.current) {
@@ -357,7 +489,7 @@ export default function ReelsPage() {
             }
         } catch (err) {
             if (isMountedRef.current) {
-                setError('Falha ao repostar');
+                setError('Failed to repost');
             }
         } finally {
             if (isMountedRef.current) {
@@ -382,21 +514,20 @@ export default function ReelsPage() {
 
             if (isMountedRef.current) {
                 if (response.data.status === 401) {
-                    setError('Falha ao deletar o reel');
+                    setError('Failed to delete reel');
                 } else {
                     setReelsPosts(prev => prev.filter(post => post.post_id !== postId));
                 }
             }
         } catch (err) {
             if (isMountedRef.current) {
-                setError('Falha ao deletar reel');
+                setError('Failed to delete reel');
             }
         }
     }, [token]);
 
     // ---------- Comments ----------
     const fetchComments = useCallback(async (postId, pageNum = 1) => {
-        // Guarda síncrona via ref: evita chamadas concorrentes sem depender do estado
         if (commentsLoadingRef.current[postId]) return;
         commentsLoadingRef.current[postId] = true;
         setCommentsLoading(prev => ({ ...prev, [postId]: true }));
@@ -427,7 +558,7 @@ export default function ReelsPage() {
             }
         } catch (err) {
             if (isMountedRef.current) {
-                setError('Falha ao carregar comentários');
+                setError('Failed to load comments');
             }
         } finally {
             commentsLoadingRef.current[postId] = false;
@@ -469,7 +600,7 @@ export default function ReelsPage() {
 
             if (isMountedRef.current) {
                 if (response.data.status === 401) {
-                    setError('Falha ao comentar no reel');
+                    setError('Failed to comment on reel');
                 } else {
                     await fetchComments(postId, 1);
                     setCommentTexts(prev => ({ ...prev, [postId]: '' }));
@@ -484,7 +615,7 @@ export default function ReelsPage() {
             }
         } catch (err) {
             if (isMountedRef.current) {
-                setError('Falha ao comentar no reel');
+                setError('Failed to comment on reel');
             }
         } finally {
             if (isMountedRef.current) {
@@ -510,7 +641,7 @@ export default function ReelsPage() {
 
             if (isMountedRef.current) {
                 if (response.data.status === 401) {
-                    setError('Falha ao deletar comentário');
+                    setError('Failed to delete comment');
                 } else {
                     setCommentsData(prev => ({
                         ...prev,
@@ -530,7 +661,7 @@ export default function ReelsPage() {
             }
         } catch (err) {
             if (isMountedRef.current) {
-                setError('Falha ao deletar comentário');
+                setError('Failed to delete comment');
             }
         }
     }, [token, userId]);
@@ -560,7 +691,6 @@ export default function ReelsPage() {
             });
         };
 
-        // checagem inicial após o render (para caso o sentinela já esteja visível)
         const t = setTimeout(checkSentinels, 100);
 
         document.addEventListener('scroll', checkSentinels, true);
@@ -571,6 +701,52 @@ export default function ReelsPage() {
             window.removeEventListener('resize', checkSentinels);
         };
     }, [commentsData, fetchComments]);
+
+    // ---------- Follow Button Renderer ----------
+    const renderFollowButton = useCallback((targetUserId) => {
+        // Não mostra para o próprio usuário
+        if (parseInt(targetUserId) === userId) return null;
+
+        const isChecking = checkingFollowStatuses[targetUserId];
+        const isLoading = followLoadingStates[targetUserId];
+        const isFollowed = followStatuses[targetUserId];
+
+        if (isChecking) {
+            return (
+                <button className="reel-follow-btn" disabled>
+                    Loading...
+                </button>
+            );
+        }
+
+        if (isLoading) {
+            return (
+                <button className="reel-follow-btn" disabled>
+                    {isFollowed ? 'Unfollowing...' : 'Following...'}
+                </button>
+            );
+        }
+
+        if (isFollowed) {
+            return (
+                <button
+                    className="reel-follow-btn reel-following-btn"
+                    onClick={() => unfollowUser(targetUserId)}
+                >
+                    Following
+                </button>
+            );
+        }
+
+        return (
+            <button
+                className="reel-follow-btn reel-follow-primary-btn"
+                onClick={() => followUser(targetUserId)}
+            >
+                Follow
+            </button>
+        );
+    }, [userId, checkingFollowStatuses, followLoadingStates, followStatuses, followUser, unfollowUser]);
 
     // ---------- Render ----------
     return (
@@ -612,7 +788,6 @@ export default function ReelsPage() {
                     const isMuted = mutedStates[post.post_id] !== false; // padrão mutado
                     const isPostOwner = parseInt(post.user_id) === userId;
 
-                    // paginação dos comentários
                     const commentsHasMore = commentsData[post.post_id]?.hasMore || false;
 
                     return (
@@ -650,7 +825,7 @@ export default function ReelsPage() {
                             <button
                                 className="reel-mute-btn"
                                 onClick={() => toggleMute(post.post_id)}
-                                title={isMuted ? 'Ativar som' : 'Silenciar'}
+                                title={isMuted ? 'Unmute' : 'Mute'}
                             >
                                 {isMuted ? '🔇' : '🔊'}
                             </button>
@@ -660,7 +835,7 @@ export default function ReelsPage() {
                                 <button
                                     className="reel-owner-delete"
                                     onClick={() => handleDeletePost(post.post_id)}
-                                    title="Deletar reel"
+                                    title="Delete reel"
                                 >
                                     ×
                                 </button>
@@ -723,7 +898,9 @@ export default function ReelsPage() {
                                         />
                                     </Link>
                                     <strong className="reel-username">{post.name}</strong>
-                                    <button className="reel-follow-btn">Seguir</button>
+
+                                    {/* Botão Follow / Following */}
+                                    {renderFollowButton(post.user_id)}
                                 </div>
 
                                 {post.description && (
@@ -737,7 +914,7 @@ export default function ReelsPage() {
                             {isCommentsExpanded && (
                                 <div className="reel-comments-overlay" onClick={(e) => e.stopPropagation()}>
                                     <div className="reel-comments-header">
-                                        <span>Comentários</span>
+                                        <span>Comments</span>
                                         <button
                                             className="reel-comments-close"
                                             onClick={() => toggleComments(post.post_id)}
@@ -748,7 +925,7 @@ export default function ReelsPage() {
 
                                     <div className="reel-comments-list">
                                         {isCommentsLoading && postComments.length === 0 ? (
-                                            <p className="reel-comments-empty">Carregando...</p>
+                                            <p className="reel-comments-empty">Loading...</p>
                                         ) : postComments.length > 0 ? (
                                             <>
                                                 {postComments.map((comment) => {
@@ -781,7 +958,7 @@ export default function ReelsPage() {
                                                                 <button
                                                                     className="reel-comment-delete"
                                                                     onClick={() => handleDeleteComment(post.post_id, comment.id)}
-                                                                    title="Deletar comentário"
+                                                                    title="Delete comment"
                                                                 >
                                                                     ×
                                                                 </button>
@@ -801,7 +978,7 @@ export default function ReelsPage() {
                                                 )}
                                             </>
                                         ) : (
-                                            <p className="reel-comments-empty">Nenhum comentário ainda</p>
+                                            <p className="reel-comments-empty">No comments yet</p>
                                         )}
                                     </div>
 
@@ -810,7 +987,7 @@ export default function ReelsPage() {
                                             type="textarea"
                                             value={currentCommentText}
                                             onChange={e => handleCommentTextChange(post.post_id, e.target.value)}
-                                            placeholder="Adicione um comentário..."
+                                            placeholder="Add a comment..."
                                             rows="1"
                                             className="reel-comment-input"
                                         />
@@ -831,11 +1008,11 @@ export default function ReelsPage() {
                 })}
 
                 {reelsLoading && (
-                    <div className="reels-loading">Carregando...</div>
+                    <div className="reels-loading">Loading...</div>
                 )}
 
                 {!reelsHasMore && reelsPosts.length > 0 && (
-                    <div className="reels-end">Não há mais reels</div>
+                    <div className="reels-end">No more reels</div>
                 )}
             </div>
 

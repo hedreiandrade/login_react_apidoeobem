@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Footer from '../../components/Footer';
-import SocialHeader from '../../components/SocialHeader';
+import SocialHeaderReels from '../../components/SocialHeaderReels';
 import { Alert, Button, Input } from 'reactstrap';
 import { apiFeed } from '../../services/api';
 import '../../styles/Reels.css';
@@ -272,7 +272,6 @@ export default function ReelsPage() {
 
     // ======================== FOLLOW ========================
     const checkIsFollowed = useCallback(async (targetUserId) => {
-        // Não verifica o próprio perfil
         if (parseInt(targetUserId) === userId) return;
         if (checkingFollowStatuses[targetUserId]) return;
         if (followStatuses[targetUserId] !== undefined) return;
@@ -704,7 +703,6 @@ export default function ReelsPage() {
 
     // ---------- Follow Button Renderer ----------
     const renderFollowButton = useCallback((targetUserId) => {
-        // Não mostra para o próprio usuário
         if (parseInt(targetUserId) === userId) return null;
 
         const isChecking = checkingFollowStatuses[targetUserId];
@@ -751,17 +749,7 @@ export default function ReelsPage() {
     // ---------- Render ----------
     return (
         <div className="reels-page">
-            <SocialHeader user={user} />
-
-            {/* Faixa azul com apenas a aba REELS */}
-            <div className="reels-tab-bar">
-                <div className="reels-tab-bar-inner">
-                    <div className="reels-tab-item reels-tab-active">
-                        Reels
-                        <div className="reels-tab-underline" />
-                    </div>
-                </div>
-            </div>
+            <SocialHeaderReels user={user} />
 
             <div className="reels-container">
                 {error && (

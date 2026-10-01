@@ -1,5 +1,5 @@
 /* ============================================
-   Reels Page - Instagram Reels style
+   Reels Page - Instagram/TikTok Reels style
    ============================================ */
 
 * {
@@ -14,57 +14,29 @@
 }
 
 /* ============================================
-   Barra de abas azul (apenas REELS)
+   Header overlay (SocialHeaderReels)
    ============================================ */
-.reels-tab-bar {
-    background-color: #27ADF5;
-    width: 100%;
-    padding: 0;
-    margin: 0;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.reels-tab-bar-inner {
-    max-width: 550px; /* col-md-6 equivalente */
-    margin: 0 auto;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 0;
-}
-
-.reels-tab-item {
-    flex: 1;
-    padding: 14px 0;
-    text-align: center;
-    cursor: pointer;
-    font-weight: bold;
-    color: #ffffff;
-    font-size: 16px;
-    position: relative;
-    transition: all 0.3s ease;
-    background-color: transparent;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-}
-
-.reels-tab-underline {
-    position: absolute;
-    bottom: 0;
-    left: 30%;
-    right: 30%;
-    height: 3px;
-    background-color: #F5A927;
-    border-radius: 3px 3px 0 0;
+.reels-header {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 0.55) 0%,
+        rgba(0, 0, 0, 0.25) 60%,
+        rgba(0, 0, 0, 0) 100%
+    );
 }
 
 /* ============================================
-   Viewport dos reels
+   Viewport dos reels (tela cheia)
    ============================================ */
 .reels-container {
     position: relative;
     width: 100%;
-    height: calc(100vh - 115px); /* header (~60px) + aba (~55px) */
+    height: 100vh;
     overflow-y: scroll;
     scroll-snap-type: y mandatory;
     scroll-behavior: smooth;
@@ -80,7 +52,7 @@
 .reel-item {
     position: relative;
     width: 100%;
-    height: calc(100vh - 115px);
+    height: 100vh;
     scroll-snap-align: start;
     scroll-snap-stop: always;
     background: #000;
@@ -119,9 +91,10 @@
     to   { opacity: 1; }
 }
 
+/* Botão de mudo — desceu para 130px */
 .reel-mute-btn {
     position: absolute;
-    top: 16px;
+    top: 130px;
     right: 16px;
     width: 40px;
     height: 40px;
@@ -142,9 +115,10 @@
     background: rgba(0, 0, 0, 0.75);
 }
 
+/* Botão X de deletar — desceu para 130px */
 .reel-owner-delete {
     position: absolute;
-    top: 16px;
+    top: 130px;
     left: 16px;
     width: 36px;
     height: 36px;
@@ -213,6 +187,9 @@
     margin-top: 2px;
 }
 
+/* ============================================
+   Info inferior (foto + nome + seguir + descrição)
+   ============================================ */
 .reel-info {
     position: absolute;
     left: 16px;
@@ -480,23 +457,11 @@
 
 .reels-alert {
     position: fixed;
-    top: 130px;
+    top: 70px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 999;
     max-width: 90%;
-}
-
-.reel-follow-btn {
-    background: rgba(255, 255, 255, 0.15);
-    color: #fff;
-    border: 1px solid #fff;
-    border-radius: 20px;
-    padding: 4px 14px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
 }
 
 .reel-follow-primary-btn {
@@ -524,6 +489,10 @@
    Responsivo
    ============================================ */
 @media (max-width: 768px) {
+    .reels-header {
+        padding: 8px 12px !important;
+    }
+
     .reel-actions {
         right: 10px;
         bottom: 110px;
@@ -556,6 +525,7 @@
         width: 34px;
         height: 34px;
         font-size: 16px;
+        top: 120px;
     }
 }
 

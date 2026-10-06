@@ -406,6 +406,7 @@
 }
 
 .reel-comment-form {
+    margin-bottom: 70px !important;
     display: flex;
     gap: 8px;
     padding: 12px 16px;

@@ -382,7 +382,10 @@ export default function ReelsPage() {
     useEffect(() => {
         if (!reelsPosts.length) return;
 
-        const uniqueUserIds = [...new Set(reelsPosts.map(p => p.user_id))];
+        // *** Usa o user_id do ORIGINAL quando for repost ***
+        const uniqueUserIds = [...new Set(
+            reelsPosts.map(p => (p.is_repost ? p.original_user_id : p.user_id))
+        )];
 
         uniqueUserIds.forEach(uid => {
             if (
@@ -760,9 +763,16 @@ export default function ReelsPage() {
 
                 {reelsPosts.map((post, index) => {
                     const isLast = index === reelsPosts.length - 1;
-                    const photo = isValidPhoto(post.photo)
-                        ? post.photo
-                        : getInitialsImage(post.name);
+
+                    // *** Lógica de repost idêntica à do Feed ***
+                    const isRepost = post.is_repost === true || post.is_repost === 1;
+                    const displayUserId = isRepost ? post.original_user_id : post.user_id;
+                    const displayName = isRepost ? post.original_user_name : post.name;
+                    const displayPhoto = isRepost ? post.original_user_photo : post.photo;
+
+                    const photo = isValidPhoto(displayPhoto)
+                        ? displayPhoto
+                        : getInitialsImage(displayName);
 
                     const hasLiked = post.user_has_liked === 1 || post.user_has_liked === true;
                     const isLiking = likingPosts[post.post_id] || false;
@@ -818,12 +828,12 @@ export default function ReelsPage() {
                                 {isMuted ? '🔇' : '🔊'}
                             </button>
 
-                            {/* Botão de deletar do dono */}
+                            {/* Botão de deletar do dono (do repost ou do post original) */}
                             {isPostOwner && (
                                 <button
                                     className="reel-owner-delete"
                                     onClick={() => handleDeletePost(post.post_id)}
-                                    title="Delete reel"
+                                    title={isRepost ? 'Delete repost' : 'Delete reel'}
                                 >
                                     ×
                                 </button>
@@ -874,21 +884,31 @@ export default function ReelsPage() {
 
                             {/* Info inferior */}
                             <div className="reel-info">
+                                {/* *** Indicador de repost (mesma lógica do Feed) *** */}
+                                {isRepost && (
+                                    <div className="reel-repost-indicator">
+                                        <BiRepost size={14} style={{ marginRight: '5px' }} />
+                                        <small>
+                                            <strong>{post.name}</strong> repostou
+                                        </small>
+                                    </div>
+                                )}
+
                                 <div className="reel-user-row">
-                                    <Link to={`/profile/${post.user_id}`}>
+                                    <Link to={`/profile/${displayUserId}`}>
                                         <img
                                             src={photo}
-                                            alt={post.name}
+                                            alt={displayName}
                                             className="reel-user-photo"
                                             onError={(e) => {
-                                                e.target.src = getInitialsImage(post.name);
+                                                e.target.src = getInitialsImage(displayName);
                                             }}
                                         />
                                     </Link>
-                                    <strong className="reel-username">{post.name}</strong>
+                                    <strong className="reel-username">{displayName}</strong>
 
-                                    {/* Botão Follow / Following */}
-                                    {renderFollowButton(post.user_id)}
+                                    {/* Botão Follow / Following — segue o usuário ORIGINAL quando for repost */}
+                                    {renderFollowButton(displayUserId)}
                                 </div>
 
                                 {post.description && (

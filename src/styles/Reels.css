@@ -269,6 +269,30 @@
 }
 
 /* ============================================
+   Indicador de Repost (mesma lógica do Feed)
+   ============================================ */
+.reel-repost-indicator {
+    display: flex;
+    align-items: center;
+    font-size: 12px;
+    color: #ffffff;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+    margin-bottom: 6px;
+    opacity: 0.9;
+}
+
+.reel-repost-indicator strong {
+    font-weight: 600;
+    margin-right: 3px;
+}
+
+.reel-repost-indicator small {
+    color: #ffffff;
+    font-size: 12px;
+    opacity: 0.85;
+}
+
+/* ============================================
    Overlay de comentários
    ============================================ */
 .reel-comments-overlay {
@@ -548,5 +572,11 @@
     .reel-follow-btn {
         font-size: 12px;
         padding: 3px 10px;
+    }
+
+    /* Indicador de repost em telas pequenas */
+    .reel-repost-indicator,
+    .reel-repost-indicator small {
+        font-size: 11px;
     }
 }

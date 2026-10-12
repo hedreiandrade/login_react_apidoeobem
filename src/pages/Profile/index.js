@@ -9,7 +9,7 @@ import { getInitialsImage } from "../../ultils/initialsImage";
 import { getVerifyToken } from "../../ultils/verifyToken";
 import { useParams, Link } from 'react-router-dom';
 import { AiFillHeart } from "react-icons/ai";
-import { FaTrash, FaCommentDots, FaCamera } from "react-icons/fa";
+import { FaTrash, FaCommentDots, FaCamera, FaImage } from "react-icons/fa";
 import { BiRepost } from "react-icons/bi";
 import { RiVerifiedBadgeFill } from "react-icons/ri";
 
@@ -48,6 +48,11 @@ export default function ProfilePage() {
 
     // --- ABA ATIVA ---
     const [activeTab, setActiveTab] = useState('posts'); // 'posts' | 'likes' | 'media'
+
+    // --- MÍDIA DOS COMENTÁRIOS ---
+    const [commentMediaFiles, setCommentMediaFiles] = useState({});
+    const [commentMediaPreviews, setCommentMediaPreviews] = useState({});
+    const commentFileInputRefs = useRef({});
 
     const observer = useRef();
     const commentsEndRefs = useRef({});
@@ -614,9 +619,43 @@ export default function ProfilePage() {
         };
     }, [expandedComments, commentsData, commentsLoading, setupCommentsObserver]);
 
+    // ======================== MÍDIA DOS COMENTÁRIOS ========================
+    const handleCommentMediaChange = useCallback((postId, e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setCommentMediaFiles(prev => ({ ...prev, [postId]: file }));
+            
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setCommentMediaPreviews(prev => ({ 
+                    ...prev, 
+                    [postId]: { url: reader.result, type: file.type } 
+                }));
+            };
+            reader.readAsDataURL(file);
+        }
+        e.target.value = '';
+    }, []);
+
+    const removeCommentMedia = useCallback((postId) => {
+        setCommentMediaFiles(prev => {
+            const newState = { ...prev };
+            delete newState[postId];
+            return newState;
+        });
+        setCommentMediaPreviews(prev => {
+            const newState = { ...prev };
+            delete newState[postId];
+            return newState;
+        });
+    }, []);
+
     const handleAddComment = useCallback(async (postId) => {
         const commentText = commentTexts[postId] || '';
-        if (!commentText.trim()) return;
+        const mediaFile = commentMediaFiles[postId];
+
+        if (!commentText.trim() && !mediaFile) return;
+
         setCommentingPosts(prev => ({ ...prev, [postId]: true }));
         try {
             const isValid = await getVerifyToken(token);
@@ -624,17 +663,22 @@ export default function ProfilePage() {
                 window.location.href = "/";
                 return;
             }
-            const data = {
-                post_id: postId,
-                user_id: userId,
-                comment: commentText
-            };
+
+            const data = new FormData();
+            data.append('post_id', postId);
+            data.append('user_id', userId);
+            data.append('comment', commentText);
+            if (mediaFile) {
+                data.append('media_link', mediaFile);
+            }
+
             const response = await apiFeed.post('/comments', data, {
                 headers: {
                     Authorization: `Bearer ${token}`,
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'multipart/form-data'
                 }
             });
+
             if(response.data.status === 401){
                 setError(`Failed to comment a post`);
             }else{
@@ -643,6 +687,7 @@ export default function ProfilePage() {
                     ...prev,
                     [postId]: ''
                 }));
+                removeCommentMedia(postId);
                 setFeed(prevFeed => 
                     prevFeed.map(post => 
                         post.post_id === postId 
@@ -659,7 +704,7 @@ export default function ProfilePage() {
         } finally {
             setCommentingPosts(prev => ({ ...prev, [postId]: false }));
         }
-    }, [token, commentTexts, fetchComments, userId]);
+    }, [token, commentTexts, commentMediaFiles, fetchComments, userId, removeCommentMedia]);
 
     const handleDeleteComment = useCallback(async (postId, commentId) => {
         try {
@@ -765,6 +810,32 @@ export default function ProfilePage() {
                     style={{ cursor: 'pointer' }}
                 >
                     <img src={url} alt="Post media" className="post-media" />
+                </div>
+            );
+        }
+        return null;
+    }, [openImageModal]);
+
+    const renderCommentMedia = useCallback((url) => {
+        if (!url || typeof url !== 'string') return null;
+
+        const isVideo = url.toLowerCase().match(/\.(mp4|webm|ogg)$/);
+        const isImage = url.toLowerCase().match(/\.(jpeg|jpg|gif|png|webp)$/);
+
+        if (isVideo) {
+            return (
+                <div className="comment-media-container">
+                    <video src={url} controls className="comment-media" />
+                </div>
+            );
+        } else if (isImage) {
+            return (
+                <div 
+                    className="comment-media-container" 
+                    onClick={() => openImageModal(url)}
+                    style={{ cursor: 'pointer' }}
+                >
+                    <img src={url} alt="Comment media" className="comment-media" />
                 </div>
             );
         }
@@ -1098,7 +1169,7 @@ export default function ProfilePage() {
 
                     {error && <Alert color="danger" fade={false} className="text-center">{error}</Alert>}
                     
-                    {/* ==================== BARRA DE ABAS (NOVO DESIGN) ==================== */}
+                    {/* ==================== BARRA DE ABAS ==================== */}
                     <div className="tab-bar-sticky">
                         <div className="tab-bar-inner">
                             <div 
@@ -1151,6 +1222,7 @@ export default function ProfilePage() {
                             const isDeleting = deletingPosts[post.post_id] || false;
                             const isPostOwner = parseInt(post.user_id) === userId;
                             const isReposting = repostingPosts[post.post_id] || false;
+                            const commentMediaPreview = commentMediaPreviews[post.post_id];
                             
                             return (
                                 <div
@@ -1338,6 +1410,7 @@ export default function ProfilePage() {
                                                                             <p className="comment-text">
                                                                                 {formatTextWithLinks(comment.comment)}
                                                                             </p>
+                                                                            {comment.media_link_comment && renderCommentMedia(comment.media_link_comment)}
                                                                             <small className="comment-date">
                                                                                 {new Date(comment.created_at).toLocaleString()}
                                                                             </small>
@@ -1375,6 +1448,31 @@ export default function ProfilePage() {
                                             </div>
 
                                             <div className="add-comment-form">
+                                                {commentMediaPreview && (
+                                                    <div className="comment-media-preview">
+                                                        {commentMediaPreview.type.startsWith('video') ? (
+                                                            <video 
+                                                                src={commentMediaPreview.url} 
+                                                                className="comment-media-preview-item" 
+                                                                controls
+                                                            />
+                                                        ) : (
+                                                            <img 
+                                                                src={commentMediaPreview.url} 
+                                                                alt="Preview" 
+                                                                className="comment-media-preview-item" 
+                                                            />
+                                                        )}
+                                                        <button
+                                                            type="button"
+                                                            className="comment-media-remove-btn"
+                                                            onClick={() => removeCommentMedia(post.post_id)}
+                                                            title="Remove media"
+                                                        >
+                                                            ×
+                                                        </button>
+                                                    </div>
+                                                )}
                                                 <div className="comment-input-container">
                                                     <textarea
                                                         value={currentCommentText}
@@ -1399,16 +1497,32 @@ export default function ProfilePage() {
                                                             e.target.style.boxShadow = 'none';
                                                         }}
                                                     />
-                                                    <Button 
-                                                        color="primary" 
-                                                        size="sm"
-                                                        onClick={() => handleAddComment(post.post_id)}
-                                                        disabled={!currentCommentText.trim() || isCommenting}
-                                                        className="comment-submit-btn"
-                                                        style={{ marginTop: '8px' }}
-                                                    >
-                                                        {isCommenting ? '...' : 'Post'}
-                                                    </Button>
+                                                    <input
+                                                        type="file"
+                                                        ref={el => commentFileInputRefs.current[post.post_id] = el}
+                                                        onChange={(e) => handleCommentMediaChange(post.post_id, e)}
+                                                        accept="image/*,video/*"
+                                                        style={{ display: 'none' }}
+                                                    />
+                                                    <div className="comment-actions-row">
+                                                        <button
+                                                            type="button"
+                                                            className="comment-media-btn"
+                                                            onClick={() => commentFileInputRefs.current[post.post_id]?.click()}
+                                                            title="Attach image or video"
+                                                        >
+                                                            <FaImage size={18} />
+                                                        </button>
+                                                        <Button 
+                                                            color="primary" 
+                                                            size="sm"
+                                                            onClick={() => handleAddComment(post.post_id)}
+                                                            disabled={(!currentCommentText.trim() && !commentMediaFiles[post.post_id]) || isCommenting}
+                                                            className="comment-submit-btn"
+                                                        >
+                                                            {isCommenting ? '...' : 'Post'}
+                                                        </Button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>

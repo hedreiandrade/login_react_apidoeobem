@@ -143,8 +143,6 @@ html {
     border-top: 1px solid #eee;
 }
 
-/* REMOVIDO: .post-stats (ícones e contagem da esquerda) */
-
 .post-user-info {
     display: flex;
     flex-direction: column;
@@ -192,8 +190,6 @@ html {
     padding: 10px 0;
     border-top: 1px solid #f0f0f0;
 }
-
-/* REMOVIDO: .post-stats da esquerda */
 
 .post-buttons {
     display: flex;
@@ -262,13 +258,11 @@ html {
     color: #dc3545 !important;
 }
 
-/* Ícones dentro dos botões */
 .post-button-icon {
     margin-right: 4px;
     font-size: 14px;
 }
 
-/* Estilo para números dentro dos botões */
 .post-button-count {
     font-weight: 600;
     font-size: 0.85em;
@@ -353,6 +347,101 @@ html {
     font-style: italic;
 }
 
+/* ==================== MÍDIA EM COMENTÁRIOS ==================== */
+.comment-media-container {
+    margin-top: 8px;
+    display: flex;
+    justify-content: flex-start;
+    max-width: 100%;
+}
+
+.comment-media {
+    max-width: 220px;
+    max-height: 220px;
+    border-radius: 8px;
+    object-fit: cover;
+    border: 1px solid #e1e8ed;
+    display: block;
+}
+
+.comment-media[controls] {
+    width: 220px;
+    height: auto;
+    background-color: #f8f9fa;
+}
+
+.comment-media-preview {
+    position: relative;
+    display: inline-block;
+    margin-bottom: 10px;
+    padding: 6px;
+    background: #fff;
+    border: 1px solid #e1e8ed;
+    border-radius: 10px;
+}
+
+.comment-media-preview-item {
+    max-width: 180px;
+    max-height: 180px;
+    border-radius: 8px;
+    object-fit: cover;
+    display: block;
+}
+
+.comment-media-remove-btn {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(0, 0, 0, 0.7);
+    color: #fff;
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.comment-media-remove-btn:hover {
+    background: rgba(220, 53, 69, 0.95);
+}
+
+.comment-actions-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+}
+
+.comment-media-btn {
+    background: transparent;
+    border: 1px solid #1d9bf0;
+    color: #1d9bf0;
+    border-radius: 20px;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 0;
+}
+
+.comment-media-btn:hover {
+    background: #1d9bf0;
+    color: #fff;
+}
+
+.comment-media-btn:active {
+    transform: scale(0.95);
+}
+
 /* Formulário de adicionar comentário */
 .add-comment-form {
     border-top: 1px solid #e9ecef;
@@ -361,8 +450,9 @@ html {
 
 .comment-input-container {
     display: flex;
-    gap: 10px;
-    align-items: flex-end;
+    flex-direction: column;
+    gap: 8px;
+    align-items: stretch;
 }
 
 .comment-input {
@@ -371,6 +461,19 @@ html {
     min-height: 40px;
     max-height: 100px;
     font-size: 0.9em;
+    border: 1px solid #1d9bf0 !important;
+    border-radius: 4px;
+    padding: 8px;
+    outline: none;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    font-family: inherit;
+    width: 100%;
+}
+
+.comment-input:focus {
+    border-color: #1d9bf0 !important;
+    box-shadow: 0 0 0 0.2rem rgba(29, 155, 240, 0.25) !important;
+    outline: none;
 }
 
 .comment-submit-btn {
@@ -415,8 +518,6 @@ html {
     margin-left: 10px;
 }
 
-/* Adicione estas regras ao seu arquivo Feed.css */
-
 .feed-header-container {
     display: flex;
     justify-content: center;
@@ -460,21 +561,21 @@ html {
 
 /* Garantir que o conteúdo principal não fique atrás do footer */
 .App-feed {
-  position: relative;
-  z-index: 1;
-  top: -70px;
+    position: relative;
+    z-index: 1;
+    top: -70px;
 }
 
 /* Estilos para os ícones ativos */
 .active-footer-icon {
-  color: #FFD700 !important;
-  transform: scale(1.1);
+    color: #FFD700 !important;
+    transform: scale(1.1);
 }
 
 /* Evitar que os elementos fiquem atrás do footer fixo */
 .post-item, .create-post {
-  position: relative;
-  z-index: 2;
+    position: relative;
+    z-index: 2;
 }
 
 /* Responsividade */
@@ -483,19 +584,19 @@ html {
         width: 130px;
         height: 130px;
     }
-    
+
     .header-user-name {
         font-size: 1.2rem;
     }
-    
+
     .header-feed-title {
         font-size: 1rem;
     }
-    
+
     .post-buttons {
         gap: 6px;
     }
-    
+
     .like-button,
     .comment-button,
     .repost-button {
@@ -504,10 +605,24 @@ html {
         font-size: 0.7em;
         height: 30px;
     }
-    
+
     .post-button-icon {
         font-size: 13px;
         margin-right: 3px;
+    }
+
+    .comment-media {
+        max-width: 180px;
+        max-height: 180px;
+    }
+
+    .comment-media[controls] {
+        width: 180px;
+    }
+
+    .comment-media-preview-item {
+        max-width: 150px;
+        max-height: 150px;
     }
 }
 
@@ -516,19 +631,19 @@ html {
         width: 110px;
         height: 110px;
     }
-    
+
     .header-user-name {
         font-size: 1.1rem;
     }
-    
+
     .user-info-header {
         gap: 8px;
     }
-    
+
     .post-buttons {
         gap: 4px;
     }
-    
+
     .like-button,
     .comment-button,
     .repost-button {
@@ -537,10 +652,24 @@ html {
         font-size: 0.65em;
         height: 28px;
     }
-    
+
     .post-button-icon {
         font-size: 12px;
         margin-right: 2px;
+    }
+
+    .comment-media {
+        max-width: 140px;
+        max-height: 140px;
+    }
+
+    .comment-media[controls] {
+        width: 140px;
+    }
+
+    .comment-media-preview-item {
+        max-width: 120px;
+        max-height: 120px;
     }
 }
 
@@ -570,7 +699,6 @@ html {
     vertical-align: middle;
 }
 
-/* Garantir que o header do post tenha espaço suficiente */
 .post-user-name {
     display: block;
     margin-bottom: 2px;
@@ -604,7 +732,7 @@ html {
     .post-buttons {
         gap: 3px;
     }
-    
+
     .like-button,
     .comment-button,
     .repost-button {
@@ -613,7 +741,7 @@ html {
         font-size: 0.6em;
         height: 26px;
     }
-    
+
     .post-button-icon {
         font-size: 11px;
         margin-right: 1px;

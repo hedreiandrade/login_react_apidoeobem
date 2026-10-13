@@ -9,14 +9,14 @@ import { getInitialsImage } from "../../ultils/initialsImage";
 import { getVerifyToken } from "../../ultils/verifyToken";
 import { Link } from 'react-router-dom';
 import { AiFillHeart } from "react-icons/ai";
-import { FaTrash, FaCommentDots, FaTimes } from "react-icons/fa";
+import { FaTrash, FaCommentDots, FaTimes, FaImage } from "react-icons/fa";
 import { BiRepost } from "react-icons/bi";
 
 export default function FeedPage() {
     useExpireToken();
 
     // Tab state - ordem alterada: explore, reels, feed
-    const [activeTab, setActiveTab] = useState('explore'); // mantido 'feed' como padrão
+    const [activeTab, setActiveTab] = useState('explore');
 
     // Feed state
     const [feed, setFeed] = useState([]);
@@ -31,7 +31,7 @@ export default function FeedPage() {
     const [exploreHasMore, setExploreHasMore] = useState(true);
     const [exploreLoading, setExploreLoading] = useState(false);
 
-    // *** NOVO: Reels state ***
+    // Reels state
     const [reelsPosts, setReelsPosts] = useState([]);
     const [reelsPage, setReelsPage] = useState(1);
     const [reelsHasMore, setReelsHasMore] = useState(true);
@@ -46,20 +46,25 @@ export default function FeedPage() {
     const [commentsLoading, setCommentsLoading] = useState({});
     const [deletingPosts, setDeletingPosts] = useState({});
     const [repostingPosts, setRepostingPosts] = useState({});
-    
+
+    // ======================== MÍDIA DOS COMENTÁRIOS ========================
+    const [commentMediaFiles, setCommentMediaFiles] = useState({});
+    const [commentMediaPreviews, setCommentMediaPreviews] = useState({});
+    const commentFileInputRefs = useRef({});
+
     // Modal state for image preview
     const [modalImage, setModalImage] = useState(null);
-    
+
     const observer = useRef();
     const exploreObserver = useRef();
-    const reelsObserver = useRef(); // *** NOVO ***
+    const reelsObserver = useRef();
     const commentsEndRefs = useRef({});
     const [resetFeedTrigger, setResetFeedTrigger] = useState(0);
     const userId = parseInt(localStorage.getItem('user_id'));
     const name = localStorage.getItem('name') || 'User';
     const rawPhoto = localStorage.getItem('photo');
     const token = localStorage.getItem('login_token');
-    
+
     // Ref para controlar se o componente está montado
     const isMountedRef = useRef(true);
 
@@ -74,42 +79,42 @@ export default function FeedPage() {
     // Função para formatar texto com links clicáveis
     const formatTextWithLinks = useCallback((text) => {
         if (!text || typeof text !== 'string') return text;
-        
+
         const urlRegex = /(\b(https?:\/\/|www\.)[^\s]+|\b[\w.-]+\.(com|org|net|br|io|co|info|edu|gov|me|dev|app)[^\s]*)/gi;
-        
+
         const parts = [];
         let lastIndex = 0;
         let match;
-        
+
         const regex = new RegExp(urlRegex.source, urlRegex.flags);
         while ((match = regex.exec(text)) !== null) {
             if (match.index > lastIndex) {
                 parts.push(text.substring(lastIndex, match.index));
             }
-            
+
             let url = match[0];
             let displayUrl = url;
             let href = url;
-            
+
             if (url.startsWith('www.')) {
                 href = `https://${url}`;
             } else if (!url.startsWith('http://') && !url.startsWith('https://')) {
                 href = `https://${url}`;
             }
-            
+
             const punctuationRegex = /[.,;!?]+$/;
             const punctuationMatch = punctuationRegex.exec(url);
-            
+
             if (punctuationMatch) {
                 const cleanUrl = url.substring(0, punctuationMatch.index);
                 const punctuation = punctuationMatch[0];
-                
+
                 if (cleanUrl.startsWith('www.')) {
                     href = `https://${cleanUrl}`;
                 } else if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
                     href = `https://${cleanUrl}`;
                 }
-                
+
                 parts.push(
                     <a
                         key={`${match.index}-link`}
@@ -147,18 +152,18 @@ export default function FeedPage() {
                     </a>
                 );
             }
-            
+
             lastIndex = match.index + match[0].length;
         }
-        
+
         if (lastIndex < text.length) {
             parts.push(text.substring(lastIndex));
         }
-        
+
         if (parts.length === 0) {
             return text;
         }
-        
+
         return parts;
     }, []);
 
@@ -190,40 +195,29 @@ export default function FeedPage() {
                     'Content-Type': 'application/json'
                 }
             });
-            
+
             if (isMountedRef.current) {
                 if (response.data.status === 401) {
                     setError(response.data.error);
                 } else {
-                    // Update both feed and explore lists
-                    setFeed(prevFeed => 
-                        prevFeed.map(post => 
-                            post.post_id === originalPostId 
-                                ? { 
-                                    ...post, 
-                                    number_reposts: (post.number_reposts || 0) + 1
-                                } 
+                    setFeed(prevFeed =>
+                        prevFeed.map(post =>
+                            post.post_id === originalPostId
+                                ? { ...post, number_reposts: (post.number_reposts || 0) + 1 }
                                 : post
                         )
                     );
-                    setExplorePosts(prevExplore => 
-                        prevExplore.map(post => 
-                            post.post_id === originalPostId 
-                                ? { 
-                                    ...post, 
-                                    number_reposts: (post.number_reposts || 0) + 1
-                                } 
+                    setExplorePosts(prevExplore =>
+                        prevExplore.map(post =>
+                            post.post_id === originalPostId
+                                ? { ...post, number_reposts: (post.number_reposts || 0) + 1 }
                                 : post
                         )
                     );
-                    // *** NOVO: atualizar também reelsPosts ***
-                    setReelsPosts(prevReels => 
-                        prevReels.map(post => 
-                            post.post_id === originalPostId 
-                                ? { 
-                                    ...post, 
-                                    number_reposts: (post.number_reposts || 0) + 1
-                                } 
+                    setReelsPosts(prevReels =>
+                        prevReels.map(post =>
+                            post.post_id === originalPostId
+                                ? { ...post, number_reposts: (post.number_reposts || 0) + 1 }
                                 : post
                         )
                     );
@@ -231,14 +225,12 @@ export default function FeedPage() {
                     setFeed([]);
                     setHasMore(true);
                     setResetFeedTrigger(prev => prev + 1);
-                    
-                    // If explore tab is active, refresh explore data
+
                     if (activeTab === 'explore') {
                         setExplorePage(1);
                         setExplorePosts([]);
                         setExploreHasMore(true);
                     }
-                    // *** NOVO: se reels ativo, atualizar também ***
                     if (activeTab === 'reels') {
                         setReelsPage(1);
                         setReelsPosts([]);
@@ -260,14 +252,14 @@ export default function FeedPage() {
     const fetchFeed = useCallback(async (pageNum = page) => {
         if (isMountedRef.current) setLoading(true);
         if (isMountedRef.current) setError('');
-        
+
         try {
             const isValid = await getVerifyToken(token);
             if (!isValid && isMountedRef.current) {
                 window.location.href = "/";
                 return;
             }
-            
+
             const response = await apiFeed.get(`/feed/${userId}/${pageNum}/5`, {
                 headers: {
                     Authorization: `Bearer ${token}`
@@ -302,14 +294,14 @@ export default function FeedPage() {
     const fetchExplore = useCallback(async (pageNum = explorePage) => {
         if (isMountedRef.current) setExploreLoading(true);
         if (isMountedRef.current) setError('');
-        
+
         try {
             const isValid = await getVerifyToken(token);
             if (!isValid && isMountedRef.current) {
                 window.location.href = "/";
                 return;
             }
-            
+
             const response = await apiFeed.get(`/explore/${userId}/${pageNum}/5`, {
                 headers: {
                     Authorization: `Bearer ${token}`
@@ -340,18 +332,18 @@ export default function FeedPage() {
         }
     }, [token, explorePage, userId]);
 
-    // *** NOVO: Fetch Reels ***
+    // Fetch Reels
     const fetchReels = useCallback(async (pageNum = reelsPage) => {
         if (isMountedRef.current) setReelsLoading(true);
         if (isMountedRef.current) setError('');
-        
+
         try {
             const isValid = await getVerifyToken(token);
             if (!isValid && isMountedRef.current) {
                 window.location.href = "/";
                 return;
             }
-            
+
             const response = await apiFeed.get(`/reels/${userId}/${pageNum}/5`, {
                 headers: {
                     Authorization: `Bearer ${token}`
@@ -385,7 +377,7 @@ export default function FeedPage() {
     // Efeitos para cada aba
     useEffect(() => {
         isMountedRef.current = true;
-        
+
         if (activeTab === 'feed') {
             if (hasMore) {
                 fetchFeed(page);
@@ -394,12 +386,12 @@ export default function FeedPage() {
             if (exploreHasMore) {
                 fetchExplore(explorePage);
             }
-        } else if (activeTab === 'reels') { // *** NOVO ***
+        } else if (activeTab === 'reels') {
             if (reelsHasMore) {
                 fetchReels(reelsPage);
             }
         }
-        
+
         return () => {
             isMountedRef.current = false;
         };
@@ -415,7 +407,7 @@ export default function FeedPage() {
             if (explorePosts.length === 0 && exploreHasMore) {
                 fetchExplore(1);
             }
-        } else if (activeTab === 'reels') { // *** NOVO ***
+        } else if (activeTab === 'reels') {
             if (reelsPosts.length === 0 && reelsHasMore) {
                 fetchReels(1);
             }
@@ -426,7 +418,7 @@ export default function FeedPage() {
     const lastPostRef = useCallback(node => {
         if (loading || activeTab !== 'feed') return;
         if (observer.current) observer.current.disconnect();
-        
+
         requestAnimationFrame(() => {
             observer.current = new IntersectionObserver(entries => {
                 if (entries[0].isIntersecting && hasMore && isMountedRef.current) {
@@ -436,7 +428,7 @@ export default function FeedPage() {
                 rootMargin: '100px',
                 threshold: 0.1
             });
-            
+
             if (node) observer.current.observe(node);
         });
     }, [loading, hasMore, activeTab]);
@@ -444,7 +436,7 @@ export default function FeedPage() {
     const lastExplorePostRef = useCallback(node => {
         if (exploreLoading || activeTab !== 'explore') return;
         if (exploreObserver.current) exploreObserver.current.disconnect();
-        
+
         requestAnimationFrame(() => {
             exploreObserver.current = new IntersectionObserver(entries => {
                 if (entries[0].isIntersecting && exploreHasMore && isMountedRef.current) {
@@ -454,16 +446,15 @@ export default function FeedPage() {
                 rootMargin: '100px',
                 threshold: 0.1
             });
-            
+
             if (node) exploreObserver.current.observe(node);
         });
     }, [exploreLoading, exploreHasMore, activeTab]);
 
-    // *** NOVO: ref para último post do reels ***
     const lastReelsPostRef = useCallback(node => {
         if (reelsLoading || activeTab !== 'reels') return;
         if (reelsObserver.current) reelsObserver.current.disconnect();
-        
+
         requestAnimationFrame(() => {
             reelsObserver.current = new IntersectionObserver(entries => {
                 if (entries[0].isIntersecting && reelsHasMore && isMountedRef.current) {
@@ -473,7 +464,7 @@ export default function FeedPage() {
                 rootMargin: '100px',
                 threshold: 0.1
             });
-            
+
             if (node) reelsObserver.current.observe(node);
         });
     }, [reelsLoading, reelsHasMore, activeTab]);
@@ -495,14 +486,14 @@ export default function FeedPage() {
                     'Content-Type': 'application/json'
                 }
             });
-            
+
             if (isMountedRef.current) {
-                if(response.data.status === 401){
+                if (response.data.status === 401) {
                     setError('Falha ao deletar o post');
-                }else{
+                } else {
                     setFeed(prevFeed => prevFeed.filter(post => post.post_id !== postId));
                     setExplorePosts(prevExplore => prevExplore.filter(post => post.post_id !== postId));
-                    setReelsPosts(prevReels => prevReels.filter(post => post.post_id !== postId)); // *** NOVO ***
+                    setReelsPosts(prevReels => prevReels.filter(post => post.post_id !== postId));
                 }
             }
         } catch (err) {
@@ -518,9 +509,9 @@ export default function FeedPage() {
 
     const fetchComments = useCallback(async (postId, pageNum = 1) => {
         if (commentsLoading[postId]) return;
-        
+
         setCommentsLoading(prev => ({ ...prev, [postId]: true }));
-        
+
         try {
             const isValid = await getVerifyToken(token);
             if (!isValid && isMountedRef.current) {
@@ -538,7 +529,7 @@ export default function FeedPage() {
                 setCommentsData(prev => ({
                     ...prev,
                     [postId]: {
-                        data: pageNum === 1 
+                        data: pageNum === 1
                             ? response.data.data || []
                             : [...(prev[postId]?.data || []), ...(response.data.data || [])],
                         currentPage: pageNum,
@@ -570,11 +561,11 @@ export default function FeedPage() {
                 ...prev,
                 [postId]: true
             }));
-            
+
             if (commentsEndRefs.current[postId]) {
                 commentsEndRefs.current[postId] = null;
             }
-            
+
             await fetchComments(postId, 1);
         }
     }, [expandedComments, fetchComments]);
@@ -601,7 +592,7 @@ export default function FeedPage() {
 
     useEffect(() => {
         const observers = {};
-        
+
         Object.keys(expandedComments).forEach(postId => {
             if (expandedComments[postId] && commentsEndRefs.current[postId]) {
                 observers[postId] = setupCommentsObserver(postId);
@@ -615,9 +606,69 @@ export default function FeedPage() {
         };
     }, [expandedComments, commentsData, commentsLoading, setupCommentsObserver]);
 
+    // ======================== MÍDIA DOS COMENTÁRIOS ========================
+    const handleCommentMediaChange = useCallback((postId, e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setCommentMediaFiles(prev => ({ ...prev, [postId]: file }));
+
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setCommentMediaPreviews(prev => ({
+                    ...prev,
+                    [postId]: { url: reader.result, type: file.type }
+                }));
+            };
+            reader.readAsDataURL(file);
+        }
+        e.target.value = '';
+    }, []);
+
+    const removeCommentMedia = useCallback((postId) => {
+        setCommentMediaFiles(prev => {
+            const newState = { ...prev };
+            delete newState[postId];
+            return newState;
+        });
+        setCommentMediaPreviews(prev => {
+            const newState = { ...prev };
+            delete newState[postId];
+            return newState;
+        });
+    }, []);
+
+    const renderCommentMedia = useCallback((url) => {
+        if (!url || typeof url !== 'string') return null;
+
+        const isVideo = url.toLowerCase().match(/\.(mp4|webm|ogg)$/);
+        const isImage = url.toLowerCase().match(/\.(jpeg|jpg|gif|png|webp)$/);
+
+        if (isVideo) {
+            return (
+                <div className="comment-media-container">
+                    <video src={url} controls className="comment-media" />
+                </div>
+            );
+        } else if (isImage) {
+            return (
+                <div
+                    className="comment-media-container"
+                    onClick={() => setModalImage(url)}
+                    style={{ cursor: 'pointer' }}
+                >
+                    <img src={url} alt="Comment media" className="comment-media" />
+                </div>
+            );
+        }
+        return null;
+    }, []);
+
     const handleAddComment = useCallback(async (postId) => {
         const commentText = commentTexts[postId] || '';
-        if (!commentText.trim()) return;
+        const mediaFile = commentMediaFiles[postId];
+
+        if (!commentText.trim() && !mediaFile) return;
+
         setCommentingPosts(prev => ({ ...prev, [postId]: true }));
         try {
             const isValid = await getVerifyToken(token);
@@ -625,56 +676,51 @@ export default function FeedPage() {
                 window.location.href = "/";
                 return;
             }
-            const data = {
-                post_id: postId,
-                user_id: userId,
-                comment: commentText
-            };
+
+            const data = new FormData();
+            data.append('post_id', postId);
+            data.append('user_id', userId);
+            data.append('comment', commentText);
+            if (mediaFile) {
+                data.append('media_link', mediaFile);
+            }
+
             const response = await apiFeed.post('/comments', data, {
                 headers: {
                     Authorization: `Bearer ${token}`,
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'multipart/form-data'
                 }
             });
-            
+
             if (isMountedRef.current) {
-                if(response.data.status === 401){
+                if (response.data.status === 401) {
                     setError(`Falha ao comentar no post`);
-                }else{
+                } else {
                     await fetchComments(postId, 1);
                     setCommentTexts(prev => ({
                         ...prev,
                         [postId]: ''
                     }));
-                    // Update both feed and explore
-                    setFeed(prevFeed => 
-                        prevFeed.map(post => 
-                            post.post_id === postId 
-                                ? { 
-                                    ...post, 
-                                    number_comments: (post.number_comments || 0) + 1
-                                } 
+                    removeCommentMedia(postId);
+
+                    setFeed(prevFeed =>
+                        prevFeed.map(post =>
+                            post.post_id === postId
+                                ? { ...post, number_comments: (post.number_comments || 0) + 1 }
                                 : post
                         )
                     );
-                    setExplorePosts(prevExplore => 
-                        prevExplore.map(post => 
-                            post.post_id === postId 
-                                ? { 
-                                    ...post, 
-                                    number_comments: (post.number_comments || 0) + 1
-                                } 
+                    setExplorePosts(prevExplore =>
+                        prevExplore.map(post =>
+                            post.post_id === postId
+                                ? { ...post, number_comments: (post.number_comments || 0) + 1 }
                                 : post
                         )
                     );
-                    // *** NOVO: atualizar reels ***
-                    setReelsPosts(prevReels => 
-                        prevReels.map(post => 
-                            post.post_id === postId 
-                                ? { 
-                                    ...post, 
-                                    number_comments: (post.number_comments || 0) + 1
-                                } 
+                    setReelsPosts(prevReels =>
+                        prevReels.map(post =>
+                            post.post_id === postId
+                                ? { ...post, number_comments: (post.number_comments || 0) + 1 }
                                 : post
                         )
                     );
@@ -689,7 +735,7 @@ export default function FeedPage() {
                 setCommentingPosts(prev => ({ ...prev, [postId]: false }));
             }
         }
-    }, [token, commentTexts, fetchComments, userId]);
+    }, [token, commentTexts, commentMediaFiles, fetchComments, userId, removeCommentMedia]);
 
     const handleDeleteComment = useCallback(async (postId, commentId) => {
         try {
@@ -705,11 +751,11 @@ export default function FeedPage() {
                     'Content-Type': 'application/json'
                 }
             });
-            
+
             if (isMountedRef.current) {
-                if(response.data.status === 401){
+                if (response.data.status === 401) {
                     setError(`Falha ao deletar comentário`);
-                }else{
+                } else {
                     setCommentsData(prev => ({
                         ...prev,
                         [postId]: {
@@ -717,35 +763,24 @@ export default function FeedPage() {
                             data: prev[postId]?.data?.filter(comment => comment.id !== commentId) || []
                         }
                     }));
-                    // Update both feed and explore
-                    setFeed(prevFeed => 
-                        prevFeed.map(post => 
-                            post.post_id === postId 
-                                ? { 
-                                    ...post, 
-                                    number_comments: Math.max(0, (post.number_comments || 1) - 1)
-                                } 
+                    setFeed(prevFeed =>
+                        prevFeed.map(post =>
+                            post.post_id === postId
+                                ? { ...post, number_comments: Math.max(0, (post.number_comments || 1) - 1) }
                                 : post
                         )
                     );
-                    setExplorePosts(prevExplore => 
-                        prevExplore.map(post => 
-                            post.post_id === postId 
-                                ? { 
-                                    ...post, 
-                                    number_comments: Math.max(0, (post.number_comments || 1) - 1)
-                                } 
+                    setExplorePosts(prevExplore =>
+                        prevExplore.map(post =>
+                            post.post_id === postId
+                                ? { ...post, number_comments: Math.max(0, (post.number_comments || 1) - 1) }
                                 : post
                         )
                     );
-                    // *** NOVO: atualizar reels ***
-                    setReelsPosts(prevReels => 
-                        prevReels.map(post => 
-                            post.post_id === postId 
-                                ? { 
-                                    ...post, 
-                                    number_comments: Math.max(0, (post.number_comments || 1) - 1)
-                                } 
+                    setReelsPosts(prevReels =>
+                        prevReels.map(post =>
+                            post.post_id === postId
+                                ? { ...post, number_comments: Math.max(0, (post.number_comments || 1) - 1) }
                                 : post
                         )
                     );
@@ -778,43 +813,41 @@ export default function FeedPage() {
                     'Content-Type': 'application/json'
                 }
             });
-            
+
             if (isMountedRef.current) {
-                if(response.data.status === 401){
+                if (response.data.status === 401) {
                     setError(`Falha ao ${isCurrentlyLiked ? 'descurtir' : 'curtir'} post`);
-                }else{
-                    // Update both feed and explore
-                    setFeed(prevFeed => 
-                        prevFeed.map(post => 
-                            post.post_id === postId 
-                                ? { 
-                                    ...post, 
+                } else {
+                    setFeed(prevFeed =>
+                        prevFeed.map(post =>
+                            post.post_id === postId
+                                ? {
+                                    ...post,
                                     number_likes: isCurrentlyLiked ? currentLikes - 1 : currentLikes + 1,
                                     user_has_liked: !isCurrentlyLiked
-                                } 
+                                }
                                 : post
                         )
                     );
-                    setExplorePosts(prevExplore => 
-                        prevExplore.map(post => 
-                            post.post_id === postId 
-                                ? { 
-                                    ...post, 
+                    setExplorePosts(prevExplore =>
+                        prevExplore.map(post =>
+                            post.post_id === postId
+                                ? {
+                                    ...post,
                                     number_likes: isCurrentlyLiked ? currentLikes - 1 : currentLikes + 1,
                                     user_has_liked: !isCurrentlyLiked
-                                } 
+                                }
                                 : post
                         )
                     );
-                    // *** NOVO: atualizar reels ***
-                    setReelsPosts(prevReels => 
-                        prevReels.map(post => 
-                            post.post_id === postId 
-                                ? { 
-                                    ...post, 
+                    setReelsPosts(prevReels =>
+                        prevReels.map(post =>
+                            post.post_id === postId
+                                ? {
+                                    ...post,
                                     number_likes: isCurrentlyLiked ? currentLikes - 1 : currentLikes + 1,
                                     user_has_liked: !isCurrentlyLiked
-                                } 
+                                }
                                 : post
                         )
                     );
@@ -840,9 +873,9 @@ export default function FeedPage() {
         if (isVideo) {
             return (
                 <div className="video-container" style={{ position: 'relative', width: '100%' }}>
-                    <video 
-                        src={url} 
-                        controls 
+                    <video
+                        src={url}
+                        controls
                         className="post-media"
                         playsInline
                         webkit-playsinline="true"
@@ -874,9 +907,9 @@ export default function FeedPage() {
             );
         } else if (isImage) {
             return (
-                <img 
-                    src={url} 
-                    alt="Mídia do post" 
+                <img
+                    src={url}
+                    alt="Mídia do post"
                     className="post-media"
                     style={{
                         width: '100%',
@@ -918,9 +951,9 @@ export default function FeedPage() {
     const renderUserHeader = () => (
         <div className="user-info-header" style={{ marginBottom: '20px', marginTop: '20px' }}>
             <Link to={`/profile/${userId}`}>
-                <img 
-                    src={user.photo} 
-                    alt="Usuário" 
+                <img
+                    src={user.photo}
+                    alt="Usuário"
                     className="header-user-photo"
                     style={{
                         width: '130px',
@@ -943,7 +976,7 @@ export default function FeedPage() {
     const renderImageModal = () => {
         if (!modalImage) return null;
         return (
-            <div 
+            <div
                 style={{
                     position: 'fixed',
                     top: 0,
@@ -959,9 +992,9 @@ export default function FeedPage() {
                 }}
                 onClick={() => setModalImage(null)}
             >
-                <img 
-                    src={modalImage} 
-                    alt="Prévia ampliada" 
+                <img
+                    src={modalImage}
+                    alt="Prévia ampliada"
                     style={{
                         maxWidth: '90%',
                         maxHeight: '90%',
@@ -997,9 +1030,9 @@ export default function FeedPage() {
     return (
         <div>
             <SocialHeader user={user} />
-            
+
             {/* Faixa azul #27CCF5 ocupando toda a largura */}
-            <div style={{ 
+            <div style={{
                 backgroundColor: '#27ADF5',
                 width: '100%',
                 padding: '0',
@@ -1007,14 +1040,13 @@ export default function FeedPage() {
                 boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
             }}>
                 <div className="col-md-6" style={{ margin: '0 auto', padding: '0' }}>
-                    <div style={{ 
+                    <div style={{
                         display: 'flex',
                         justifyContent: 'center',
                         alignItems: 'center',
                         padding: '0'
                     }}>
-                        {/* Abas reordenadas: EXPLORE, REELS, FEED */}
-                        <div 
+                        <div
                             className="tab-item explore-tab"
                             onClick={() => setActiveTab('explore')}
                             style={{
@@ -1045,8 +1077,8 @@ export default function FeedPage() {
                                 }} />
                             )}
                         </div>
-                        <div 
-                            className="tab-item reels-tab" // *** NOVO ***
+                        <div
+                            className="tab-item reels-tab"
                             onClick={() => setActiveTab('reels')}
                             style={{
                                 flex: 1,
@@ -1076,7 +1108,7 @@ export default function FeedPage() {
                                 }} />
                             )}
                         </div>
-                        <div 
+                        <div
                             className="tab-item feed-tab"
                             onClick={() => setActiveTab('feed')}
                             style={{
@@ -1134,6 +1166,7 @@ export default function FeedPage() {
                                 const isDeleting = deletingPosts[post.post_id] || false;
                                 const isPostOwner = parseInt(post.user_id) === userId;
                                 const isReposting = repostingPosts[post.post_id] || false;
+                                const commentMediaPreview = commentMediaPreviews[post.post_id];
 
                                 return (
                                     <div
@@ -1142,7 +1175,6 @@ export default function FeedPage() {
                                         className="post-item"
                                         style={{ marginBottom: '20px' }}
                                     >
-                                        {/* Header do post com indicador de repost */}
                                         <div className="post-header">
                                             {post.is_repost ? (
                                                 <>
@@ -1153,11 +1185,11 @@ export default function FeedPage() {
                                                         </small>
                                                     </div>
                                                     <Link to={`/profile/${post.original_user_id}`}>
-                                                        <img 
-                                                            src={isValidPhoto(post.original_user_photo) 
-                                                                ? post.original_user_photo 
-                                                                : getInitialsImage(post.original_user_name || 'Usuário')} 
-                                                            alt={post.original_user_name} 
+                                                        <img
+                                                            src={isValidPhoto(post.original_user_photo)
+                                                                ? post.original_user_photo
+                                                                : getInitialsImage(post.original_user_name || 'Usuário')}
+                                                            alt={post.original_user_name}
                                                             className="post-user-photo"
                                                             style={{
                                                                 width: '40px',
@@ -1172,9 +1204,9 @@ export default function FeedPage() {
                                                 </>
                                             ) : (
                                                 <Link to={`/profile/${post.user_id}`}>
-                                                    <img 
-                                                        src={photo} 
-                                                        alt={post.name} 
+                                                    <img
+                                                        src={photo}
+                                                        alt={post.name}
                                                         className="post-user-photo"
                                                         style={{
                                                             width: '40px',
@@ -1196,10 +1228,9 @@ export default function FeedPage() {
                                                 <span className="post-date">{new Date(post.created_at).toLocaleDateString()}</span>
                                             </div>
 
-                                            {/* Botão de deletar disponível para posts do usuário (originais e reposts) */}
                                             {(isPostOwner || (post.is_repost && post.user_id === userId)) ? (
-                                                <Button 
-                                                    color="link" 
+                                                <Button
+                                                    color="link"
                                                     size="sm"
                                                     className="post-delete-btn"
                                                     onClick={() => handleDeletePost(post.post_id)}
@@ -1215,31 +1246,29 @@ export default function FeedPage() {
                                             ) : null}
                                         </div>
 
-                                        {/* Descrição com links clicáveis */}
                                         <p className="post-description">
                                             {formatTextWithLinks(post.description)}
                                         </p>
 
-                                        {/* Container de mídia responsivo */}
                                         <div className="media-container" style={{ marginTop: '10px' }}>
                                             {renderMedia(post.media_link)}
                                         </div>
 
                                         <div className="post-actions" style={{ marginTop: '10px' }}>
-                                            <div className="post-buttons" style={{ 
-                                                display: 'flex', 
-                                                justifyContent: 'space-between', 
+                                            <div className="post-buttons" style={{
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
                                                 alignItems: 'center',
                                                 width: '100%',
                                                 gap: '8px'
                                             }}>
-                                                <Button 
+                                                <Button
                                                     color={hasLiked ? "primary" : "secondary"}
                                                     size="sm"
                                                     onClick={() => handleLike(post.post_id, post.number_likes, hasLiked)}
                                                     disabled={isLiking}
                                                     className="like-button"
-                                                    style={{ 
+                                                    style={{
                                                         flex: 1,
                                                         padding: '4px 8px',
                                                         fontSize: '14px',
@@ -1251,23 +1280,23 @@ export default function FeedPage() {
                                                         '...'
                                                     ) : (
                                                         <>
-                                                            <AiFillHeart 
-                                                                size={16} 
-                                                                style={{ 
+                                                            <AiFillHeart
+                                                                size={16}
+                                                                style={{
                                                                     marginRight: '5px',
                                                                     color: hasLiked ? '#dc3545' : '#6c757d'
-                                                                }} 
+                                                                }}
                                                             />
                                                             {post.number_likes || 0}
                                                         </>
                                                     )}
                                                 </Button>
-                                                <Button 
+                                                <Button
                                                     color="info"
                                                     size="sm"
                                                     onClick={() => toggleComments(post.post_id)}
                                                     className="comment-button"
-                                                    style={{ 
+                                                    style={{
                                                         flex: 1,
                                                         padding: '4px 8px',
                                                         fontSize: '14px',
@@ -1278,19 +1307,19 @@ export default function FeedPage() {
                                                     <FaCommentDots size={16} style={{ marginRight: '5px' }} />
                                                     {post.number_comments || 0}
                                                 </Button>
-                                                <Button 
+                                                <Button
                                                     color="primary"
                                                     size="sm"
                                                     onClick={() => handleRepost(
-                                                        post.post_id, 
-                                                        post.original_user_id || post.user_id, 
-                                                        post.description, 
+                                                        post.post_id,
+                                                        post.original_user_id || post.user_id,
+                                                        post.description,
                                                         post.media_link,
                                                         post.name
                                                     )}
                                                     disabled={isReposting}
                                                     className="repost-button"
-                                                    style={{ 
+                                                    style={{
                                                         flex: 1,
                                                         padding: '4px 8px',
                                                         fontSize: '14px',
@@ -1302,7 +1331,7 @@ export default function FeedPage() {
                                                         '...'
                                                     ) : (
                                                         <>
-                                                            <BiRepost size={16} style={{ marginRight: '5px' }} /> 
+                                                            <BiRepost size={16} style={{ marginRight: '5px' }} />
                                                             {post.number_reposts || 0}
                                                         </>
                                                     )}
@@ -1318,17 +1347,17 @@ export default function FeedPage() {
                                                     ) : postComments.length > 0 ? (
                                                         <>
                                                             {postComments.map((comment) => {
-                                                                const commentUserPhoto = isValidPhoto(comment.photo) 
-                                                                    ? comment.photo 
+                                                                const commentUserPhoto = isValidPhoto(comment.photo)
+                                                                    ? comment.photo
                                                                     : getInitialsImage(comment.name);
 
                                                                 return (
                                                                     <div key={comment.id} className="comment-item">
                                                                         <div className="comment-header">
                                                                             <Link to={`/profile/${comment.user_id}`}>
-                                                                                <img 
-                                                                                    src={commentUserPhoto} 
-                                                                                    alt={comment.name} 
+                                                                                <img
+                                                                                    src={commentUserPhoto}
+                                                                                    alt={comment.name}
                                                                                     className="comment-user-photo"
                                                                                     style={{
                                                                                         width: '30px',
@@ -1345,13 +1374,14 @@ export default function FeedPage() {
                                                                                 <p className="comment-text">
                                                                                     {formatTextWithLinks(comment.comment)}
                                                                                 </p>
+                                                                                {comment.media_link_comment && renderCommentMedia(comment.media_link_comment)}
                                                                                 <small className="comment-date">
                                                                                     {new Date(comment.created_at).toLocaleString()}
                                                                                 </small>
                                                                             </div>
                                                                             {(parseInt(comment.user_id) === userId || parseInt(post.user_id) === userId) && (
-                                                                                <Button 
-                                                                                    color="link" 
+                                                                                <Button
+                                                                                    color="link"
                                                                                     size="sm"
                                                                                     className="comment-delete-btn"
                                                                                     onClick={() => handleDeleteComment(post.post_id, comment.id)}
@@ -1366,7 +1396,7 @@ export default function FeedPage() {
                                                             })}
 
                                                             {hasMoreComments && (
-                                                                <div 
+                                                                <div
                                                                     ref={el => commentsEndRefs.current[post.post_id] = el}
                                                                     style={{ height: '1px', marginTop: '10px' }}
                                                                 />
@@ -1375,13 +1405,38 @@ export default function FeedPage() {
                                                     ) : (
                                                         <p className="text-muted text-center no-comments">No comments yet</p>
                                                     )}
-                                                    
+
                                                     {isCommentsLoading && postComments.length > 0 && (
                                                         <p className="text-center">Loading more comments...</p>
                                                     )}
                                                 </div>
 
                                                 <div className="add-comment-form">
+                                                    {commentMediaPreview && (
+                                                        <div className="comment-media-preview">
+                                                            {commentMediaPreview.type.startsWith('video') ? (
+                                                                <video
+                                                                    src={commentMediaPreview.url}
+                                                                    className="comment-media-preview-item"
+                                                                    controls
+                                                                />
+                                                            ) : (
+                                                                <img
+                                                                    src={commentMediaPreview.url}
+                                                                    alt="Preview"
+                                                                    className="comment-media-preview-item"
+                                                                />
+                                                            )}
+                                                            <button
+                                                                type="button"
+                                                                className="comment-media-remove-btn"
+                                                                onClick={() => removeCommentMedia(post.post_id)}
+                                                                title="Remove media"
+                                                            >
+                                                                ×
+                                                            </button>
+                                                        </div>
+                                                    )}
                                                     <div className="comment-input-container">
                                                         <Input
                                                             type="textarea"
@@ -1391,15 +1446,32 @@ export default function FeedPage() {
                                                             rows="1"
                                                             className="comment-input"
                                                         />
-                                                        <Button 
-                                                            color="primary" 
-                                                            size="sm"
-                                                            onClick={() => handleAddComment(post.post_id)}
-                                                            disabled={!currentCommentText.trim() || isCommenting}
-                                                            className="comment-submit-btn"
-                                                        >
-                                                            {isCommenting ? '...' : 'Post'}
-                                                        </Button>
+                                                        <input
+                                                            type="file"
+                                                            ref={el => commentFileInputRefs.current[post.post_id] = el}
+                                                            onChange={(e) => handleCommentMediaChange(post.post_id, e)}
+                                                            accept="image/*,video/*"
+                                                            style={{ display: 'none' }}
+                                                        />
+                                                        <div className="comment-actions-row">
+                                                            <button
+                                                                type="button"
+                                                                className="comment-media-btn"
+                                                                onClick={() => commentFileInputRefs.current[post.post_id]?.click()}
+                                                                title="Attach image or video"
+                                                            >
+                                                                <FaImage size={18} />
+                                                            </button>
+                                                            <Button
+                                                                color="primary"
+                                                                size="sm"
+                                                                onClick={() => handleAddComment(post.post_id)}
+                                                                disabled={(!currentCommentText.trim() && !commentMediaFiles[post.post_id]) || isCommenting}
+                                                                className="comment-submit-btn"
+                                                            >
+                                                                {isCommenting ? '...' : 'Post'}
+                                                            </Button>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -1408,12 +1480,12 @@ export default function FeedPage() {
                                 );
                             })}
                             {exploreLoading && <p className="text-center">Loading...</p>}
-                            <br/>
+                            <br />
                             {!exploreHasMore && <p className="text-center text-muted">No more posts</p>}
                         </>
                     )}
 
-                    {/* *** NOVO: Conteúdo da aba Reels *** */}
+                    {/* Conteúdo da aba Reels */}
                     {activeTab === 'reels' && (
                         <>
                             {renderUserHeader()}
@@ -1434,6 +1506,7 @@ export default function FeedPage() {
                                 const isDeleting = deletingPosts[post.post_id] || false;
                                 const isPostOwner = parseInt(post.user_id) === userId;
                                 const isReposting = repostingPosts[post.post_id] || false;
+                                const commentMediaPreview = commentMediaPreviews[post.post_id];
 
                                 return (
                                     <div
@@ -1442,7 +1515,6 @@ export default function FeedPage() {
                                         className="post-item"
                                         style={{ marginBottom: '20px' }}
                                     >
-                                        {/* Header do post com indicador de repost */}
                                         <div className="post-header">
                                             {post.is_repost ? (
                                                 <>
@@ -1453,11 +1525,11 @@ export default function FeedPage() {
                                                         </small>
                                                     </div>
                                                     <Link to={`/profile/${post.original_user_id}`}>
-                                                        <img 
-                                                            src={isValidPhoto(post.original_user_photo) 
-                                                                ? post.original_user_photo 
-                                                                : getInitialsImage(post.original_user_name || 'Usuário')} 
-                                                            alt={post.original_user_name} 
+                                                        <img
+                                                            src={isValidPhoto(post.original_user_photo)
+                                                                ? post.original_user_photo
+                                                                : getInitialsImage(post.original_user_name || 'Usuário')}
+                                                            alt={post.original_user_name}
                                                             className="post-user-photo"
                                                             style={{
                                                                 width: '40px',
@@ -1472,9 +1544,9 @@ export default function FeedPage() {
                                                 </>
                                             ) : (
                                                 <Link to={`/profile/${post.user_id}`}>
-                                                    <img 
-                                                        src={photo} 
-                                                        alt={post.name} 
+                                                    <img
+                                                        src={photo}
+                                                        alt={post.name}
                                                         className="post-user-photo"
                                                         style={{
                                                             width: '40px',
@@ -1496,10 +1568,9 @@ export default function FeedPage() {
                                                 <span className="post-date">{new Date(post.created_at).toLocaleDateString()}</span>
                                             </div>
 
-                                            {/* Botão de deletar disponível para posts do usuário (originais e reposts) */}
                                             {(isPostOwner || (post.is_repost && post.user_id === userId)) ? (
-                                                <Button 
-                                                    color="link" 
+                                                <Button
+                                                    color="link"
                                                     size="sm"
                                                     className="post-delete-btn"
                                                     onClick={() => handleDeletePost(post.post_id)}
@@ -1515,31 +1586,29 @@ export default function FeedPage() {
                                             ) : null}
                                         </div>
 
-                                        {/* Descrição com links clicáveis */}
                                         <p className="post-description">
                                             {formatTextWithLinks(post.description)}
                                         </p>
 
-                                        {/* Container de mídia responsivo */}
                                         <div className="media-container" style={{ marginTop: '10px' }}>
                                             {renderMedia(post.media_link)}
                                         </div>
 
                                         <div className="post-actions" style={{ marginTop: '10px' }}>
-                                            <div className="post-buttons" style={{ 
-                                                display: 'flex', 
-                                                justifyContent: 'space-between', 
+                                            <div className="post-buttons" style={{
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
                                                 alignItems: 'center',
                                                 width: '100%',
                                                 gap: '8px'
                                             }}>
-                                                <Button 
+                                                <Button
                                                     color={hasLiked ? "primary" : "secondary"}
                                                     size="sm"
                                                     onClick={() => handleLike(post.post_id, post.number_likes, hasLiked)}
                                                     disabled={isLiking}
                                                     className="like-button"
-                                                    style={{ 
+                                                    style={{
                                                         flex: 1,
                                                         padding: '4px 8px',
                                                         fontSize: '14px',
@@ -1551,23 +1620,23 @@ export default function FeedPage() {
                                                         '...'
                                                     ) : (
                                                         <>
-                                                            <AiFillHeart 
-                                                                size={16} 
-                                                                style={{ 
+                                                            <AiFillHeart
+                                                                size={16}
+                                                                style={{
                                                                     marginRight: '5px',
                                                                     color: hasLiked ? '#dc3545' : '#6c757d'
-                                                                }} 
+                                                                }}
                                                             />
                                                             {post.number_likes || 0}
                                                         </>
                                                     )}
                                                 </Button>
-                                                <Button 
+                                                <Button
                                                     color="info"
                                                     size="sm"
                                                     onClick={() => toggleComments(post.post_id)}
                                                     className="comment-button"
-                                                    style={{ 
+                                                    style={{
                                                         flex: 1,
                                                         padding: '4px 8px',
                                                         fontSize: '14px',
@@ -1578,19 +1647,19 @@ export default function FeedPage() {
                                                     <FaCommentDots size={16} style={{ marginRight: '5px' }} />
                                                     {post.number_comments || 0}
                                                 </Button>
-                                                <Button 
+                                                <Button
                                                     color="primary"
                                                     size="sm"
                                                     onClick={() => handleRepost(
-                                                        post.post_id, 
-                                                        post.original_user_id || post.user_id, 
-                                                        post.description, 
+                                                        post.post_id,
+                                                        post.original_user_id || post.user_id,
+                                                        post.description,
                                                         post.media_link,
                                                         post.name
                                                     )}
                                                     disabled={isReposting}
                                                     className="repost-button"
-                                                    style={{ 
+                                                    style={{
                                                         flex: 1,
                                                         padding: '4px 8px',
                                                         fontSize: '14px',
@@ -1602,7 +1671,7 @@ export default function FeedPage() {
                                                         '...'
                                                     ) : (
                                                         <>
-                                                            <BiRepost size={16} style={{ marginRight: '5px' }} /> 
+                                                            <BiRepost size={16} style={{ marginRight: '5px' }} />
                                                             {post.number_reposts || 0}
                                                         </>
                                                     )}
@@ -1618,17 +1687,17 @@ export default function FeedPage() {
                                                     ) : postComments.length > 0 ? (
                                                         <>
                                                             {postComments.map((comment) => {
-                                                                const commentUserPhoto = isValidPhoto(comment.photo) 
-                                                                    ? comment.photo 
+                                                                const commentUserPhoto = isValidPhoto(comment.photo)
+                                                                    ? comment.photo
                                                                     : getInitialsImage(comment.name);
 
                                                                 return (
                                                                     <div key={comment.id} className="comment-item">
                                                                         <div className="comment-header">
                                                                             <Link to={`/profile/${comment.user_id}`}>
-                                                                                <img 
-                                                                                    src={commentUserPhoto} 
-                                                                                    alt={comment.name} 
+                                                                                <img
+                                                                                    src={commentUserPhoto}
+                                                                                    alt={comment.name}
                                                                                     className="comment-user-photo"
                                                                                     style={{
                                                                                         width: '30px',
@@ -1645,13 +1714,14 @@ export default function FeedPage() {
                                                                                 <p className="comment-text">
                                                                                     {formatTextWithLinks(comment.comment)}
                                                                                 </p>
+                                                                                {comment.media_link_comment && renderCommentMedia(comment.media_link_comment)}
                                                                                 <small className="comment-date">
                                                                                     {new Date(comment.created_at).toLocaleString()}
                                                                                 </small>
                                                                             </div>
                                                                             {(parseInt(comment.user_id) === userId || parseInt(post.user_id) === userId) && (
-                                                                                <Button 
-                                                                                    color="link" 
+                                                                                <Button
+                                                                                    color="link"
                                                                                     size="sm"
                                                                                     className="comment-delete-btn"
                                                                                     onClick={() => handleDeleteComment(post.post_id, comment.id)}
@@ -1666,7 +1736,7 @@ export default function FeedPage() {
                                                             })}
 
                                                             {hasMoreComments && (
-                                                                <div 
+                                                                <div
                                                                     ref={el => commentsEndRefs.current[post.post_id] = el}
                                                                     style={{ height: '1px', marginTop: '10px' }}
                                                                 />
@@ -1675,13 +1745,38 @@ export default function FeedPage() {
                                                     ) : (
                                                         <p className="text-muted text-center no-comments">No comments yet</p>
                                                     )}
-                                                    
+
                                                     {isCommentsLoading && postComments.length > 0 && (
                                                         <p className="text-center">Loading more comments...</p>
                                                     )}
                                                 </div>
 
                                                 <div className="add-comment-form">
+                                                    {commentMediaPreview && (
+                                                        <div className="comment-media-preview">
+                                                            {commentMediaPreview.type.startsWith('video') ? (
+                                                                <video
+                                                                    src={commentMediaPreview.url}
+                                                                    className="comment-media-preview-item"
+                                                                    controls
+                                                                />
+                                                            ) : (
+                                                                <img
+                                                                    src={commentMediaPreview.url}
+                                                                    alt="Preview"
+                                                                    className="comment-media-preview-item"
+                                                                />
+                                                            )}
+                                                            <button
+                                                                type="button"
+                                                                className="comment-media-remove-btn"
+                                                                onClick={() => removeCommentMedia(post.post_id)}
+                                                                title="Remove media"
+                                                            >
+                                                                ×
+                                                            </button>
+                                                        </div>
+                                                    )}
                                                     <div className="comment-input-container">
                                                         <Input
                                                             type="textarea"
@@ -1691,15 +1786,32 @@ export default function FeedPage() {
                                                             rows="1"
                                                             className="comment-input"
                                                         />
-                                                        <Button 
-                                                            color="primary" 
-                                                            size="sm"
-                                                            onClick={() => handleAddComment(post.post_id)}
-                                                            disabled={!currentCommentText.trim() || isCommenting}
-                                                            className="comment-submit-btn"
-                                                        >
-                                                            {isCommenting ? '...' : 'Post'}
-                                                        </Button>
+                                                        <input
+                                                            type="file"
+                                                            ref={el => commentFileInputRefs.current[post.post_id] = el}
+                                                            onChange={(e) => handleCommentMediaChange(post.post_id, e)}
+                                                            accept="image/*,video/*"
+                                                            style={{ display: 'none' }}
+                                                        />
+                                                        <div className="comment-actions-row">
+                                                            <button
+                                                                type="button"
+                                                                className="comment-media-btn"
+                                                                onClick={() => commentFileInputRefs.current[post.post_id]?.click()}
+                                                                title="Attach image or video"
+                                                            >
+                                                                <FaImage size={18} />
+                                                            </button>
+                                                            <Button
+                                                                color="primary"
+                                                                size="sm"
+                                                                onClick={() => handleAddComment(post.post_id)}
+                                                                disabled={(!currentCommentText.trim() && !commentMediaFiles[post.post_id]) || isCommenting}
+                                                                className="comment-submit-btn"
+                                                            >
+                                                                {isCommenting ? '...' : 'Post'}
+                                                            </Button>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -1708,7 +1820,7 @@ export default function FeedPage() {
                                 );
                             })}
                             {reelsLoading && <p className="text-center">Loading...</p>}
-                            <br/>
+                            <br />
                             {!reelsHasMore && <p className="text-center text-muted">There are no more reels.</p>}
                         </>
                     )}
@@ -1734,6 +1846,7 @@ export default function FeedPage() {
                                 const isDeleting = deletingPosts[post.post_id] || false;
                                 const isPostOwner = parseInt(post.user_id) === userId;
                                 const isReposting = repostingPosts[post.post_id] || false;
+                                const commentMediaPreview = commentMediaPreviews[post.post_id];
 
                                 return (
                                     <div
@@ -1742,7 +1855,6 @@ export default function FeedPage() {
                                         className="post-item"
                                         style={{ marginBottom: '20px' }}
                                     >
-                                        {/* Header do post com indicador de repost */}
                                         <div className="post-header">
                                             {post.is_repost ? (
                                                 <>
@@ -1753,11 +1865,11 @@ export default function FeedPage() {
                                                         </small>
                                                     </div>
                                                     <Link to={`/profile/${post.original_user_id}`}>
-                                                        <img 
-                                                            src={isValidPhoto(post.original_user_photo) 
-                                                                ? post.original_user_photo 
-                                                                : getInitialsImage(post.original_user_name || 'Usuário')} 
-                                                            alt={post.original_user_name} 
+                                                        <img
+                                                            src={isValidPhoto(post.original_user_photo)
+                                                                ? post.original_user_photo
+                                                                : getInitialsImage(post.original_user_name || 'Usuário')}
+                                                            alt={post.original_user_name}
                                                             className="post-user-photo"
                                                             style={{
                                                                 width: '40px',
@@ -1772,9 +1884,9 @@ export default function FeedPage() {
                                                 </>
                                             ) : (
                                                 <Link to={`/profile/${post.user_id}`}>
-                                                    <img 
-                                                        src={photo} 
-                                                        alt={post.name} 
+                                                    <img
+                                                        src={photo}
+                                                        alt={post.name}
                                                         className="post-user-photo"
                                                         style={{
                                                             width: '40px',
@@ -1796,10 +1908,9 @@ export default function FeedPage() {
                                                 <span className="post-date">{new Date(post.created_at).toLocaleDateString()}</span>
                                             </div>
 
-                                            {/* Botão de deletar disponível para posts do usuário (originais e reposts) */}
                                             {(isPostOwner || (post.is_repost && post.user_id === userId)) ? (
-                                                <Button 
-                                                    color="link" 
+                                                <Button
+                                                    color="link"
                                                     size="sm"
                                                     className="post-delete-btn"
                                                     onClick={() => handleDeletePost(post.post_id)}
@@ -1815,31 +1926,29 @@ export default function FeedPage() {
                                             ) : null}
                                         </div>
 
-                                        {/* Descrição com links clicáveis */}
                                         <p className="post-description">
                                             {formatTextWithLinks(post.description)}
                                         </p>
 
-                                        {/* Container de mídia responsivo */}
                                         <div className="media-container" style={{ marginTop: '10px' }}>
                                             {renderMedia(post.media_link)}
                                         </div>
 
                                         <div className="post-actions" style={{ marginTop: '10px' }}>
-                                            <div className="post-buttons" style={{ 
-                                                display: 'flex', 
-                                                justifyContent: 'space-between', 
+                                            <div className="post-buttons" style={{
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
                                                 alignItems: 'center',
                                                 width: '100%',
                                                 gap: '8px'
                                             }}>
-                                                <Button 
+                                                <Button
                                                     color={hasLiked ? "primary" : "secondary"}
                                                     size="sm"
                                                     onClick={() => handleLike(post.post_id, post.number_likes, hasLiked)}
                                                     disabled={isLiking}
                                                     className="like-button"
-                                                    style={{ 
+                                                    style={{
                                                         flex: 1,
                                                         padding: '4px 8px',
                                                         fontSize: '14px',
@@ -1851,23 +1960,23 @@ export default function FeedPage() {
                                                         '...'
                                                     ) : (
                                                         <>
-                                                            <AiFillHeart 
-                                                                size={16} 
-                                                                style={{ 
+                                                            <AiFillHeart
+                                                                size={16}
+                                                                style={{
                                                                     marginRight: '5px',
                                                                     color: hasLiked ? '#dc3545' : '#6c757d'
-                                                                }} 
+                                                                }}
                                                             />
                                                             {post.number_likes || 0}
                                                         </>
                                                     )}
                                                 </Button>
-                                                <Button 
+                                                <Button
                                                     color="info"
                                                     size="sm"
                                                     onClick={() => toggleComments(post.post_id)}
                                                     className="comment-button"
-                                                    style={{ 
+                                                    style={{
                                                         flex: 1,
                                                         padding: '4px 8px',
                                                         fontSize: '14px',
@@ -1878,19 +1987,19 @@ export default function FeedPage() {
                                                     <FaCommentDots size={16} style={{ marginRight: '5px' }} />
                                                     {post.number_comments || 0}
                                                 </Button>
-                                                <Button 
+                                                <Button
                                                     color="primary"
                                                     size="sm"
                                                     onClick={() => handleRepost(
-                                                        post.post_id, 
-                                                        post.original_user_id || post.user_id, 
-                                                        post.description, 
+                                                        post.post_id,
+                                                        post.original_user_id || post.user_id,
+                                                        post.description,
                                                         post.media_link,
                                                         post.name
                                                     )}
                                                     disabled={isReposting}
                                                     className="repost-button"
-                                                    style={{ 
+                                                    style={{
                                                         flex: 1,
                                                         padding: '4px 8px',
                                                         fontSize: '14px',
@@ -1902,7 +2011,7 @@ export default function FeedPage() {
                                                         '...'
                                                     ) : (
                                                         <>
-                                                            <BiRepost size={16} style={{ marginRight: '5px' }} /> 
+                                                            <BiRepost size={16} style={{ marginRight: '5px' }} />
                                                             {post.number_reposts || 0}
                                                         </>
                                                     )}
@@ -1918,17 +2027,17 @@ export default function FeedPage() {
                                                     ) : postComments.length > 0 ? (
                                                         <>
                                                             {postComments.map((comment) => {
-                                                                const commentUserPhoto = isValidPhoto(comment.photo) 
-                                                                    ? comment.photo 
+                                                                const commentUserPhoto = isValidPhoto(comment.photo)
+                                                                    ? comment.photo
                                                                     : getInitialsImage(comment.name);
 
                                                                 return (
                                                                     <div key={comment.id} className="comment-item">
                                                                         <div className="comment-header">
                                                                             <Link to={`/profile/${comment.user_id}`}>
-                                                                                <img 
-                                                                                    src={commentUserPhoto} 
-                                                                                    alt={comment.name} 
+                                                                                <img
+                                                                                    src={commentUserPhoto}
+                                                                                    alt={comment.name}
                                                                                     className="comment-user-photo"
                                                                                     style={{
                                                                                         width: '30px',
@@ -1945,13 +2054,14 @@ export default function FeedPage() {
                                                                                 <p className="comment-text">
                                                                                     {formatTextWithLinks(comment.comment)}
                                                                                 </p>
+                                                                                {comment.media_link_comment && renderCommentMedia(comment.media_link_comment)}
                                                                                 <small className="comment-date">
                                                                                     {new Date(comment.created_at).toLocaleString()}
                                                                                 </small>
                                                                             </div>
                                                                             {(parseInt(comment.user_id) === userId || parseInt(post.user_id) === userId) && (
-                                                                                <Button 
-                                                                                    color="link" 
+                                                                                <Button
+                                                                                    color="link"
                                                                                     size="sm"
                                                                                     className="comment-delete-btn"
                                                                                     onClick={() => handleDeleteComment(post.post_id, comment.id)}
@@ -1966,7 +2076,7 @@ export default function FeedPage() {
                                                             })}
 
                                                             {hasMoreComments && (
-                                                                <div 
+                                                                <div
                                                                     ref={el => commentsEndRefs.current[post.post_id] = el}
                                                                     style={{ height: '1px', marginTop: '10px' }}
                                                                 />
@@ -1975,13 +2085,38 @@ export default function FeedPage() {
                                                     ) : (
                                                         <p className="text-muted text-center no-comments">No comments yet</p>
                                                     )}
-                                                    
+
                                                     {isCommentsLoading && postComments.length > 0 && (
                                                         <p className="text-center">Loading more comments...</p>
                                                     )}
                                                 </div>
 
                                                 <div className="add-comment-form">
+                                                    {commentMediaPreview && (
+                                                        <div className="comment-media-preview">
+                                                            {commentMediaPreview.type.startsWith('video') ? (
+                                                                <video
+                                                                    src={commentMediaPreview.url}
+                                                                    className="comment-media-preview-item"
+                                                                    controls
+                                                                />
+                                                            ) : (
+                                                                <img
+                                                                    src={commentMediaPreview.url}
+                                                                    alt="Preview"
+                                                                    className="comment-media-preview-item"
+                                                                />
+                                                            )}
+                                                            <button
+                                                                type="button"
+                                                                className="comment-media-remove-btn"
+                                                                onClick={() => removeCommentMedia(post.post_id)}
+                                                                title="Remove media"
+                                                            >
+                                                                ×
+                                                            </button>
+                                                        </div>
+                                                    )}
                                                     <div className="comment-input-container">
                                                         <Input
                                                             type="textarea"
@@ -1991,15 +2126,32 @@ export default function FeedPage() {
                                                             rows="1"
                                                             className="comment-input"
                                                         />
-                                                        <Button 
-                                                            color="primary" 
-                                                            size="sm"
-                                                            onClick={() => handleAddComment(post.post_id)}
-                                                            disabled={!currentCommentText.trim() || isCommenting}
-                                                            className="comment-submit-btn"
-                                                        >
-                                                            {isCommenting ? '...' : 'Post'}
-                                                        </Button>
+                                                        <input
+                                                            type="file"
+                                                            ref={el => commentFileInputRefs.current[post.post_id] = el}
+                                                            onChange={(e) => handleCommentMediaChange(post.post_id, e)}
+                                                            accept="image/*,video/*"
+                                                            style={{ display: 'none' }}
+                                                        />
+                                                        <div className="comment-actions-row">
+                                                            <button
+                                                                type="button"
+                                                                className="comment-media-btn"
+                                                                onClick={() => commentFileInputRefs.current[post.post_id]?.click()}
+                                                                title="Attach image or video"
+                                                            >
+                                                                <FaImage size={18} />
+                                                            </button>
+                                                            <Button
+                                                                color="primary"
+                                                                size="sm"
+                                                                onClick={() => handleAddComment(post.post_id)}
+                                                                disabled={(!currentCommentText.trim() && !commentMediaFiles[post.post_id]) || isCommenting}
+                                                                className="comment-submit-btn"
+                                                            >
+                                                                {isCommenting ? '...' : 'Post'}
+                                                            </Button>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -2008,18 +2160,18 @@ export default function FeedPage() {
                                 );
                             })}
                             {loading && <p className="text-center">Loading...</p>}
-                            <br/>
+                            <br />
                             {!hasMore && <p className="text-center text-muted">No more posts</p>}
                         </>
                     )}
-                    
+
                     <div style={{ height: '80px' }}></div>
                 </div>
             </div>
-            
+
             {/* Modal de imagem */}
             {renderImageModal()}
-            
+
             <Footer showOnScroll={true} />
             <Footer showOnScroll={false} />
         </div>

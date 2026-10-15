@@ -1181,7 +1181,7 @@ export default function FeedPage() {
                                                     <div className="repost-indicator">
                                                         <BiRepost size={14} style={{ marginRight: '5px' }} />
                                                         <small className="text-muted">
-                                                            <strong>{post.name}</strong> repostou
+                                                            <strong>{post.name}</strong> reposted
                                                         </small>
                                                     </div>
                                                     <Link to={`/profile/${post.original_user_id}`}>
@@ -1521,7 +1521,7 @@ export default function FeedPage() {
                                                     <div className="repost-indicator">
                                                         <BiRepost size={14} style={{ marginRight: '5px' }} />
                                                         <small className="text-muted">
-                                                            <strong>{post.name}</strong> repostou
+                                                            <strong>{post.name}</strong> reposted
                                                         </small>
                                                     </div>
                                                     <Link to={`/profile/${post.original_user_id}`}>
@@ -1861,7 +1861,7 @@ export default function FeedPage() {
                                                     <div className="repost-indicator">
                                                         <BiRepost size={14} style={{ marginRight: '5px' }} />
                                                         <small className="text-muted">
-                                                            <strong>{post.name}</strong> repostou
+                                                            <strong>{post.name}</strong> reposted
                                                         </small>
                                                     </div>
                                                     <Link to={`/profile/${post.original_user_id}`}>

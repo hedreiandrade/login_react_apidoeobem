@@ -11,7 +11,7 @@ This project is a Social Midia interface, we have the login page, feed, update p
 
 Node v14.17.5
 
-In the project directory, run:
+In the project directory, run :
 
 ### `npm install`
 

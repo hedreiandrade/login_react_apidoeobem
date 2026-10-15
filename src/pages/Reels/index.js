@@ -889,7 +889,7 @@ export default function ReelsPage() {
                                     <div className="reel-repost-indicator">
                                         <BiRepost size={14} style={{ marginRight: '5px' }} />
                                         <small>
-                                            <strong>{post.name}</strong> repostou
+                                            <strong>{post.name}</strong> reposted
                                         </small>
                                     </div>
                                 )}

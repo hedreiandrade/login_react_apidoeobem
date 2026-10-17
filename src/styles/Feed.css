@@ -455,6 +455,28 @@ html {
     align-items: stretch;
 }
 
+/* ==================== ÍCONE DE VERIFICADO ==================== */
+.verified-badge {
+    color: #1d9bf0 !important;
+    fill: #1d9bf0 !important;
+    margin-left: 4px;
+    vertical-align: middle;
+    flex-shrink: 0;
+    display: inline-block;
+}
+
+.post-user-name {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.comment-user-name {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
 .comment-input {
     flex: 1;
     resize: none;

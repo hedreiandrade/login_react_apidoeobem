@@ -11,33 +11,29 @@ import { Link } from 'react-router-dom';
 import { AiFillHeart } from "react-icons/ai";
 import { FaTrash, FaCommentDots, FaTimes, FaImage } from "react-icons/fa";
 import { BiRepost } from "react-icons/bi";
+import { RiVerifiedBadgeFill } from "react-icons/ri";
 
 export default function FeedPage() {
     useExpireToken();
 
-    // Tab state - ordem alterada: explore, reels, feed
     const [activeTab, setActiveTab] = useState('explore');
 
-    // Feed state
     const [feed, setFeed] = useState([]);
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
-    // Explore state
     const [explorePosts, setExplorePosts] = useState([]);
     const [explorePage, setExplorePage] = useState(1);
     const [exploreHasMore, setExploreHasMore] = useState(true);
     const [exploreLoading, setExploreLoading] = useState(false);
 
-    // Reels state
     const [reelsPosts, setReelsPosts] = useState([]);
     const [reelsPage, setReelsPage] = useState(1);
     const [reelsHasMore, setReelsHasMore] = useState(true);
     const [reelsLoading, setReelsLoading] = useState(false);
 
-    // Shared states
     const [likingPosts, setLikingPosts] = useState({});
     const [commentingPosts, setCommentingPosts] = useState({});
     const [expandedComments, setExpandedComments] = useState({});
@@ -47,12 +43,10 @@ export default function FeedPage() {
     const [deletingPosts, setDeletingPosts] = useState({});
     const [repostingPosts, setRepostingPosts] = useState({});
 
-    // ======================== MÍDIA DOS COMENTÁRIOS ========================
     const [commentMediaFiles, setCommentMediaFiles] = useState({});
     const [commentMediaPreviews, setCommentMediaPreviews] = useState({});
     const commentFileInputRefs = useRef({});
 
-    // Modal state for image preview
     const [modalImage, setModalImage] = useState(null);
 
     const observer = useRef();
@@ -65,8 +59,18 @@ export default function FeedPage() {
     const rawPhoto = localStorage.getItem('photo');
     const token = localStorage.getItem('login_token');
 
-    // Ref para controlar se o componente está montado
     const isMountedRef = useRef(true);
+
+    // 👇 FIX: cache persistente { user_id: isVerified } para sabermos se o autor
+    // original é verificado mesmo quando o post original não está carregado na aba atual
+    const verifiedUsersCacheRef = useRef(null);
+    if (verifiedUsersCacheRef.current === null) {
+        try {
+            verifiedUsersCacheRef.current = JSON.parse(localStorage.getItem('users_verified_cache') || '{}');
+        } catch {
+            verifiedUsersCacheRef.current = {};
+        }
+    }
 
     const isValidPhoto = useCallback((photo) => {
         return photo && photo.trim() !== '' && photo !== 'null' && photo !== 'undefined';
@@ -76,7 +80,6 @@ export default function FeedPage() {
         photo: isValidPhoto(rawPhoto) ? rawPhoto : getInitialsImage(name)
     };
 
-    // Função para formatar texto com links clicáveis
     const formatTextWithLinks = useCallback((text) => {
         if (!text || typeof text !== 'string') return text;
 
@@ -167,7 +170,68 @@ export default function FeedPage() {
         return parts;
     }, []);
 
-    // Função para fazer repost
+    // 👇 FIX: agora aceita múltiplas arrays + comparação por String() + cache
+    // - Post normal → verified_profile do próprio post
+    // - Repost → procura o original em QUALQUER array carregada (reels/explore/feed)
+    // - Fallback 1 → original_verified_profile (caso o back passe a mandar no futuro)
+    // - Fallback 2 → cache persistente por user_id (populado ao ver o autor em qualquer aba)
+    // - Fallback 3 → self-repost usa verified_profile
+    const getOriginalVerified = useCallback((post, ...allArrays) => {
+        if (!post) return false;
+        if (!post.is_repost) return post.verified_profile === true;
+
+        if (post.original_post_id != null) {
+            for (const arr of allArrays) {
+                if (!arr) continue;
+                const original = arr.find(
+                    p => p && p.post_id != null && String(p.post_id) === String(post.original_post_id)
+                );
+                if (original) return original.verified_profile === true;
+            }
+        }
+
+        if (post.original_verified_profile !== undefined && post.original_verified_profile !== null) {
+            return post.original_verified_profile === true;
+        }
+
+        if (post.original_user_id != null && verifiedUsersCacheRef.current[post.original_user_id] !== undefined) {
+            return verifiedUsersCacheRef.current[post.original_user_id] === true;
+        }
+
+        if (post.user_id != null && String(post.user_id) === String(post.original_user_id)) {
+            return post.verified_profile === true;
+        }
+
+        return false;
+    }, []);
+
+    // 👇 FIX: popula o cache com os usuários que já vimos (posts normais e self-reposts)
+    useEffect(() => {
+        let changed = false;
+        const cache = verifiedUsersCacheRef.current;
+        const allPosts = [...feed, ...explorePosts, ...reelsPosts];
+
+        allPosts.forEach(p => {
+            if (!p) return;
+            const authorId = !p.is_repost
+                ? p.user_id
+                : (p.user_id != null && String(p.user_id) === String(p.original_user_id) ? p.original_user_id : null);
+            if (authorId != null) {
+                const isVerified = p.verified_profile === true;
+                if (cache[authorId] !== isVerified) {
+                    cache[authorId] = isVerified;
+                    changed = true;
+                }
+            }
+        });
+
+        if (changed) {
+            try {
+                localStorage.setItem('users_verified_cache', JSON.stringify(cache));
+            } catch { /* ignore quota errors */ }
+        }
+    }, [feed, explorePosts, reelsPosts]);
+
     const handleRepost = useCallback(async (originalPostId, originalUserId, originalDescription, originalMediaLink, originalUserName) => {
         if (repostingPosts[originalPostId]) return;
 
@@ -290,7 +354,6 @@ export default function FeedPage() {
         }
     }, [token, page, userId]);
 
-    // Fetch Explore
     const fetchExplore = useCallback(async (pageNum = explorePage) => {
         if (isMountedRef.current) setExploreLoading(true);
         if (isMountedRef.current) setError('');
@@ -332,7 +395,6 @@ export default function FeedPage() {
         }
     }, [token, explorePage, userId]);
 
-    // Fetch Reels
     const fetchReels = useCallback(async (pageNum = reelsPage) => {
         if (isMountedRef.current) setReelsLoading(true);
         if (isMountedRef.current) setError('');
@@ -374,7 +436,6 @@ export default function FeedPage() {
         }
     }, [token, reelsPage, userId]);
 
-    // Efeitos para cada aba
     useEffect(() => {
         isMountedRef.current = true;
 
@@ -397,7 +458,6 @@ export default function FeedPage() {
         };
     }, [fetchFeed, fetchExplore, fetchReels, hasMore, exploreHasMore, reelsHasMore, resetFeedTrigger, page, explorePage, reelsPage, activeTab]);
 
-    // Reset and fetch when tab changes
     useEffect(() => {
         if (activeTab === 'feed') {
             if (feed.length === 0 && hasMore) {
@@ -606,7 +666,6 @@ export default function FeedPage() {
         };
     }, [expandedComments, commentsData, commentsLoading, setupCommentsObserver]);
 
-    // ======================== MÍDIA DOS COMENTÁRIOS ========================
     const handleCommentMediaChange = useCallback((postId, e) => {
         const file = e.target.files[0];
         if (file) {
@@ -947,7 +1006,6 @@ export default function FeedPage() {
         }));
     }, []);
 
-    // Render user profile header
     const renderUserHeader = () => (
         <div className="user-info-header" style={{ marginBottom: '20px', marginTop: '20px' }}>
             <Link to={`/profile/${userId}`}>
@@ -972,7 +1030,6 @@ export default function FeedPage() {
         </div>
     );
 
-    // Render modal for image preview
     const renderImageModal = () => {
         if (!modalImage) return null;
         return (
@@ -1031,7 +1088,6 @@ export default function FeedPage() {
         <div>
             <SocialHeader user={user} />
 
-            {/* Faixa azul #27CCF5 ocupando toda a largura */}
             <div style={{
                 backgroundColor: '#27ADF5',
                 width: '100%',
@@ -1181,7 +1237,11 @@ export default function FeedPage() {
                                                     <div className="repost-indicator">
                                                         <BiRepost size={14} style={{ marginRight: '5px' }} />
                                                         <small className="text-muted">
-                                                            <strong>{post.name}</strong> reposted
+                                                            <strong>{post.name}</strong>
+                                                            {post.verified_profile === true && (
+                                                                <RiVerifiedBadgeFill className="verified-badge" size={14} />
+                                                            )}
+                                                            {' '}reposted
                                                         </small>
                                                     </div>
                                                     <Link to={`/profile/${post.original_user_id}`}>
@@ -1223,6 +1283,10 @@ export default function FeedPage() {
                                                 <div className="post-user-name-container">
                                                     <strong className="post-user-name">
                                                         {post.is_repost ? post.original_user_name : post.name}
+                                                        {/* 👇 FIX: busca nas 3 arrays + cache */}
+                                                        {getOriginalVerified(post, explorePosts, reelsPosts, feed) && (
+                                                            <RiVerifiedBadgeFill className="verified-badge" size={16} />
+                                                        )}
                                                     </strong>
                                                 </div>
                                                 <span className="post-date">{new Date(post.created_at).toLocaleDateString()}</span>
@@ -1370,7 +1434,12 @@ export default function FeedPage() {
                                                                                 />
                                                                             </Link>
                                                                             <div className="comment-content">
-                                                                                <strong className="comment-user-name">{comment.name}</strong>
+                                                                                <strong className="comment-user-name">
+                                                                                    {comment.name}
+                                                                                    {comment.verified_profile === true && (
+                                                                                        <RiVerifiedBadgeFill className="verified-badge" size={14} />
+                                                                                    )}
+                                                                                </strong>
                                                                                 <p className="comment-text">
                                                                                     {formatTextWithLinks(comment.comment)}
                                                                                 </p>
@@ -1521,7 +1590,11 @@ export default function FeedPage() {
                                                     <div className="repost-indicator">
                                                         <BiRepost size={14} style={{ marginRight: '5px' }} />
                                                         <small className="text-muted">
-                                                            <strong>{post.name}</strong> reposted
+                                                            <strong>{post.name}</strong>
+                                                            {post.verified_profile === true && (
+                                                                <RiVerifiedBadgeFill className="verified-badge" size={14} />
+                                                            )}
+                                                            {' '}reposted
                                                         </small>
                                                     </div>
                                                     <Link to={`/profile/${post.original_user_id}`}>
@@ -1563,6 +1636,10 @@ export default function FeedPage() {
                                                 <div className="post-user-name-container">
                                                     <strong className="post-user-name">
                                                         {post.is_repost ? post.original_user_name : post.name}
+                                                        {/* 👇 FIX: busca nas 3 arrays + cache */}
+                                                        {getOriginalVerified(post, reelsPosts, explorePosts, feed) && (
+                                                            <RiVerifiedBadgeFill className="verified-badge" size={16} />
+                                                        )}
                                                     </strong>
                                                 </div>
                                                 <span className="post-date">{new Date(post.created_at).toLocaleDateString()}</span>
@@ -1710,7 +1787,12 @@ export default function FeedPage() {
                                                                                 />
                                                                             </Link>
                                                                             <div className="comment-content">
-                                                                                <strong className="comment-user-name">{comment.name}</strong>
+                                                                                <strong className="comment-user-name">
+                                                                                    {comment.name}
+                                                                                    {comment.verified_profile === true && (
+                                                                                        <RiVerifiedBadgeFill className="verified-badge" size={14} />
+                                                                                    )}
+                                                                                </strong>
                                                                                 <p className="comment-text">
                                                                                     {formatTextWithLinks(comment.comment)}
                                                                                 </p>
@@ -1861,7 +1943,11 @@ export default function FeedPage() {
                                                     <div className="repost-indicator">
                                                         <BiRepost size={14} style={{ marginRight: '5px' }} />
                                                         <small className="text-muted">
-                                                            <strong>{post.name}</strong> reposted
+                                                            <strong>{post.name}</strong>
+                                                            {post.verified_profile === true && (
+                                                                <RiVerifiedBadgeFill className="verified-badge" size={14} />
+                                                            )}
+                                                            {' '}reposted
                                                         </small>
                                                     </div>
                                                     <Link to={`/profile/${post.original_user_id}`}>
@@ -1903,6 +1989,10 @@ export default function FeedPage() {
                                                 <div className="post-user-name-container">
                                                     <strong className="post-user-name">
                                                         {post.is_repost ? post.original_user_name : post.name}
+                                                        {/* 👇 FIX: busca nas 3 arrays + cache */}
+                                                        {getOriginalVerified(post, feed, reelsPosts, explorePosts) && (
+                                                            <RiVerifiedBadgeFill className="verified-badge" size={16} />
+                                                        )}
                                                     </strong>
                                                 </div>
                                                 <span className="post-date">{new Date(post.created_at).toLocaleDateString()}</span>
@@ -2050,7 +2140,12 @@ export default function FeedPage() {
                                                                                 />
                                                                             </Link>
                                                                             <div className="comment-content">
-                                                                                <strong className="comment-user-name">{comment.name}</strong>
+                                                                                <strong className="comment-user-name">
+                                                                                    {comment.name}
+                                                                                    {comment.verified_profile === true && (
+                                                                                        <RiVerifiedBadgeFill className="verified-badge" size={14} />
+                                                                                    )}
+                                                                                </strong>
                                                                                 <p className="comment-text">
                                                                                     {formatTextWithLinks(comment.comment)}
                                                                                 </p>
@@ -2169,7 +2264,6 @@ export default function FeedPage() {
                 </div>
             </div>
 
-            {/* Modal de imagem */}
             {renderImageModal()}
 
             <Footer showOnScroll={true} />

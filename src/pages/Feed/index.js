@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Footer from '../../components/Footer';
 import SocialHeader from '../../components/SocialHeader';
 import { Alert, Button, Input } from 'reactstrap';
-import { apiFeed } from '../../services/api';
+import { api, apiFeed } from '../../services/api';
 import '../../styles/Feed.css';
 import { useExpireToken } from "../../hooks/expireToken";
 import { getInitialsImage } from "../../ultils/initialsImage";
@@ -17,23 +17,19 @@ export default function FeedPage() {
     useExpireToken();
 
     const [activeTab, setActiveTab] = useState('explore');
-
     const [feed, setFeed] = useState([]);
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-
     const [explorePosts, setExplorePosts] = useState([]);
     const [explorePage, setExplorePage] = useState(1);
     const [exploreHasMore, setExploreHasMore] = useState(true);
     const [exploreLoading, setExploreLoading] = useState(false);
-
     const [reelsPosts, setReelsPosts] = useState([]);
     const [reelsPage, setReelsPage] = useState(1);
     const [reelsHasMore, setReelsHasMore] = useState(true);
     const [reelsLoading, setReelsLoading] = useState(false);
-
     const [likingPosts, setLikingPosts] = useState({});
     const [commentingPosts, setCommentingPosts] = useState({});
     const [expandedComments, setExpandedComments] = useState({});
@@ -42,13 +38,10 @@ export default function FeedPage() {
     const [commentsLoading, setCommentsLoading] = useState({});
     const [deletingPosts, setDeletingPosts] = useState({});
     const [repostingPosts, setRepostingPosts] = useState({});
-
     const [commentMediaFiles, setCommentMediaFiles] = useState({});
     const [commentMediaPreviews, setCommentMediaPreviews] = useState({});
     const commentFileInputRefs = useRef({});
-
     const [modalImage, setModalImage] = useState(null);
-
     const observer = useRef();
     const exploreObserver = useRef();
     const reelsObserver = useRef();
@@ -56,10 +49,32 @@ export default function FeedPage() {
     const [resetFeedTrigger, setResetFeedTrigger] = useState(0);
     const userId = parseInt(localStorage.getItem('user_id'));
     const name = localStorage.getItem('name') || 'User';
+    const [verified_profile, setVerifiedProfile] = useState(false);
     const rawPhoto = localStorage.getItem('photo');
     const token = localStorage.getItem('login_token');
-
     const isMountedRef = useRef(true);
+
+    // popula verificado
+    useEffect(() => {
+        let cancelled = false;
+
+        const fetchVerifiedStatus = async () => {
+            if (!userId || !token) return;
+            try {
+                const response = await api.get(`/user/${userId}`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                if (cancelled) return;
+
+                setVerifiedProfile(response.data?.verified_profile === true);
+            } catch (err) {
+                // silencioso — mantém false
+            }
+        };
+
+        fetchVerifiedStatus();
+        return () => { cancelled = true; };
+    }, [userId, token]);
 
     // 👇 FIX: cache persistente { user_id: isVerified } para sabermos se o autor
     // original é verificado mesmo quando o post original não está carregado na aba atual
@@ -1025,7 +1040,16 @@ export default function FeedPage() {
                 />
             </Link>
             <div className="header-user-details">
-                <h3 className="header-user-name">{name}</h3>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <h3 className="header-user-name" style={{ margin: 0 }}>{name}</h3>
+                    {verified_profile === true && (
+                        <RiVerifiedBadgeFill
+                            className="verified-badge"
+                            title="Verified"
+                            size={25}
+                        />
+                    )}
+                </div>
             </div>
         </div>
     );

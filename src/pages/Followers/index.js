@@ -9,11 +9,12 @@ import { useExpireToken } from "../../hooks/expireToken";
 import { getInitialsImage } from "../../ultils/initialsImage";
 import { useHistory, Link } from 'react-router-dom';
 import { getVerifyToken } from "../../ultils/verifyToken";
+import { RiVerifiedBadgeFill } from "react-icons/ri";
 
 export default function FollowersList() {
     const history = useHistory();
 
-    if(localStorage.getItem('login_token') === null || localStorage.getItem('login_token') === ''){
+    if (localStorage.getItem('login_token') === null || localStorage.getItem('login_token') === '') {
         history.push("/");
     }
     useExpireToken();
@@ -118,15 +119,24 @@ export default function FollowersList() {
                                         className="follower-photo"
                                     />
                                 </Link>
-                                <span className="follower-name">{follower.name}</span>
+                                <span className="follower-name">
+                                    {follower.name}
+                                    {follower.verified_profile === true && (
+                                        <RiVerifiedBadgeFill
+                                            className="verified-badge"
+                                            title="Verified"
+                                            size={24}
+                                        />
+                                    )}
+                                </span>
                             </div>
                         );
                     })}
-                    {error && <Alert color="danger" fade={false} className="text-center" >{error}</Alert>}
-                    <br/>
-                    <br/>
+                    {error && <Alert color="danger" fade={false} className="text-center">{error}</Alert>}
+                    <br />
+                    <br />
                     {!hasMore && <p className="text-center text-muted">No more followers</p>}
-                    <br/>
+                    <br />
                 </div>
             </div>
             <Footer />

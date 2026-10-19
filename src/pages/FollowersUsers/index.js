@@ -9,6 +9,7 @@ import { useExpireToken } from "../../hooks/expireToken";
 import { getInitialsImage } from "../../ultils/initialsImage";
 import { useHistory, Link, useParams } from 'react-router-dom';
 import { getVerifyToken } from "../../ultils/verifyToken";
+import { RiVerifiedBadgeFill } from "react-icons/ri";
 
 export default function FollowersList() {
     const history = useHistory();
@@ -117,7 +118,16 @@ export default function FollowersList() {
                                         className="follower-photo"
                                     />
                                 </Link>
-                                <span className="follower-name">{follower.name}</span>
+                                <span className="follower-name">
+                                    {follower.name}
+                                    {follower.verified_profile === true && (
+                                        <RiVerifiedBadgeFill
+                                            className="verified-badge"
+                                            title="Verified"
+                                            size={24}
+                                        />
+                                    )}
+                                </span>
                             </div>
                         );
                     })}

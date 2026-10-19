@@ -78,4 +78,13 @@ html {
 .following-name {
     font-weight: 500;
     font-size: 1.1rem;
+    display: inline-flex;        
+    align-items: center;
+    gap: 4px;
+}
+
+/* 👇 Selo de verificado (mesmo estilo usado no Feed) */
+.verified-badge {
+    color: #1d9bf0;
+    flex-shrink: 0;
 }

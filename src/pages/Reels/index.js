@@ -11,6 +11,7 @@ import { Link } from 'react-router-dom';
 import { AiFillHeart } from "react-icons/ai";
 import { FaCommentDots, FaTimes, FaPlay } from "react-icons/fa";
 import { BiRepost } from "react-icons/bi";
+import { RiVerifiedBadgeFill } from "react-icons/ri";
 
 export default function ReelsPage() {
     useExpireToken();
@@ -52,6 +53,16 @@ export default function ReelsPage() {
     // Sentinelas (um por post) para o auto-load da próxima página de comentários
     const commentSentinelRefs = useRef({});
 
+    // 👇 FIX: cache persistente { user_id: isVerified } — mesma lógica do Feed
+    const verifiedUsersCacheRef = useRef(null);
+    if (verifiedUsersCacheRef.current === null) {
+        try {
+            verifiedUsersCacheRef.current = JSON.parse(localStorage.getItem('users_verified_cache') || '{}');
+        } catch {
+            verifiedUsersCacheRef.current = {};
+        }
+    }
+
     const userId = parseInt(localStorage.getItem('user_id'));
     const name = localStorage.getItem('name') || 'User';
     const rawPhoto = localStorage.getItem('photo');
@@ -69,6 +80,68 @@ export default function ReelsPage() {
     useEffect(() => {
         commentsDataRef.current = commentsData;
     }, [commentsData]);
+
+    // 👇 FIX: mesma função do Feed — resolve o verified do autor ORIGINAL
+    // - Post normal → verified_profile do próprio post
+    // - Repost → procura o original em qualquer array carregada
+    // - Fallback 1 → original_verified_profile (se o back mandar)
+    // - Fallback 2 → cache persistente por user_id
+    // - Fallback 3 → self-repost usa verified_profile
+    const getOriginalVerified = useCallback((post, ...allArrays) => {
+        if (!post) return false;
+        if (!post.is_repost) return post.verified_profile === true;
+
+        if (post.original_post_id != null) {
+            for (const arr of allArrays) {
+                if (!arr) continue;
+                const original = arr.find(
+                    p => p && p.post_id != null && String(p.post_id) === String(post.original_post_id)
+                );
+                if (original) return original.verified_profile === true;
+            }
+        }
+
+        if (post.original_verified_profile !== undefined && post.original_verified_profile !== null) {
+            return post.original_verified_profile === true;
+        }
+
+        if (post.original_user_id != null && verifiedUsersCacheRef.current[post.original_user_id] !== undefined) {
+            return verifiedUsersCacheRef.current[post.original_user_id] === true;
+        }
+
+        if (post.user_id != null && String(post.user_id) === String(post.original_user_id)) {
+            return post.verified_profile === true;
+        }
+
+        return false;
+    }, []);
+
+    // 👇 FIX: popula o cache com os usuários que já vimos (posts normais e self-reposts)
+    useEffect(() => {
+        let changed = false;
+        const cache = verifiedUsersCacheRef.current;
+        const allPosts = reelsPosts;
+
+        allPosts.forEach(p => {
+            if (!p) return;
+            const authorId = !p.is_repost
+                ? p.user_id
+                : (p.user_id != null && String(p.user_id) === String(p.original_user_id) ? p.original_user_id : null);
+            if (authorId != null) {
+                const isVerified = p.verified_profile === true;
+                if (cache[authorId] !== isVerified) {
+                    cache[authorId] = isVerified;
+                    changed = true;
+                }
+            }
+        });
+
+        if (changed) {
+            try {
+                localStorage.setItem('users_verified_cache', JSON.stringify(cache));
+            } catch { /* ignore quota errors */ }
+        }
+    }, [reelsPosts]);
 
     // ---------- Text with clickable links ----------
     const formatTextWithLinks = useCallback((text) => {
@@ -160,9 +233,7 @@ export default function ReelsPage() {
             }
 
             const response = await apiFeed.get(`/verticalReels/${userId}/${pageNum}/5`, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
+                headers: { Authorization: `Bearer ${token}` }
             });
 
             if (isMountedRef.current && response.data.data.length > 0) {
@@ -192,9 +263,7 @@ export default function ReelsPage() {
     // ---------- Lifecycle ----------
     useEffect(() => {
         isMountedRef.current = true;
-        return () => {
-            isMountedRef.current = false;
-        };
+        return () => { isMountedRef.current = false; };
     }, []);
 
     useEffect(() => {
@@ -214,10 +283,7 @@ export default function ReelsPage() {
                 if (entries[0].isIntersecting && reelsHasMore && isMountedRef.current) {
                     setReelsPage(prevPage => prevPage + 1);
                 }
-            }, {
-                rootMargin: '300px',
-                threshold: 0.1
-            });
+            }, { rootMargin: '300px', threshold: 0.1 });
 
             if (node) reelsObserver.current.observe(node);
         });
@@ -283,9 +349,7 @@ export default function ReelsPage() {
                 user_id: parseInt(targetUserId),
                 follower_id: userId
             }, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
+                headers: { Authorization: `Bearer ${token}` }
             });
 
             if (isMountedRef.current) {
@@ -319,9 +383,7 @@ export default function ReelsPage() {
                 user_id: parseInt(targetUserId),
                 follower_id: userId
             }, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
+                headers: { Authorization: `Bearer ${token}` }
             });
 
             if (isMountedRef.current) {
@@ -332,9 +394,7 @@ export default function ReelsPage() {
                 }
             }
         } catch (err) {
-            if (isMountedRef.current) {
-                setError('Failed to follow user');
-            }
+            if (isMountedRef.current) setError('Failed to follow user');
         } finally {
             if (isMountedRef.current) {
                 setFollowLoadingStates(prev => ({ ...prev, [targetUserId]: false }));
@@ -355,9 +415,7 @@ export default function ReelsPage() {
                 user_id: parseInt(targetUserId),
                 follower_id: userId
             }, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
+                headers: { Authorization: `Bearer ${token}` }
             });
 
             if (isMountedRef.current) {
@@ -368,9 +426,7 @@ export default function ReelsPage() {
                 }
             }
         } catch (err) {
-            if (isMountedRef.current) {
-                setError('Failed to unfollow user');
-            }
+            if (isMountedRef.current) setError('Failed to unfollow user');
         } finally {
             if (isMountedRef.current) {
                 setFollowLoadingStates(prev => ({ ...prev, [targetUserId]: false }));
@@ -382,7 +438,7 @@ export default function ReelsPage() {
     useEffect(() => {
         if (!reelsPosts.length) return;
 
-        // *** Usa o user_id do ORIGINAL quando for repost ***
+        // Usa o user_id do ORIGINAL quando for repost
         const uniqueUserIds = [...new Set(
             reelsPosts.map(p => (p.is_repost ? p.original_user_id : p.user_id))
         )];
@@ -490,9 +546,7 @@ export default function ReelsPage() {
                 }
             }
         } catch (err) {
-            if (isMountedRef.current) {
-                setError('Failed to repost');
-            }
+            if (isMountedRef.current) setError('Failed to repost');
         } finally {
             if (isMountedRef.current) {
                 setRepostingPosts(prev => ({ ...prev, [originalPostId]: false }));
@@ -522,9 +576,7 @@ export default function ReelsPage() {
                 }
             }
         } catch (err) {
-            if (isMountedRef.current) {
-                setError('Failed to delete reel');
-            }
+            if (isMountedRef.current) setError('Failed to delete reel');
         }
     }, [token]);
 
@@ -559,9 +611,7 @@ export default function ReelsPage() {
                 }));
             }
         } catch (err) {
-            if (isMountedRef.current) {
-                setError('Failed to load comments');
-            }
+            if (isMountedRef.current) setError('Failed to load comments');
         } finally {
             commentsLoadingRef.current[postId] = false;
             if (isMountedRef.current) {
@@ -616,9 +666,7 @@ export default function ReelsPage() {
                 }
             }
         } catch (err) {
-            if (isMountedRef.current) {
-                setError('Failed to comment on reel');
-            }
+            if (isMountedRef.current) setError('Failed to comment on reel');
         } finally {
             if (isMountedRef.current) {
                 setCommentingPosts(prev => ({ ...prev, [postId]: false }));
@@ -662,9 +710,7 @@ export default function ReelsPage() {
                 }
             }
         } catch (err) {
-            if (isMountedRef.current) {
-                setError('Failed to delete comment');
-            }
+            if (isMountedRef.current) setError('Failed to delete comment');
         }
     }, [token, userId]);
 
@@ -713,11 +759,7 @@ export default function ReelsPage() {
         const isFollowed = followStatuses[targetUserId];
 
         if (isChecking) {
-            return (
-                <button className="reel-follow-btn" disabled>
-                    Loading...
-                </button>
-            );
+            return <button className="reel-follow-btn" disabled>Loading...</button>;
         }
 
         if (isLoading) {
@@ -764,7 +806,6 @@ export default function ReelsPage() {
                 {reelsPosts.map((post, index) => {
                     const isLast = index === reelsPosts.length - 1;
 
-                    // *** Lógica de repost idêntica à do Feed ***
                     const isRepost = post.is_repost === true || post.is_repost === 1;
                     const displayUserId = isRepost ? post.original_user_id : post.user_id;
                     const displayName = isRepost ? post.original_user_name : post.name;
@@ -783,10 +824,13 @@ export default function ReelsPage() {
                     const isCommentsLoading = commentsLoading[post.post_id] || false;
                     const isReposting = repostingPosts[post.post_id] || false;
                     const isPaused = pausedStates[post.post_id] || false;
-                    const isMuted = mutedStates[post.post_id] !== false; // padrão mutado
+                    const isMuted = mutedStates[post.post_id] !== false;
                     const isPostOwner = parseInt(post.user_id) === userId;
 
                     const commentsHasMore = commentsData[post.post_id]?.hasMore || false;
+
+                    // 👇 FIX: mesma resolução do Feed
+                    const isVerifiedAuthor = getOriginalVerified(post, reelsPosts);
 
                     return (
                         <div
@@ -812,14 +856,12 @@ export default function ReelsPage() {
                                 onClick={() => togglePlay(post.post_id)}
                             />
 
-                            {/* Overlay de play quando pausado */}
                             {isPaused && (
                                 <div className="reel-play-overlay" onClick={() => togglePlay(post.post_id)}>
                                     <FaPlay size={70} color="rgba(255,255,255,0.85)" />
                                 </div>
                             )}
 
-                            {/* Botão de mudo */}
                             <button
                                 className="reel-mute-btn"
                                 onClick={() => toggleMute(post.post_id)}
@@ -828,7 +870,6 @@ export default function ReelsPage() {
                                 {isMuted ? '🔇' : '🔊'}
                             </button>
 
-                            {/* Botão de deletar do dono (do repost ou do post original) */}
                             {isPostOwner && (
                                 <button
                                     className="reel-owner-delete"
@@ -839,20 +880,14 @@ export default function ReelsPage() {
                                 </button>
                             )}
 
-                            {/* Ações laterais direitas */}
                             <div className="reel-actions">
                                 <button
                                     className="reel-action-btn"
                                     onClick={() => handleLike(post.post_id, post.number_likes, hasLiked)}
                                     disabled={isLiking}
                                 >
-                                    <AiFillHeart
-                                        size={32}
-                                        color={hasLiked ? '#ed4956' : '#ffffff'}
-                                    />
-                                    <span className="reel-action-count">
-                                        {post.number_likes || 0}
-                                    </span>
+                                    <AiFillHeart size={32} color={hasLiked ? '#ed4956' : '#ffffff'} />
+                                    <span className="reel-action-count">{post.number_likes || 0}</span>
                                 </button>
 
                                 <button
@@ -860,9 +895,7 @@ export default function ReelsPage() {
                                     onClick={() => toggleComments(post.post_id)}
                                 >
                                     <FaCommentDots size={30} color="#ffffff" />
-                                    <span className="reel-action-count">
-                                        {post.number_comments || 0}
-                                    </span>
+                                    <span className="reel-action-count">{post.number_comments || 0}</span>
                                 </button>
 
                                 <button
@@ -876,20 +909,20 @@ export default function ReelsPage() {
                                     disabled={isReposting}
                                 >
                                     <BiRepost size={34} color="#ffffff" />
-                                    <span className="reel-action-count">
-                                        {post.number_reposts || 0}
-                                    </span>
+                                    <span className="reel-action-count">{post.number_reposts || 0}</span>
                                 </button>
                             </div>
 
-                            {/* Info inferior */}
                             <div className="reel-info">
-                                {/* *** Indicador de repost (mesma lógica do Feed) *** */}
                                 {isRepost && (
                                     <div className="reel-repost-indicator">
                                         <BiRepost size={14} style={{ marginRight: '5px' }} />
                                         <small>
-                                            <strong>{post.name}</strong> reposted
+                                            <strong>{post.name}</strong>
+                                            {post.verified_profile === true && (
+                                                <RiVerifiedBadgeFill className="verified-badge" size={14} />
+                                            )}
+                                            {' '}reposted
                                         </small>
                                     </div>
                                 )}
@@ -905,9 +938,18 @@ export default function ReelsPage() {
                                             }}
                                         />
                                     </Link>
-                                    <strong className="reel-username">{displayName}</strong>
 
-                                    {/* Botão Follow / Following — segue o usuário ORIGINAL quando for repost */}
+                                    <strong className="reel-username">
+                                        <span className="reel-username-text">{displayName}</span>
+                                        {isVerifiedAuthor && (
+                                            <RiVerifiedBadgeFill
+                                                className="verified-badge reel-verified-badge"
+                                                title="Verified"
+                                                size={14}
+                                            />
+                                        )}
+                                    </strong>
+
                                     {renderFollowButton(displayUserId)}
                                 </div>
 
@@ -918,7 +960,6 @@ export default function ReelsPage() {
                                 )}
                             </div>
 
-                            {/* Overlay de comentários */}
                             {isCommentsExpanded && (
                                 <div className="reel-comments-overlay" onClick={(e) => e.stopPropagation()}>
                                     <div className="reel-comments-header">
@@ -954,7 +995,15 @@ export default function ReelsPage() {
                                                                 />
                                                             </Link>
                                                             <div className="reel-comment-content">
-                                                                <strong className="reel-comment-name">{comment.name}</strong>
+                                                                <strong className="reel-comment-name">
+                                                                    {comment.name}
+                                                                    {comment.verified_profile === true && (
+                                                                        <RiVerifiedBadgeFill
+                                                                            className="verified-badge reel-verified-badge"
+                                                                            size={12}
+                                                                        />
+                                                                    )}
+                                                                </strong>
                                                                 <p className="reel-comment-text">
                                                                     {formatTextWithLinks(comment.comment)}
                                                                 </p>
@@ -975,7 +1024,6 @@ export default function ReelsPage() {
                                                     );
                                                 })}
 
-                                                {/* Sentinela: dispara o carregamento automático da próxima página */}
                                                 {commentsHasMore && (
                                                     <div
                                                         ref={el => { commentSentinelRefs.current[post.post_id] = el; }}
@@ -1015,9 +1063,7 @@ export default function ReelsPage() {
                     );
                 })}
 
-                {reelsLoading && (
-                    <div className="reels-loading">Loading...</div>
-                )}
+                {reelsLoading && <div className="reels-loading">Loading...</div>}
 
                 {!reelsHasMore && reelsPosts.length > 0 && (
                     <div className="reels-end">No more reels</div>

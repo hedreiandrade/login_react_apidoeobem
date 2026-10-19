@@ -218,14 +218,28 @@
     flex-shrink: 0;
 }
 
+/* ============================================
+   ✅ ALTERADO: nome do usuário + badge verificado
+   Antes: strong com ellipsis direto
+   Agora: inline-flex com .reel-username-text interno
+   → o ellipsis continua funcionando sem cortar o badge
+   ============================================ */
 .reel-username {
     font-size: 14px;
     font-weight: 600;
     color: #fff;
-    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    max-width: 45%;
+    min-width: 0;
+}
+
+.reel-username-text {
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 45%;
+    white-space: nowrap;
+    min-width: 0;
 }
 
 .reel-follow-btn {
@@ -266,6 +280,33 @@
 
 .reel-text-link:hover {
     text-decoration: underline;
+}
+
+/* ============================================
+   ✅ NOVO: Ícone de verificado (reutilizado do Feed)
+   Mesmo padrão visual do Feed.css para manter
+   consistência entre as telas
+   ============================================ */
+.verified-badge {
+    color: #1d9bf0 !important;
+    fill: #1d9bf0 !important;
+    margin-left: 4px;
+    vertical-align: middle;
+    flex-shrink: 0;
+    display: inline-block;
+}
+
+/* Ajuste específico do Reels: fundo preto → precisa de drop-shadow */
+.reel-verified-badge {
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
+    margin-left: 4px;
+    flex-shrink: 0;
+}
+
+/* Badge dentro do nome de comentário */
+.reel-comment-name .verified-badge {
+    margin-left: 3px;
+    vertical-align: middle;
 }
 
 /* ============================================
@@ -530,6 +571,7 @@
         bottom: 80px;
     }
 
+    /* ✅ mantido consistente com o novo .reel-username */
     .reel-username {
         max-width: 40%;
     }

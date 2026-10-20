@@ -9,6 +9,8 @@ import { useExpireToken } from "../../hooks/expireToken";
 import { getInitialsImage } from "../../ultils/initialsImage";
 import { useHistory, Link } from 'react-router-dom';
 import { getVerifyToken } from "../../ultils/verifyToken";
+import { RiVerifiedBadgeFill } from "react-icons/ri";
+
 
 export default function Search() {
     const history = useHistory();
@@ -240,7 +242,12 @@ export default function Search() {
                                         className="search-result-photo"
                                     />
                                     <div className="search-result-info">
-                                        <span className="search-result-name">{user.name}</span>
+                                        <div className="search-result-header">
+                                            <span className="search-result-name">{user.name}</span>
+                                            {user.verified_profile === true && (
+                                                <RiVerifiedBadgeFill className="verified-badge" size={14} />
+                                            )}
+                                        </div>
                                         {user.email && (
                                             <span className="search-result-email">{user.email}</span>
                                         )}

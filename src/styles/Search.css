@@ -86,16 +86,26 @@ html {
     flex-direction: column;
 }
 
+.search-result-header {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+}
+
 .search-result-name {
     font-weight: bold;
     font-size: 16px;
     color: #333;
 }
 
+.verified-badge {
+    flex-shrink: 0;
+}
+
 .search-result-email {
     font-size: 14px;
     color: #666;
-    margin-top: 2px;
 }
 
 /* Loading animation */

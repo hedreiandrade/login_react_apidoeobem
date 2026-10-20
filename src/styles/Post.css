@@ -42,6 +42,14 @@
 
 .user-name-label {
     font-size: 16px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.verified-badge {
+    flex-shrink: 0;
+    color: #1d9bf0;
 }
 
 .post-input-large {

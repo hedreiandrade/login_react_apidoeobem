@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useHistory, useParams } from 'react-router-dom';
 import { Button, Input, Alert } from 'reactstrap';
-import { apiFeed } from '../../services/api';
+import { api, apiFeed } from '../../services/api';
 import { useExpireToken } from "../../hooks/expireToken";
 import { getInitialsImage } from "../../ultils/initialsImage";
 import { getVerifyToken } from "../../ultils/verifyToken";
@@ -9,6 +9,7 @@ import SocialHeader from '../../components/SocialHeader';
 import Footer from '../../components/Footer';
 import { FaImage } from "react-icons/fa";
 import '../../styles/Post.css';
+import { RiVerifiedBadgeFill } from "react-icons/ri";
 
 export default function PostsPage() {
     useExpireToken();
@@ -27,7 +28,8 @@ export default function PostsPage() {
     const [mediaType, setMediaType] = useState(null);
     const [posting, setPosting] = useState(false);
     const [error, setError] = useState('');
-    
+    const [verifiedProfile, setVerifiedProfile] = useState(false);
+
     const fileInputRef = useRef(null);
     const userId = parseInt(localStorage.getItem('user_id'));
     const name = localStorage.getItem('name') || 'User';
@@ -44,6 +46,30 @@ export default function PostsPage() {
     const user = {
         photo: isValidPhoto(rawPhoto) ? rawPhoto : getInitialsImage(name)
     };
+
+    // Busca o perfil do usuário na API para obter o verified_profile
+    const fetchUserProfile = useCallback(async () => {
+        if (!userId || !token) return;
+        try {
+            const response = await api.get(`/user/${userId}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+
+            const profileData = response.data?.user || response.data;
+
+            if (isMountedRef.current && profileData) {
+                setVerifiedProfile(profileData.verified_profile === true);
+            }
+        } catch (err) {
+            console.error('Failed to fetch user profile:', err);
+        }
+    }, [userId, token]);
+
+    useEffect(() => {
+        fetchUserProfile();
+    }, [fetchUserProfile]);
 
     const formatTextWithLinks = useCallback((text) => {
         if (!text || typeof text !== 'string') return text;
@@ -315,6 +341,9 @@ export default function PostsPage() {
                             />
                             <div className="user-name-label">
                                 <strong>{name}</strong>
+                                {verifiedProfile === true && (
+                                    <RiVerifiedBadgeFill className="verified-badge" size={24} />
+                                )}
                             </div>
                         </div>
                         

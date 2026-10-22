@@ -37,19 +37,15 @@ export default function ProfilePage() {
     const [followingCount, setFollowingCount] = useState(0);
     const [countsLoading, setCountsLoading] = useState(true);
     const [repostingPosts, setRepostingPosts] = useState({});
-    
-    // Modal de imagem
+
     const [modalImage, setModalImage] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    // Upload da capa
     const [uploadingCover, setUploadingCover] = useState(false);
     const fileInputRef = useRef(null);
 
-    // --- ABA ATIVA ---
-    const [activeTab, setActiveTab] = useState('posts'); // 'posts' | 'likes' | 'media'
+    const [activeTab, setActiveTab] = useState('posts');
 
-    // --- MÍDIA DOS COMENTÁRIOS ---
     const [commentMediaFiles, setCommentMediaFiles] = useState({});
     const [commentMediaPreviews, setCommentMediaPreviews] = useState({});
     const commentFileInputRefs = useRef({});
@@ -63,7 +59,14 @@ export default function ProfilePage() {
     const token = localStorage.getItem('login_token');
     const userId = parseInt(localStorage.getItem('user_id'));
 
-    // ======================== FUNÇÕES AUXILIARES ========================
+    const verifiedUsersCacheRef = useRef(null);
+    if (verifiedUsersCacheRef.current === null) {
+        try {
+            verifiedUsersCacheRef.current = JSON.parse(localStorage.getItem('users_verified_cache') || '{}');
+        } catch {
+            verifiedUsersCacheRef.current = {};
+        }
+    }
 
     const openImageModal = useCallback((url) => {
         setModalImage(url);
@@ -132,41 +135,41 @@ export default function ProfilePage() {
 
     const formatTextWithLinks = useCallback((text) => {
         if (!text || typeof text !== 'string') return text;
-        
+
         const urlRegex = /(\b(https?:\/\/|www\.)[^\s]+|\b[\w.-]+\.(com|org|net|br|io|co|info|edu|gov|me|dev|app)[^\s]*)/gi;
-        
+
         const parts = [];
         let lastIndex = 0;
         let match;
-        
+
         const regex = new RegExp(urlRegex.source, urlRegex.flags);
         while ((match = regex.exec(text)) !== null) {
             if (match.index > lastIndex) {
                 parts.push(text.substring(lastIndex, match.index));
             }
-            
+
             let url = match[0];
             let href = url;
-            
+
             if (url.startsWith('www.')) {
                 href = `https://${url}`;
             } else if (!url.startsWith('http://') && !url.startsWith('https://')) {
                 href = `https://${url}`;
             }
-            
+
             const punctuationRegex = /[.,;!?]+$/;
             const punctuationMatch = punctuationRegex.exec(url);
-            
+
             if (punctuationMatch) {
                 const cleanUrl = url.substring(0, punctuationMatch.index);
                 const punctuation = punctuationMatch[0];
-                
+
                 if (cleanUrl.startsWith('www.')) {
                     href = `https://${cleanUrl}`;
                 } else if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
                     href = `https://${cleanUrl}`;
                 }
-                
+
                 parts.push(
                     <a
                         key={`${match.index}-link`}
@@ -175,7 +178,7 @@ export default function ProfilePage() {
                         rel="noopener noreferrer"
                         style={{
                             color: '#1d9bf0',
-                            textDecoration: 'none', 
+                            textDecoration: 'none',
                             wordBreak: 'break-word'
                         }}
                         onClick={(e) => e.stopPropagation()}
@@ -204,22 +207,86 @@ export default function ProfilePage() {
                     </a>
                 );
             }
-            
+
             lastIndex = match.index + match[0].length;
         }
-        
+
         if (lastIndex < text.length) {
             parts.push(text.substring(lastIndex));
         }
-        
+
         if (parts.length === 0) {
             return text;
         }
-        
+
         return parts;
     }, []);
 
-    // ======================== REPOST ========================
+    const checkVerified = useCallback((val) => val === true || val === 1 || val === "1", []);
+
+    const getOriginalVerified = useCallback((post, ...allArrays) => {
+        if (!post) return false;
+
+        if (!post.is_repost) {
+            return checkVerified(post.verified_profile)
+                || checkVerified(post.user_verified_profile)
+                || checkVerified(post.original_verified_profile);
+        }
+
+        if (post.original_post_id != null) {
+            for (const arr of allArrays) {
+                if (!arr) continue;
+                const original = arr.find(
+                    p => p && p.post_id != null && String(p.post_id) === String(post.original_post_id)
+                );
+                if (original) return checkVerified(original.verified_profile);
+            }
+        }
+
+        if (post.original_verified_profile !== undefined && post.original_verified_profile !== null) {
+            return checkVerified(post.original_verified_profile);
+        }
+
+        if (post.original_user_verified_profile !== undefined && post.original_user_verified_profile !== null) {
+            return checkVerified(post.original_user_verified_profile);
+        }
+
+        if (post.original_user_id != null && verifiedUsersCacheRef.current[post.original_user_id] !== undefined) {
+            return checkVerified(verifiedUsersCacheRef.current[post.original_user_id]);
+        }
+
+        if (post.user_id != null && String(post.user_id) === String(post.original_user_id)) {
+            return checkVerified(post.verified_profile);
+        }
+
+        return false;
+    }, [checkVerified]);
+
+    useEffect(() => {
+        let changed = false;
+        const cache = verifiedUsersCacheRef.current;
+
+        feed.forEach(p => {
+            if (!p) return;
+            const authorId = !p.is_repost
+                ? p.user_id
+                : (p.user_id != null && String(p.user_id) === String(p.original_user_id) ? p.original_user_id : null);
+            if (authorId != null) {
+                const isVerified = checkVerified(p.verified_profile);
+                if (cache[authorId] !== isVerified) {
+                    cache[authorId] = isVerified;
+                    changed = true;
+                }
+            }
+        });
+
+        if (changed) {
+            try {
+                localStorage.setItem('users_verified_cache', JSON.stringify(cache));
+            } catch { }
+        }
+    }, [feed, checkVerified]);
+
     const handleRepost = useCallback(async (originalPostId, originalUserId, originalDescription, originalMediaLink, originalUserName) => {
         if (repostingPosts[originalPostId]) return;
 
@@ -250,13 +317,10 @@ export default function ProfilePage() {
             if (response.data.status === 401) {
                 setError(response.data.error);
             } else {
-                setFeed(prevFeed => 
-                    prevFeed.map(post => 
-                        post.post_id === originalPostId 
-                            ? { 
-                                ...post, 
-                                number_reposts: (post.number_reposts || 0) + 1
-                            } 
+                setFeed(prevFeed =>
+                    prevFeed.map(post =>
+                        post.post_id === originalPostId
+                            ? { ...post, number_reposts: (post.number_reposts || 0) + 1 }
                             : post
                     )
                 );
@@ -272,14 +336,11 @@ export default function ProfilePage() {
         }
     }, [token, repostingPosts, userId]);
 
-    // ======================== PERFIL DO USUÁRIO ========================
     const fetchProfileUser = useCallback(async () => {
         try {
             setProfileUserError(false);
             const response = await api.get(`/user/${id}`, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
+                headers: { Authorization: `Bearer ${token}` }
             });
             setProfileUser(response.data);
         } catch (err) {
@@ -296,11 +357,8 @@ export default function ProfilePage() {
                 user_id: parseInt(id),
                 follower_id: userId
             }, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
+                headers: { Authorization: `Bearer ${token}` }
             });
-            
             setIsFollowed(response.data.is_followed);
         } catch (err) {
             console.error('Error checking follow status:', err);
@@ -320,18 +378,14 @@ export default function ProfilePage() {
             }
 
             const followersResponse = await apiFeed.get(`/followers/${id}/1/5`, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
+                headers: { Authorization: `Bearer ${token}` }
             });
             if (followersResponse.data && typeof followersResponse.data.total === 'number') {
                 setFollowersCount(followersResponse.data.total);
             }
 
             const followingResponse = await apiFeed.get(`/following/${id}/1/5`, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
+                headers: { Authorization: `Bearer ${token}` }
             });
             if (followingResponse.data && typeof followingResponse.data.total === 'number') {
                 setFollowingCount(followingResponse.data.total);
@@ -350,13 +404,11 @@ export default function ProfilePage() {
                 user_id: parseInt(id),
                 follower_id: userId
             }, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
+                headers: { Authorization: `Bearer ${token}` }
             });
-            if(response.data.status === 401){
+            if (response.data.status === 401) {
                 setError(response.data.response);
-            }else{
+            } else {
                 setIsFollowed(true);
                 await fetchFollowCounts();
             }
@@ -374,13 +426,11 @@ export default function ProfilePage() {
                 user_id: parseInt(id),
                 follower_id: userId
             }, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
+                headers: { Authorization: `Bearer ${token}` }
             });
-            if(response.data.status === 401){
-                 setError(response.data.response);
-            }else{
+            if (response.data.status === 401) {
+                setError(response.data.response);
+            } else {
                 setIsFollowed(false);
                 await fetchFollowCounts();
             }
@@ -391,12 +441,11 @@ export default function ProfilePage() {
         }
     };
 
-    // ======================== FEED (com suporte a abas) ========================
     const fetchFeed = useCallback(async (pageNum = page, tab = activeTab) => {
         let isMounted = true;
         setLoading(true);
         setError('');
-        
+
         try {
             const isValid = await getVerifyToken(token);
             if (!isValid) {
@@ -416,9 +465,7 @@ export default function ProfilePage() {
             }
 
             const response = await apiFeed.get(endpoint, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
+                headers: { Authorization: `Bearer ${token}` }
             });
 
             if (isMounted && response.data.data.length > 0) {
@@ -443,14 +490,12 @@ export default function ProfilePage() {
         };
     }, [token, id, userId, activeTab, page]);
 
-    // Efeito para buscar quando página, aba ou reset mudar
     useEffect(() => {
         if (hasMore) {
             fetchFeed(page);
         }
     }, [fetchFeed, hasMore, resetFeedTrigger, page, activeTab]);
 
-    // Função para trocar de aba
     const changeTab = useCallback((tab) => {
         if (tab === activeTab) return;
         setActiveTab(tab);
@@ -460,7 +505,6 @@ export default function ProfilePage() {
         setResetFeedTrigger(prev => prev + 1);
     }, [activeTab]);
 
-    // Efeitos iniciais
     useEffect(() => {
         if (id && userId && token) {
             checkIsFollowed();
@@ -469,7 +513,6 @@ export default function ProfilePage() {
         }
     }, [id, userId, token, checkIsFollowed, fetchProfileUser, fetchFollowCounts]);
 
-    // Reset feed quando o ID do perfil mudar
     useEffect(() => {
         setFeed([]);
         setPage(1);
@@ -480,7 +523,7 @@ export default function ProfilePage() {
         setFollowersCount(0);
         setFollowingCount(0);
         setCountsLoading(true);
-        window.scrollTo(0,0);
+        window.scrollTo(0, 0);
         setActiveTab('posts');
     }, [id]);
 
@@ -495,7 +538,6 @@ export default function ProfilePage() {
         if (node) observer.current.observe(node);
     }, [loading, hasMore]);
 
-    // ======================== CRUD POSTS ========================
     const handleDeletePost = useCallback(async (postId) => {
         if (deletingPosts[postId]) return;
 
@@ -513,9 +555,9 @@ export default function ProfilePage() {
                     'Content-Type': 'application/json'
                 }
             });
-            if(response.data.status === 401){
+            if (response.data.status === 401) {
                 setError('Failed to delete a post');
-            }else{
+            } else {
                 setFeed(prevFeed => prevFeed.filter(post => post.post_id !== postId));
             }
         } catch (err) {
@@ -525,12 +567,11 @@ export default function ProfilePage() {
         }
     }, [token, deletingPosts]);
 
-    // ======================== COMENTÁRIOS ========================
     const fetchComments = useCallback(async (postId, pageNum = 1) => {
         if (commentsLoading[postId]) return;
-        
+
         setCommentsLoading(prev => ({ ...prev, [postId]: true }));
-        
+
         try {
             const isValid = await getVerifyToken(token);
             if (!isValid) {
@@ -539,15 +580,13 @@ export default function ProfilePage() {
             }
 
             const response = await apiFeed.get(`/comments/${postId}/${pageNum}/5`, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
+                headers: { Authorization: `Bearer ${token}` }
             });
 
             setCommentsData(prev => ({
                 ...prev,
                 [postId]: {
-                    data: pageNum === 1 
+                    data: pageNum === 1
                         ? response.data.data || []
                         : [...(prev[postId]?.data || []), ...(response.data.data || [])],
                     currentPage: pageNum,
@@ -555,7 +594,6 @@ export default function ProfilePage() {
                     hasMore: pageNum < response.data.last_page
                 }
             }));
-
         } catch (err) {
             setError('Failed to load comments');
         } finally {
@@ -565,20 +603,14 @@ export default function ProfilePage() {
 
     const toggleComments = useCallback(async (postId) => {
         if (expandedComments[postId]) {
-            setExpandedComments(prev => ({
-                ...prev,
-                [postId]: false
-            }));
+            setExpandedComments(prev => ({ ...prev, [postId]: false }));
         } else {
-            setExpandedComments(prev => ({
-                ...prev,
-                [postId]: true
-            }));
-            
+            setExpandedComments(prev => ({ ...prev, [postId]: true }));
+
             if (commentsEndRefs.current[postId]) {
                 commentsEndRefs.current[postId] = null;
             }
-            
+
             await fetchComments(postId, 1);
         }
     }, [expandedComments, fetchComments]);
@@ -605,7 +637,7 @@ export default function ProfilePage() {
 
     useEffect(() => {
         const observers = {};
-        
+
         Object.keys(expandedComments).forEach(postId => {
             if (expandedComments[postId] && commentsEndRefs.current[postId]) {
                 observers[postId] = setupCommentsObserver(postId);
@@ -619,17 +651,16 @@ export default function ProfilePage() {
         };
     }, [expandedComments, commentsData, commentsLoading, setupCommentsObserver]);
 
-    // ======================== MÍDIA DOS COMENTÁRIOS ========================
     const handleCommentMediaChange = useCallback((postId, e) => {
         const file = e.target.files[0];
         if (file) {
             setCommentMediaFiles(prev => ({ ...prev, [postId]: file }));
-            
+
             const reader = new FileReader();
             reader.onloadend = () => {
-                setCommentMediaPreviews(prev => ({ 
-                    ...prev, 
-                    [postId]: { url: reader.result, type: file.type } 
+                setCommentMediaPreviews(prev => ({
+                    ...prev,
+                    [postId]: { url: reader.result, type: file.type }
                 }));
             };
             reader.readAsDataURL(file);
@@ -679,22 +710,16 @@ export default function ProfilePage() {
                 }
             });
 
-            if(response.data.status === 401){
+            if (response.data.status === 401) {
                 setError(`Failed to comment a post`);
-            }else{
+            } else {
                 await fetchComments(postId, 1);
-                setCommentTexts(prev => ({
-                    ...prev,
-                    [postId]: ''
-                }));
+                setCommentTexts(prev => ({ ...prev, [postId]: '' }));
                 removeCommentMedia(postId);
-                setFeed(prevFeed => 
-                    prevFeed.map(post => 
-                        post.post_id === postId 
-                            ? { 
-                                ...post, 
-                                number_comments: (post.number_comments || 0) + 1
-                            } 
+                setFeed(prevFeed =>
+                    prevFeed.map(post =>
+                        post.post_id === postId
+                            ? { ...post, number_comments: (post.number_comments || 0) + 1 }
                             : post
                     )
                 );
@@ -720,9 +745,9 @@ export default function ProfilePage() {
                     'Content-Type': 'application/json'
                 }
             });
-            if(response.data.status === 401){
+            if (response.data.status === 401) {
                 setError(`Failed to delete comment`);
-            }else{
+            } else {
                 setCommentsData(prev => ({
                     ...prev,
                     [postId]: {
@@ -730,13 +755,10 @@ export default function ProfilePage() {
                         data: prev[postId]?.data?.filter(comment => comment.id !== commentId) || []
                     }
                 }));
-                setFeed(prevFeed => 
-                    prevFeed.map(post => 
-                        post.post_id === postId 
-                            ? { 
-                                ...post, 
-                                number_comments: Math.max(0, (post.number_comments || 1) - 1)
-                            } 
+                setFeed(prevFeed =>
+                    prevFeed.map(post =>
+                        post.post_id === postId
+                            ? { ...post, number_comments: Math.max(0, (post.number_comments || 1) - 1) }
                             : post
                     )
                 );
@@ -746,7 +768,6 @@ export default function ProfilePage() {
         }
     }, [token, userId]);
 
-    // ======================== LIKES ========================
     const handleLike = useCallback(async (postId, currentLikes, isCurrentlyLiked) => {
         if (likingPosts[postId]) return;
         setLikingPosts(prev => ({ ...prev, [postId]: true }));
@@ -757,27 +778,24 @@ export default function ProfilePage() {
                 return;
             }
             const endpoint = isCurrentlyLiked ? '/unLike' : '/like';
-            const data = {
-                post_id: postId,
-                user_id: userId
-            };
+            const data = { post_id: postId, user_id: userId };
             const response = await apiFeed.post(endpoint, data, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 }
             });
-            if(response.data.status === 401){
+            if (response.data.status === 401) {
                 setError(`Failed to ${isCurrentlyLiked ? 'unlike' : 'like'} post`);
-            }else{
-                setFeed(prevFeed => 
-                    prevFeed.map(post => 
-                        post.post_id === postId 
-                            ? { 
-                                ...post, 
+            } else {
+                setFeed(prevFeed =>
+                    prevFeed.map(post =>
+                        post.post_id === postId
+                            ? {
+                                ...post,
                                 number_likes: isCurrentlyLiked ? currentLikes - 1 : currentLikes + 1,
                                 user_has_liked: !isCurrentlyLiked
-                            } 
+                            }
                             : post
                     )
                 );
@@ -789,7 +807,6 @@ export default function ProfilePage() {
         }
     }, [token, likingPosts, userId]);
 
-    // ======================== RENDER MEDIA ========================
     const renderMedia = useCallback((url) => {
         if (!url || typeof url !== 'string') return null;
 
@@ -804,11 +821,7 @@ export default function ProfilePage() {
             );
         } else if (isImage) {
             return (
-                <div 
-                    className="media-container" 
-                    onClick={() => openImageModal(url)}
-                    style={{ cursor: 'pointer' }}
-                >
+                <div className="media-container" onClick={() => openImageModal(url)} style={{ cursor: 'pointer' }}>
                     <img src={url} alt="Post media" className="post-media" />
                 </div>
             );
@@ -830,11 +843,7 @@ export default function ProfilePage() {
             );
         } else if (isImage) {
             return (
-                <div 
-                    className="comment-media-container" 
-                    onClick={() => openImageModal(url)}
-                    style={{ cursor: 'pointer' }}
-                >
+                <div className="comment-media-container" onClick={() => openImageModal(url)} style={{ cursor: 'pointer' }}>
                     <img src={url} alt="Comment media" className="comment-media" />
                 </div>
             );
@@ -847,13 +856,9 @@ export default function ProfilePage() {
     }, []);
 
     const handleCommentTextChange = useCallback((postId, text) => {
-        setCommentTexts(prev => ({
-            ...prev,
-            [postId]: text
-        }));
+        setCommentTexts(prev => ({ ...prev, [postId]: text }));
     }, []);
 
-    // ======================== BOTÃO FOLLOW ========================
     const renderFollowButton = () => {
         if (userId === parseInt(id)) {
             return (
@@ -881,26 +886,19 @@ export default function ProfilePage() {
 
         if (isFollowed) {
             return (
-                <button 
-                    className="btn btn-outline-secondary btn-sm follow-btn" 
-                    onClick={unfollowUser}
-                >
+                <button className="btn btn-outline-secondary btn-sm follow-btn" onClick={unfollowUser}>
                     Following
                 </button>
             );
         } else {
             return (
-                <button 
-                    className="btn btn-primary btn-sm follow-btn" 
-                    onClick={followUser}
-                >
+                <button className="btn btn-primary btn-sm follow-btn" onClick={followUser}>
                     Follow
                 </button>
             );
         }
     };
 
-    // ======================== INFORMAÇÕES DO PERFIL ========================
     const getProfileInfo = () => {
         if (profileUser) {
             return {
@@ -915,7 +913,7 @@ export default function ProfilePage() {
                 verified_profile: profileUser.verified_profile || 0
             };
         }
-        
+
         if (feed.length > 0) {
             const firstPost = feed[0];
             return {
@@ -930,7 +928,7 @@ export default function ProfilePage() {
                 verified_profile: firstPost.verified_profile || 0
             };
         }
-        
+
         if (profileUserError || !loading) {
             return {
                 photo: getInitialsImage("User"),
@@ -944,7 +942,7 @@ export default function ProfilePage() {
                 verified_profile: 0
             };
         }
-        
+
         return null;
     };
 
@@ -952,16 +950,15 @@ export default function ProfilePage() {
     const isLoadingProfile = !profileInfo && !profileUserError;
     const isOwnProfile = userId === parseInt(id);
 
-    // ======================== RENDER PRINCIPAL ========================
     return (
         <div>
             <SocialHeader user={user} />
-            <br/>
+            <br />
             <div className="col-md-8 App-profile">
                 <div className="profile-container">
                     {/* Profile Cover */}
                     <div className="profile-cover">
-                        <div 
+                        <div
                             className={`cover-image ${!profileInfo?.cover_photo ? 'default-cover' : ''}`}
                             style={profileInfo?.cover_photo ? { backgroundImage: `url(${profileInfo.cover_photo})` } : {}}
                         >
@@ -1018,10 +1015,10 @@ export default function ProfilePage() {
                                         </div>
                                     </div>
                                 ) : (
-                                    <img 
-                                        src={profileInfo.photo} 
-                                        alt="Profile" 
-                                        className="profile-avatar" 
+                                    <img
+                                        src={profileInfo.photo}
+                                        alt="Profile"
+                                        className="profile-avatar"
                                     />
                                 )}
                             </div>
@@ -1034,22 +1031,26 @@ export default function ProfilePage() {
                     {/* Profile Details */}
                     <div className="profile-details">
                         <div className="profile-name-section">
-                            <h2 className="profile-name">
-                                {isLoadingProfile || checkingFollowStatus ? (
-                                    "Loading..."
-                                ) : (
-                                    <>
-                                        {profileInfo.name}
-                                        {profileInfo?.verified_profile === true ? (
-                                            <RiVerifiedBadgeFill className="verified-badge" title="Verified" />
-                                        ) : isOwnProfile && (
-                                            <Link to="/verified" className="get-verified-link-simple">
-                                                Get Verified
-                                            </Link>
-                                        )}
-                                    </>
-                                )}
-                            </h2>
+                            {isLoadingProfile || checkingFollowStatus ? (
+                                <div className="profile-name-row">
+                                    <h2 className="profile-name">Loading...</h2>
+                                </div>
+                            ) : (
+                                <div className="profile-name-row">
+                                    <h2 className="profile-name">{profileInfo.name}</h2>
+                                    {checkVerified(profileInfo?.verified_profile) ? (
+                                        <RiVerifiedBadgeFill
+                                            className="verified-badge"
+                                            title="Verified"
+                                            size={25}
+                                        />
+                                    ) : isOwnProfile && (
+                                        <Link to="/verified" className="get-verified-link-simple">
+                                            Get Verified
+                                        </Link>
+                                    )}
+                                </div>
+                            )}
                         </div>
 
                         {profileInfo?.bio && (
@@ -1066,29 +1067,29 @@ export default function ProfilePage() {
                                             {profileInfo.city}, {profileInfo.country}
                                         </span>
                                     )}
-                                    
+
                                     {profileInfo?.city && !profileInfo?.country && (
                                         <span className="location-info">
                                             {profileInfo.city}
                                         </span>
                                     )}
-                                    
+
                                     {!profileInfo?.city && profileInfo?.country && (
                                         <span className="location-info">
                                             {profileInfo.country}
                                         </span>
                                     )}
-                                    
+
                                     {profileInfo?.website && (
                                         <span className="website-info">
-                                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginLeft: '4px'}}>
+                                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginLeft: '4px' }}>
                                                 🔗 {formatTextWithLinks(profileInfo.website)}
                                             </span>
                                         </span>
                                     )}
                                 </div>
                             )}
-                            
+
                             <div className="joined-date-container">
                                 <span className="joined-date">
                                     {isLoadingProfile ? "Joined recently" : `Joined ${profileInfo.joinedDate}`}
@@ -1099,10 +1100,10 @@ export default function ProfilePage() {
                         <div className="follow-counts">
                             {isOwnProfile ? (
                                 <>
-                                    <Link 
-                                        to="/following" 
-                                        className="btn btn-primary btn-sm" 
-                                        style={{ 
+                                    <Link
+                                        to="/following"
+                                        className="btn btn-primary btn-sm"
+                                        style={{
                                             marginRight: "10px",
                                             backgroundColor: '#085f7f',
                                             borderColor: '#085f7f',
@@ -1115,10 +1116,10 @@ export default function ProfilePage() {
                                         </span>
                                     </Link>
 
-                                    <Link 
-                                        to="/followers" 
-                                        className="btn btn-primary btn-sm" 
-                                        style={{ 
+                                    <Link
+                                        to="/followers"
+                                        className="btn btn-primary btn-sm"
+                                        style={{
                                             backgroundColor: '#085f7f',
                                             borderColor: '#085f7f',
                                             color: '#fff',
@@ -1132,10 +1133,10 @@ export default function ProfilePage() {
                                 </>
                             ) : (
                                 <>
-                                    <Link 
+                                    <Link
                                         to={`/following-users/${id}`}
-                                        className="btn btn-primary btn-sm" 
-                                        style={{ 
+                                        className="btn btn-primary btn-sm"
+                                        style={{
                                             marginRight: "10px",
                                             backgroundColor: '#085f7f',
                                             borderColor: '#085f7f',
@@ -1148,10 +1149,10 @@ export default function ProfilePage() {
                                         </span>
                                     </Link>
 
-                                    <Link 
+                                    <Link
                                         to={`/followers-users/${id}`}
-                                        className="btn btn-primary btn-sm" 
-                                        style={{ 
+                                        className="btn btn-primary btn-sm"
+                                        style={{
                                             backgroundColor: '#085f7f',
                                             borderColor: '#085f7f',
                                             color: '#fff',
@@ -1168,35 +1169,24 @@ export default function ProfilePage() {
                     </div>
 
                     {error && <Alert color="danger" fade={false} className="text-center">{error}</Alert>}
-                    
-                    {/* ==================== BARRA DE ABAS ==================== */}
+
                     <div className="tab-bar-sticky">
                         <div className="tab-bar-inner">
-                            <div 
-                                className={`tab-item ${activeTab === 'posts' ? 'active' : ''}`}
-                                onClick={() => changeTab('posts')}
-                            >
+                            <div className={`tab-item ${activeTab === 'posts' ? 'active' : ''}`} onClick={() => changeTab('posts')}>
                                 POSTS
                                 {activeTab === 'posts' && <span className="tab-indicator" />}
                             </div>
-                            <div 
-                                className={`tab-item ${activeTab === 'likes' ? 'active' : ''}`}
-                                onClick={() => changeTab('likes')}
-                            >
+                            <div className={`tab-item ${activeTab === 'likes' ? 'active' : ''}`} onClick={() => changeTab('likes')}>
                                 LIKES
                                 {activeTab === 'likes' && <span className="tab-indicator" />}
                             </div>
-                            <div 
-                                className={`tab-item ${activeTab === 'media' ? 'active' : ''}`}
-                                onClick={() => changeTab('media')}
-                            >
+                            <div className={`tab-item ${activeTab === 'media' ? 'active' : ''}`} onClick={() => changeTab('media')}>
                                 MEDIA
                                 {activeTab === 'media' && <span className="tab-indicator" />}
                             </div>
                         </div>
                     </div>
 
-                    {/* Posts Section */}
                     <div className="posts-section">
                         {feed.length === 0 && !loading && (
                             <p className="text-center text-muted no-posts">
@@ -1205,12 +1195,10 @@ export default function ProfilePage() {
                                 {activeTab === 'media' && 'No media posts found'}
                             </p>
                         )}
-                        
+
                         {feed.map((post, index) => {
                             const isLast = index === feed.length - 1;
-                            const photo = isValidPhoto(post.photo)
-                                ? post.photo
-                                : getInitialsImage(post.name);
+                            const photo = isValidPhoto(post.photo) ? post.photo : getInitialsImage(post.name);
                             const hasLiked = userHasLiked(post);
                             const isLiking = likingPosts[post.post_id] || false;
                             const isCommenting = commentingPosts[post.post_id] || false;
@@ -1223,39 +1211,35 @@ export default function ProfilePage() {
                             const isPostOwner = parseInt(post.user_id) === userId;
                             const isReposting = repostingPosts[post.post_id] || false;
                             const commentMediaPreview = commentMediaPreviews[post.post_id];
-                            
+
                             return (
-                                <div
-                                    key={post.post_id}
-                                    ref={isLast ? lastPostRef : null}
-                                    className="profile-item"
-                                >
+                                <div key={post.post_id} ref={isLast ? lastPostRef : null} className="profile-item">
                                     <div className="post-header">
                                         {post.is_repost ? (
                                             <>
                                                 <div className="repost-indicator">
                                                     <BiRepost size={14} style={{ marginRight: '5px' }} />
                                                     <small className="text-muted">
-                                                        <strong>{post.name}</strong> reposted
+                                                        <strong>{post.name}</strong>
+                                                        {checkVerified(post.verified_profile) && (
+                                                            <RiVerifiedBadgeFill className="verified-badge" size={14} />
+                                                        )}
+                                                        {' '}reposted
                                                     </small>
                                                 </div>
                                                 <Link to={`/profile/${post.original_user_id}`}>
-                                                    <img 
-                                                        src={isValidPhoto(post.original_user_photo) 
-                                                            ? post.original_user_photo 
-                                                            : getInitialsImage(post.original_user_name || 'User')} 
-                                                        alt={post.original_user_name} 
-                                                        className="post-user-photo" 
+                                                    <img
+                                                        src={isValidPhoto(post.original_user_photo)
+                                                            ? post.original_user_photo
+                                                            : getInitialsImage(post.original_user_name || 'User')}
+                                                        alt={post.original_user_name}
+                                                        className="post-user-photo"
                                                     />
                                                 </Link>
                                             </>
                                         ) : (
                                             <Link to={`/profile/${post.user_id}`}>
-                                                <img 
-                                                    src={photo} 
-                                                    alt={post.name} 
-                                                    className="post-user-photo" 
-                                                />
+                                                <img src={photo} alt={post.name} className="post-user-photo" />
                                             </Link>
                                         )}
                                         <div className="post-user-info">
@@ -1263,16 +1247,16 @@ export default function ProfilePage() {
                                                 <strong className="post-user-name">
                                                     {post.is_repost ? post.original_user_name : post.name}
                                                 </strong>
-                                                {(post.is_repost ? post.original_user_verified_profile : post.verified_profile) === 1 && (
+                                                {getOriginalVerified(post, feed) && (
                                                     <RiVerifiedBadgeFill className="verified-badge post-verified-badge" title="Verified" />
                                                 )}
                                             </div>
                                             <span className="post-date">{new Date(post.created_at).toLocaleDateString()}</span>
                                         </div>
-                                        
+
                                         {(isPostOwner || (post.is_repost && post.user_id === userId)) ? (
-                                            <Button 
-                                                color="link" 
+                                            <Button
+                                                color="link"
                                                 size="sm"
                                                 className="post-delete-btn"
                                                 onClick={() => handleDeletePost(post.post_id)}
@@ -1287,90 +1271,62 @@ export default function ProfilePage() {
                                             </Button>
                                         ) : null}
                                     </div>
-                                    
+
                                     <p className="post-description">
                                         {formatTextWithLinks(post.description)}
                                     </p>
                                     {renderMedia(post.media_link)}
-                                    
+
                                     <div className="post-actions">
-                                        <div className="post-buttons" style={{ 
-                                            display: 'flex', 
-                                            justifyContent: 'space-between', 
+                                        <div className="post-buttons" style={{
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
                                             alignItems: 'center',
                                             width: '100%',
                                             gap: '8px'
                                         }}>
-                                            <Button 
+                                            <Button
                                                 color={hasLiked ? "primary" : "secondary"}
                                                 size="sm"
                                                 onClick={() => handleLike(post.post_id, post.number_likes, hasLiked)}
                                                 disabled={isLiking}
                                                 className="like-button"
-                                                style={{ 
-                                                    flex: 1,
-                                                    padding: '4px 8px',
-                                                    fontSize: '14px',
-                                                    minHeight: '32px',
-                                                    borderRadius: '20px'
-                                                }}
+                                                style={{ flex: 1, padding: '4px 8px', fontSize: '14px', minHeight: '32px', borderRadius: '20px' }}
                                             >
-                                                {isLiking ? (
-                                                    '...'
-                                                ) : (
+                                                {isLiking ? '...' : (
                                                     <>
-                                                        <AiFillHeart 
-                                                            size={16} 
-                                                            style={{ 
-                                                                marginRight: '5px',
-                                                                color: hasLiked ? '#dc3545' : '#6c757d'
-                                                            }} 
-                                                        />
+                                                        <AiFillHeart size={16} style={{ marginRight: '5px', color: hasLiked ? '#dc3545' : '#6c757d' }} />
                                                         {post.number_likes || 0}
                                                     </>
                                                 )}
                                             </Button>
-                                            <Button 
+                                            <Button
                                                 color="info"
                                                 size="sm"
                                                 onClick={() => toggleComments(post.post_id)}
                                                 className="comment-button"
-                                                style={{ 
-                                                    flex: 1,
-                                                    padding: '4px 8px',
-                                                    fontSize: '14px',
-                                                    minHeight: '32px',
-                                                    borderRadius: '20px'
-                                                }}
+                                                style={{ flex: 1, padding: '4px 8px', fontSize: '14px', minHeight: '32px', borderRadius: '20px' }}
                                             >
                                                 <FaCommentDots size={16} style={{ marginRight: '5px' }} />
                                                 {post.number_comments || 0}
                                             </Button>
-                                            <Button 
+                                            <Button
                                                 color="primary"
                                                 size="sm"
                                                 onClick={() => handleRepost(
-                                                    post.post_id, 
-                                                    post.original_user_id || post.user_id, 
-                                                    post.description, 
+                                                    post.post_id,
+                                                    post.original_user_id || post.user_id,
+                                                    post.description,
                                                     post.media_link,
                                                     post.name
                                                 )}
                                                 disabled={isReposting}
                                                 className="repost-button"
-                                                style={{ 
-                                                    flex: 1,
-                                                    padding: '4px 8px',
-                                                    fontSize: '14px',
-                                                    minHeight: '32px',
-                                                    borderRadius: '20px'
-                                                }}
+                                                style={{ flex: 1, padding: '4px 8px', fontSize: '14px', minHeight: '32px', borderRadius: '20px' }}
                                             >
-                                                {isReposting ? (
-                                                    '...'
-                                                ) : (
+                                                {isReposting ? '...' : (
                                                     <>
-                                                        <BiRepost size={16} style={{ marginRight: '5px' }} /> 
+                                                        <BiRepost size={16} style={{ marginRight: '5px' }} />
                                                         {post.number_reposts || 0}
                                                     </>
                                                 )}
@@ -1386,24 +1342,20 @@ export default function ProfilePage() {
                                                 ) : postComments.length > 0 ? (
                                                     <>
                                                         {postComments.map((comment) => {
-                                                            const commentUserPhoto = isValidPhoto(comment.photo) 
-                                                                ? comment.photo 
+                                                            const commentUserPhoto = isValidPhoto(comment.photo)
+                                                                ? comment.photo
                                                                 : getInitialsImage(comment.name);
-                                                            
+
                                                             return (
                                                                 <div key={comment.id} className="comment-item">
                                                                     <div className="comment-header">
                                                                         <Link to={`/profile/${comment.user_id}`}>
-                                                                            <img 
-                                                                                src={commentUserPhoto} 
-                                                                                alt={comment.name} 
-                                                                                className="comment-user-photo"
-                                                                            />
+                                                                            <img src={commentUserPhoto} alt={comment.name} className="comment-user-photo" />
                                                                         </Link>
                                                                         <div className="comment-content">
                                                                             <strong className="comment-user-name">
                                                                                 {comment.name}
-                                                                                {comment.verified_profile === 1 && (
+                                                                                {checkVerified(comment.verified_profile) && (
                                                                                     <RiVerifiedBadgeFill className="verified-badge comment-verified-badge" title="Verified" />
                                                                                 )}
                                                                             </strong>
@@ -1416,8 +1368,8 @@ export default function ProfilePage() {
                                                                             </small>
                                                                         </div>
                                                                         {(parseInt(comment.user_id) === userId || parseInt(post.user_id) === userId) && (
-                                                                            <Button 
-                                                                                color="link" 
+                                                                            <Button
+                                                                                color="link"
                                                                                 size="sm"
                                                                                 className="comment-delete-btn"
                                                                                 onClick={() => handleDeleteComment(post.post_id, comment.id)}
@@ -1430,9 +1382,9 @@ export default function ProfilePage() {
                                                                 </div>
                                                             );
                                                         })}
-                                                        
+
                                                         {hasMoreComments && (
-                                                            <div 
+                                                            <div
                                                                 ref={el => commentsEndRefs.current[post.post_id] = el}
                                                                 style={{ height: '1px', marginTop: '10px' }}
                                                             />
@@ -1441,7 +1393,7 @@ export default function ProfilePage() {
                                                 ) : (
                                                     <p className="text-muted text-center no-comments">No comments yet</p>
                                                 )}
-                                                
+
                                                 {isCommentsLoading && postComments.length > 0 && (
                                                     <p className="text-center">Loading more comments...</p>
                                                 )}
@@ -1451,17 +1403,9 @@ export default function ProfilePage() {
                                                 {commentMediaPreview && (
                                                     <div className="comment-media-preview">
                                                         {commentMediaPreview.type.startsWith('video') ? (
-                                                            <video 
-                                                                src={commentMediaPreview.url} 
-                                                                className="comment-media-preview-item" 
-                                                                controls
-                                                            />
+                                                            <video src={commentMediaPreview.url} className="comment-media-preview-item" controls />
                                                         ) : (
-                                                            <img 
-                                                                src={commentMediaPreview.url} 
-                                                                alt="Preview" 
-                                                                className="comment-media-preview-item" 
-                                                            />
+                                                            <img src={commentMediaPreview.url} alt="Preview" className="comment-media-preview-item" />
                                                         )}
                                                         <button
                                                             type="button"
@@ -1480,10 +1424,10 @@ export default function ProfilePage() {
                                                         placeholder="Write a comment..."
                                                         rows="1"
                                                         className="comment-input"
-                                                        style={{ 
-                                                            width: '100%', 
-                                                            padding: '8px', 
-                                                            borderRadius: '4px', 
+                                                        style={{
+                                                            width: '100%',
+                                                            padding: '8px',
+                                                            borderRadius: '4px',
                                                             border: '1px solid #1d9bf0',
                                                             outline: 'none',
                                                             transition: 'border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out'
@@ -1513,8 +1457,8 @@ export default function ProfilePage() {
                                                         >
                                                             <FaImage size={18} />
                                                         </button>
-                                                        <Button 
-                                                            color="primary" 
+                                                        <Button
+                                                            color="primary"
                                                             size="sm"
                                                             onClick={() => handleAddComment(post.post_id)}
                                                             disabled={(!currentCommentText.trim() && !commentMediaFiles[post.post_id]) || isCommenting}
@@ -1531,15 +1475,14 @@ export default function ProfilePage() {
                             );
                         })}
                         {loading && <p className="text-center">Loading...</p>}
-                        <br/>
+                        <br />
                         {!hasMore && feed.length > 0 && <p className="text-center text-muted">No more posts</p>}
                     </div>
                 </div>
             </div>
 
-            {/* Modal de imagem */}
             {isModalOpen && modalImage && (
-                <div 
+                <div
                     style={{
                         position: 'fixed',
                         top: 0,
@@ -1555,25 +1498,14 @@ export default function ProfilePage() {
                     }}
                     onClick={closeImageModal}
                 >
-                    <div 
-                        style={{
-                            maxWidth: '90%',
-                            maxHeight: '90%',
-                            display: 'flex',
-                            justifyContent: 'center',
-                            alignItems: 'center'
-                        }}
+                    <div
+                        style={{ maxWidth: '90%', maxHeight: '90%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <img 
-                            src={modalImage} 
-                            alt="Full screen" 
-                            style={{
-                                maxWidth: '100%',
-                                maxHeight: '90vh',
-                                objectFit: 'contain',
-                                borderRadius: '8px'
-                            }}
+                        <img
+                            src={modalImage}
+                            alt="Full screen"
+                            style={{ maxWidth: '100%', maxHeight: '90vh', objectFit: 'contain', borderRadius: '8px' }}
                         />
                     </div>
                     <button

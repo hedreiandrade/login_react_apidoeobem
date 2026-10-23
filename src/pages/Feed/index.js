@@ -1111,14 +1111,16 @@ export default function FeedPage() {
     return (
         <div>
             <SocialHeader user={user} />
-
-            <div style={{
-                backgroundColor: '#27ADF5',
-                width: '100%',
-                padding: '0',
-                margin: '0',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-            }}>
+                <div style={{
+                    backgroundColor: '#27ADF5',
+                    width: '100%',
+                    padding: '0',
+                    margin: '0',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                    position: 'sticky',
+                    top: 0,
+                    zIndex: 100
+                }}>
                 <div className="col-md-6" style={{ margin: '0 auto', padding: '0' }}>
                     <div style={{
                         display: 'flex',

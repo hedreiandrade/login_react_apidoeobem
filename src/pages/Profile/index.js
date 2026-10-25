@@ -50,6 +50,12 @@ export default function ProfilePage() {
     const [commentMediaPreviews, setCommentMediaPreviews] = useState({});
     const commentFileInputRefs = useRef({});
 
+    // 👇 anchor NÃO-sticky (para calcular posição estática da barra) + ref da barra
+    const tabBarAnchorRef = useRef(null);
+    const tabBarRef = useRef(null);
+    const shouldScrollToTabBarRef = useRef(false);
+    const [scrollToTabBarTrigger, setScrollToTabBarTrigger] = useState(0);
+
     const observer = useRef();
     const commentsEndRefs = useRef({});
     const [resetFeedTrigger, setResetFeedTrigger] = useState(0);
@@ -287,6 +293,29 @@ export default function ProfilePage() {
         }
     }, [feed, checkVerified]);
 
+    // 👇 NOVO: scroll para o topo da barra após o repost.
+    // Estratégia: usar um anchor NÃO-sticky (altura 0) que vive imediatamente antes
+    // da barra. Sua posição estática no documento é derivada de `getBoundingClientRect().top + scrollY`
+    // (sempre confiável, pois não é sticky). Somando o `margin-top` da barra chegamos à
+    // posição estática do topo da barra. `window.scrollTo` então leva o usuário até lá,
+    // deixando a barra no topo do viewport e o primeiro post logo abaixo — sem subir até
+    // a capa/header do perfil.
+    useEffect(() => {
+        if (scrollToTabBarTrigger === 0) return;
+        if (!tabBarAnchorRef.current || !tabBarRef.current) return;
+
+        const anchorRect = tabBarAnchorRef.current.getBoundingClientRect();
+        const anchorDocTop = anchorRect.top + window.scrollY;
+
+        const barMarginTop = parseFloat(
+            window.getComputedStyle(tabBarRef.current).marginTop
+        ) || 0;
+
+        const targetTop = Math.max(0, anchorDocTop + barMarginTop);
+
+        window.scrollTo({ top: targetTop, behavior: 'smooth' });
+    }, [scrollToTabBarTrigger]);
+
     const handleRepost = useCallback(async (originalPostId, originalUserId, originalDescription, originalMediaLink, originalUserName) => {
         if (repostingPosts[originalPostId]) return;
 
@@ -325,12 +354,14 @@ export default function ProfilePage() {
                     )
                 );
                 setPage(1);
-                setFeed([]);
                 setHasMore(true);
+                // 👇 marca que, após o refetch de page 1 terminar, deve rolar até a barra
+                shouldScrollToTabBarRef.current = true;
                 setResetFeedTrigger(prev => prev + 1);
             }
         } catch (err) {
             setError('Failed to repost');
+            shouldScrollToTabBarRef.current = false;
         } finally {
             setRepostingPosts(prev => ({ ...prev, [originalPostId]: false }));
         }
@@ -468,19 +499,31 @@ export default function ProfilePage() {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
-            if (isMounted && response.data.data.length > 0) {
-                setFeed(prev => {
-                    const existingIds = new Set(prev.map(post => post.post_id));
-                    const newPosts = response.data.data.filter(post => !existingIds.has(post.post_id));
-                    return [...prev, ...newPosts];
-                });
-            }
+            if (isMounted) {
+                const newData = response.data?.data || [];
+                if (pageNum === 1) {
+                    setFeed(newData);
 
-            if (isMounted && pageNum >= response.data.last_page) {
-                setHasMore(false);
+                    // 👇 dispara o scroll depois que o DOM commitar o novo feed
+                    if (shouldScrollToTabBarRef.current) {
+                        shouldScrollToTabBarRef.current = false;
+                        setScrollToTabBarTrigger(prev => prev + 1);
+                    }
+                } else if (newData.length > 0) {
+                    setFeed(prev => {
+                        const existingIds = new Set(prev.map(post => post.post_id));
+                        const newPosts = newData.filter(post => !existingIds.has(post.post_id));
+                        return [...prev, ...newPosts];
+                    });
+                }
+
+                if (pageNum >= response.data.last_page) {
+                    setHasMore(false);
+                }
             }
         } catch (err) {
             if (isMounted) setError('Failed to load feed');
+            shouldScrollToTabBarRef.current = false;
         } finally {
             if (isMounted) setLoading(false);
         }
@@ -498,8 +541,8 @@ export default function ProfilePage() {
 
     const changeTab = useCallback((tab) => {
         if (tab === activeTab) return;
+        shouldScrollToTabBarRef.current = false;
         setActiveTab(tab);
-        setFeed([]);
         setPage(1);
         setHasMore(true);
         setResetFeedTrigger(prev => prev + 1);
@@ -514,6 +557,7 @@ export default function ProfilePage() {
     }, [id, userId, token, checkIsFollowed, fetchProfileUser, fetchFollowCounts]);
 
     useEffect(() => {
+        shouldScrollToTabBarRef.current = false;
         setFeed([]);
         setPage(1);
         setHasMore(true);
@@ -1170,7 +1214,14 @@ export default function ProfilePage() {
 
                     {error && <Alert color="danger" fade={false} className="text-center">{error}</Alert>}
 
-                    <div className="tab-bar-sticky">
+                    {/* 👇 âncora NÃO-sticky para medir posição estática da barra */}
+                    <div
+                        ref={tabBarAnchorRef}
+                        style={{ height: 0, margin: 0, padding: 0, border: 0 }}
+                        aria-hidden="true"
+                    />
+
+                    <div className="tab-bar-sticky" ref={tabBarRef}>
                         <div className="tab-bar-inner">
                             <div className={`tab-item ${activeTab === 'posts' ? 'active' : ''}`} onClick={() => changeTab('posts')}>
                                 POSTS

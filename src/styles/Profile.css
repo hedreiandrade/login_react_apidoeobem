@@ -152,6 +152,24 @@ html {
     color: #FFF;
 }
 
+/* Block button */
+.block-btn {
+    border-radius: 20px;
+    padding: 6px 16px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    margin-left: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    vertical-align: middle;
+}
+
+.block-btn:hover {
+    text-decoration: none;
+}
+
 /* Profile Details */
 .profile-details {
     padding: 30px;
@@ -901,6 +919,7 @@ html {
 
     .profile-container {
         border-radius: 8px;
+        margin-top: 20px;
     }
 
     .profile-info-section {
@@ -963,6 +982,10 @@ html {
         margin-top: 60px;
     }
 
+    .block-btn {
+        margin-top: 60px;
+    }
+
     .edit-profile-btn:hover {
         color: #FFF;
     }
@@ -984,6 +1007,10 @@ html {
 
 @media (max-width: 576px) {
     .follow-btn {
+        margin-top: 60px;
+    }
+
+    .block-btn {
         margin-top: 60px;
     }
 

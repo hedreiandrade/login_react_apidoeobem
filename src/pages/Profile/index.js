@@ -12,6 +12,7 @@ import { AiFillHeart } from "react-icons/ai";
 import { FaTrash, FaCommentDots, FaCamera, FaImage } from "react-icons/fa";
 import { BiRepost } from "react-icons/bi";
 import { RiVerifiedBadgeFill } from "react-icons/ri";
+import { ImBlocked } from "react-icons/im";
 
 export default function ProfilePage() {
     useExpireToken();
@@ -38,6 +39,9 @@ export default function ProfilePage() {
     const [countsLoading, setCountsLoading] = useState(true);
     const [repostingPosts, setRepostingPosts] = useState({});
 
+    const [isBlocked, setIsBlocked] = useState(false);
+    const [blockLoading, setBlockLoading] = useState(false);
+
     const [modalImage, setModalImage] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -50,7 +54,6 @@ export default function ProfilePage() {
     const [commentMediaPreviews, setCommentMediaPreviews] = useState({});
     const commentFileInputRefs = useRef({});
 
-    // 👇 anchor NÃO-sticky (para calcular posição estática da barra) + ref da barra
     const tabBarAnchorRef = useRef(null);
     const tabBarRef = useRef(null);
     const shouldScrollToTabBarRef = useRef(false);
@@ -293,13 +296,6 @@ export default function ProfilePage() {
         }
     }, [feed, checkVerified]);
 
-    // 👇 NOVO: scroll para o topo da barra após o repost.
-    // Estratégia: usar um anchor NÃO-sticky (altura 0) que vive imediatamente antes
-    // da barra. Sua posição estática no documento é derivada de `getBoundingClientRect().top + scrollY`
-    // (sempre confiável, pois não é sticky). Somando o `margin-top` da barra chegamos à
-    // posição estática do topo da barra. `window.scrollTo` então leva o usuário até lá,
-    // deixando a barra no topo do viewport e o primeiro post logo abaixo — sem subir até
-    // a capa/header do perfil.
     useEffect(() => {
         if (scrollToTabBarTrigger === 0) return;
         if (!tabBarAnchorRef.current || !tabBarRef.current) return;
@@ -355,7 +351,6 @@ export default function ProfilePage() {
                 );
                 setPage(1);
                 setHasMore(true);
-                // 👇 marca que, após o refetch de page 1 terminar, deve rolar até a barra
                 shouldScrollToTabBarRef.current = true;
                 setResetFeedTrigger(prev => prev + 1);
             }
@@ -398,6 +393,31 @@ export default function ProfilePage() {
             setCheckingFollowStatus(false);
         }
     }, [id, userId, token]);
+
+    const checkIsBlocked = useCallback(async () => {
+        if (String(userId) === String(id)) {
+            setIsBlocked(false);
+            return;
+        }
+
+        try {
+            const response = await apiFeed.post('/isBlockUser', {
+                user_id_bu: userId,
+                user_block_id_bu: parseInt(id)
+            }, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            // 👇 log temporário para você conferir no console
+            console.log('[checkIsBlocked] id:', id, '| resposta:', response.data);
+
+            setIsBlocked(response.data.is_blocked_user === true);
+        } catch (err) {
+            console.error('[checkIsBlocked] erro:', err?.response?.status, err?.response?.data);
+            setIsBlocked(false);
+        }
+    }, [id, userId, token]);
+    // ============================================================
 
     const fetchFollowCounts = useCallback(async () => {
         try {
@@ -472,6 +492,70 @@ export default function ProfilePage() {
         }
     };
 
+    const handleBlockUser = useCallback(async () => {
+        if (blockLoading) return;
+        setBlockLoading(true);
+        setError('');
+
+        try {
+            const isValid = await getVerifyToken(token);
+            if (!isValid) {
+                window.location.href = "/";
+                return;
+            }
+
+            const response = await apiFeed.post('/blockUser', {
+                user_id_bu: userId,
+                user_block_id_bu: parseInt(id)
+            }, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            if (response.data.status === 401) {
+                setError('Failed to block user');
+            } else {
+                // Re-checa para garantir sincronização
+                await checkIsBlocked();
+            }
+        } catch (err) {
+            setError('Failed to block user');
+        } finally {
+            setBlockLoading(false);
+        }
+    }, [blockLoading, token, userId, id, checkIsBlocked]);
+
+    const handleUnblockUser = useCallback(async () => {
+        if (blockLoading) return;
+        setBlockLoading(true);
+        setError('');
+
+        try {
+            const isValid = await getVerifyToken(token);
+            if (!isValid) {
+                window.location.href = "/";
+                return;
+            }
+
+            const response = await apiFeed.post('/unBlockUser', {
+                user_id_bu: userId,
+                user_block_id_bu: parseInt(id)
+            }, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            if (response.data.status === 401) {
+                setError('Failed to unblock user');
+            } else {
+                // Re-checa para garantir sincronização
+                await checkIsBlocked();
+            }
+        } catch (err) {
+            setError('Failed to unblock user');
+        } finally {
+            setBlockLoading(false);
+        }
+    }, [blockLoading, token, userId, id, checkIsBlocked]);
+
     const fetchFeed = useCallback(async (pageNum = page, tab = activeTab) => {
         let isMounted = true;
         setLoading(true);
@@ -504,7 +588,6 @@ export default function ProfilePage() {
                 if (pageNum === 1) {
                     setFeed(newData);
 
-                    // 👇 dispara o scroll depois que o DOM commitar o novo feed
                     if (shouldScrollToTabBarRef.current) {
                         shouldScrollToTabBarRef.current = false;
                         setScrollToTabBarTrigger(prev => prev + 1);
@@ -548,14 +631,9 @@ export default function ProfilePage() {
         setResetFeedTrigger(prev => prev + 1);
     }, [activeTab]);
 
-    useEffect(() => {
-        if (id && userId && token) {
-            checkIsFollowed();
-            fetchProfileUser();
-            fetchFollowCounts();
-        }
-    }, [id, userId, token, checkIsFollowed, fetchProfileUser, fetchFollowCounts]);
-
+    // ============================================================
+    // 1) RESET ao trocar de perfil (SEM resetar isBlocked)
+    // ============================================================
     useEffect(() => {
         shouldScrollToTabBarRef.current = false;
         setFeed([]);
@@ -567,9 +645,29 @@ export default function ProfilePage() {
         setFollowersCount(0);
         setFollowingCount(0);
         setCountsLoading(true);
+        setBlockLoading(false);
         window.scrollTo(0, 0);
         setActiveTab('posts');
+        // ⚠️ NÃO resetamos isBlocked aqui para não sobrescrever
+        // o valor que a API vai devolver logo abaixo.
     }, [id]);
+
+    // ============================================================
+    // 2) CHECK de bloqueio — DEPOIS do reset, só reage a `id`
+    // ============================================================
+    useEffect(() => {
+        if (!id || !userId || !token) return;
+        checkIsBlocked();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [id]);
+
+    useEffect(() => {
+        if (id && userId && token) {
+            checkIsFollowed();
+            fetchProfileUser();
+            fetchFollowCounts();
+        }
+    }, [id, userId, token, checkIsFollowed, fetchProfileUser, fetchFollowCounts]);
 
     const lastPostRef = useCallback(node => {
         if (loading) return;
@@ -943,6 +1041,29 @@ export default function ProfilePage() {
         }
     };
 
+    const renderBlockButton = () => {
+        if (userId === parseInt(id)) return null;
+
+        return (
+            <button
+                type="button"
+                className="btn btn-outline-danger btn-sm block-btn"
+                onClick={isBlocked ? handleUnblockUser : handleBlockUser}
+                disabled={blockLoading}
+                title={isBlocked ? "Unblock user" : "Block user"}
+            >
+                {blockLoading ? (
+                    <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" />
+                ) : (
+                    <>
+                        <ImBlocked size={16} style={{ marginRight: '5px' }} />
+                        {isBlocked ? 'Unblock' : 'Block'}
+                    </>
+                )}
+            </button>
+        );
+    };
+
     const getProfileInfo = () => {
         if (profileUser) {
             return {
@@ -997,10 +1118,8 @@ export default function ProfilePage() {
     return (
         <div>
             <SocialHeader user={user} />
-            <br />
             <div className="col-md-8 App-profile">
                 <div className="profile-container">
-                    {/* Profile Cover */}
                     <div className="profile-cover">
                         <div
                             className={`cover-image ${!profileInfo?.cover_photo ? 'default-cover' : ''}`}
@@ -1068,11 +1187,11 @@ export default function ProfilePage() {
                             </div>
                             <div className="profile-actions">
                                 {renderFollowButton()}
+                                {renderBlockButton()}
                             </div>
                         </div>
                     </div>
 
-                    {/* Profile Details */}
                     <div className="profile-details">
                         <div className="profile-name-section">
                             {isLoadingProfile || checkingFollowStatus ? (
@@ -1214,7 +1333,6 @@ export default function ProfilePage() {
 
                     {error && <Alert color="danger" fade={false} className="text-center">{error}</Alert>}
 
-                    {/* 👇 âncora NÃO-sticky para medir posição estática da barra */}
                     <div
                         ref={tabBarAnchorRef}
                         style={{ height: 0, margin: 0, padding: 0, border: 0 }}

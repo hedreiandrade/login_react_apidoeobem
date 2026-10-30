@@ -370,7 +370,6 @@ export default function ProfilePage() {
             });
             setProfileUser(response.data);
         } catch (err) {
-            console.error('Error fetching profile user:', err);
             setProfileUserError(true);
             setProfileUser(null);
         }
@@ -387,7 +386,6 @@ export default function ProfilePage() {
             });
             setIsFollowed(response.data.is_followed);
         } catch (err) {
-            console.error('Error checking follow status:', err);
             setIsFollowed(false);
         } finally {
             setCheckingFollowStatus(false);
@@ -399,7 +397,6 @@ export default function ProfilePage() {
             setIsBlocked(false);
             return;
         }
-
         try {
             const response = await apiFeed.post('/isBlockUser', {
                 user_id_bu: userId,
@@ -407,13 +404,8 @@ export default function ProfilePage() {
             }, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-
-            // 👇 log temporário para você conferir no console
-            console.log('[checkIsBlocked] id:', id, '| resposta:', response.data);
-
             setIsBlocked(response.data.is_blocked_user === true);
         } catch (err) {
-            console.error('[checkIsBlocked] erro:', err?.response?.status, err?.response?.data);
             setIsBlocked(false);
         }
     }, [id, userId, token]);

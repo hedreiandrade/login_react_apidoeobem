@@ -61,12 +61,23 @@ export default function ProfilePage() {
 
     const observer = useRef();
     const commentsEndRefs = useRef({});
+    const isMountedRef = useRef(true);
     const [resetFeedTrigger, setResetFeedTrigger] = useState(0);
     const { id } = useParams();
     const name = localStorage.getItem('name') || 'User';
     const rawPhoto = localStorage.getItem('photo');
     const token = localStorage.getItem('login_token');
     const userId = parseInt(localStorage.getItem('user_id'));
+
+    // ============================================================
+    // Controle de montagem (evita setState após unmount)
+    // ============================================================
+    useEffect(() => {
+        isMountedRef.current = true;
+        return () => {
+            isMountedRef.current = false;
+        };
+    }, []);
 
     const verifiedUsersCacheRef = useRef(null);
     if (verifiedUsersCacheRef.current === null) {
@@ -111,6 +122,8 @@ export default function ProfilePage() {
                 }
             });
 
+            if (!isMountedRef.current) return;
+
             if (response.data.status === 401) {
                 setError('Failed to update cover photo');
             } else {
@@ -120,9 +133,9 @@ export default function ProfilePage() {
                 }));
             }
         } catch (err) {
-            setError('Failed to update cover photo');
+            if (isMountedRef.current) setError('Failed to update cover photo');
         } finally {
-            setUploadingCover(false);
+            if (isMountedRef.current) setUploadingCover(false);
         }
     }, [id, token]);
 
@@ -339,6 +352,9 @@ export default function ProfilePage() {
                     'Content-Type': 'application/json'
                 }
             });
+
+            if (!isMountedRef.current) return;
+
             if (response.data.status === 401) {
                 setError(response.data.error);
             } else {
@@ -355,46 +371,52 @@ export default function ProfilePage() {
                 setResetFeedTrigger(prev => prev + 1);
             }
         } catch (err) {
-            setError('Failed to repost');
-            shouldScrollToTabBarRef.current = false;
+            if (isMountedRef.current) {
+                setError('Failed to repost');
+                shouldScrollToTabBarRef.current = false;
+            }
         } finally {
-            setRepostingPosts(prev => ({ ...prev, [originalPostId]: false }));
+            if (isMountedRef.current) {
+                setRepostingPosts(prev => ({ ...prev, [originalPostId]: false }));
+            }
         }
     }, [token, repostingPosts, userId]);
 
     const fetchProfileUser = useCallback(async () => {
         try {
-            setProfileUserError(false);
+            if (isMountedRef.current) setProfileUserError(false);
             const response = await api.get(`/user/${id}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            setProfileUser(response.data);
+            if (isMountedRef.current) setProfileUser(response.data);
         } catch (err) {
-            setProfileUserError(true);
-            setProfileUser(null);
+            if (isMountedRef.current) {
+                setProfileUserError(true);
+                setProfileUser(null);
+            }
         }
     }, [id, token]);
 
     const checkIsFollowed = useCallback(async () => {
         try {
-            setCheckingFollowStatus(true);
+            if (isMountedRef.current) setCheckingFollowStatus(true);
             const response = await apiFeed.post('/isFollowed', {
                 user_id: parseInt(id),
                 follower_id: userId
             }, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            setIsFollowed(response.data.is_followed);
+            if (isMountedRef.current) setIsFollowed(response.data.is_followed);
         } catch (err) {
-            setIsFollowed(false);
+            if (isMountedRef.current) setIsFollowed(false);
         } finally {
-            setCheckingFollowStatus(false);
+            if (isMountedRef.current) setCheckingFollowStatus(false);
         }
     }, [id, userId, token]);
 
     const checkIsBlocked = useCallback(async () => {
         if (String(userId) === String(id)) {
-            setIsBlocked(false);
+            if (isMountedRef.current) setIsBlocked(false);
             return;
         }
         try {
@@ -404,16 +426,17 @@ export default function ProfilePage() {
             }, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            setIsBlocked(response.data.is_blocked_user === true);
+            if (isMountedRef.current) {
+                setIsBlocked(response.data.is_blocked_user === true);
+            }
         } catch (err) {
-            setIsBlocked(false);
+            if (isMountedRef.current) setIsBlocked(false);
         }
     }, [id, userId, token]);
-    // ============================================================
 
     const fetchFollowCounts = useCallback(async () => {
         try {
-            setCountsLoading(true);
+            if (isMountedRef.current) setCountsLoading(true);
             const isValid = await getVerifyToken(token);
             if (!isValid) {
                 window.location.href = "/";
@@ -423,20 +446,20 @@ export default function ProfilePage() {
             const followersResponse = await apiFeed.get(`/followers/${id}/1/5`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            if (followersResponse.data && typeof followersResponse.data.total === 'number') {
+            if (isMountedRef.current && followersResponse.data && typeof followersResponse.data.total === 'number') {
                 setFollowersCount(followersResponse.data.total);
             }
 
             const followingResponse = await apiFeed.get(`/following/${id}/1/5`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            if (followingResponse.data && typeof followingResponse.data.total === 'number') {
+            if (isMountedRef.current && followingResponse.data && typeof followingResponse.data.total === 'number') {
                 setFollowingCount(followingResponse.data.total);
             }
         } catch (error) {
             console.error('Failed to fetch follow counts', error);
         } finally {
-            setCountsLoading(false);
+            if (isMountedRef.current) setCountsLoading(false);
         }
     }, [id, token]);
 
@@ -449,6 +472,7 @@ export default function ProfilePage() {
             }, {
                 headers: { Authorization: `Bearer ${token}` }
             });
+            if (!isMountedRef.current) return;
             if (response.data.status === 401) {
                 setError(response.data.response);
             } else {
@@ -456,9 +480,9 @@ export default function ProfilePage() {
                 await fetchFollowCounts();
             }
         } catch (err) {
-            setError('Failed to follow user');
+            if (isMountedRef.current) setError('Failed to follow user');
         } finally {
-            setFollowLoading(false);
+            if (isMountedRef.current) setFollowLoading(false);
         }
     };
 
@@ -471,6 +495,7 @@ export default function ProfilePage() {
             }, {
                 headers: { Authorization: `Bearer ${token}` }
             });
+            if (!isMountedRef.current) return;
             if (response.data.status === 401) {
                 setError(response.data.response);
             } else {
@@ -478,9 +503,9 @@ export default function ProfilePage() {
                 await fetchFollowCounts();
             }
         } catch (err) {
-            setError('Failed to unfollow user');
+            if (isMountedRef.current) setError('Failed to unfollow user');
         } finally {
-            setFollowLoading(false);
+            if (isMountedRef.current) setFollowLoading(false);
         }
     };
 
@@ -503,16 +528,17 @@ export default function ProfilePage() {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
+            if (!isMountedRef.current) return;
+
             if (response.data.status === 401) {
                 setError('Failed to block user');
             } else {
-                // Re-checa para garantir sincronização
                 await checkIsBlocked();
             }
         } catch (err) {
-            setError('Failed to block user');
+            if (isMountedRef.current) setError('Failed to block user');
         } finally {
-            setBlockLoading(false);
+            if (isMountedRef.current) setBlockLoading(false);
         }
     }, [blockLoading, token, userId, id, checkIsBlocked]);
 
@@ -535,26 +561,30 @@ export default function ProfilePage() {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
+            if (!isMountedRef.current) return;
+
             if (response.data.status === 401) {
                 setError('Failed to unblock user');
             } else {
-                // Re-checa para garantir sincronização
                 await checkIsBlocked();
             }
         } catch (err) {
-            setError('Failed to unblock user');
+            if (isMountedRef.current) setError('Failed to unblock user');
         } finally {
-            setBlockLoading(false);
+            if (isMountedRef.current) setBlockLoading(false);
         }
     }, [blockLoading, token, userId, id, checkIsBlocked]);
 
-    const fetchFeed = useCallback(async (pageNum = page, tab = activeTab) => {
-        let isMounted = true;
+    // ============================================================
+    // fetchFeed: NÃO retorna cleanup — recebe isCancelled externo
+    // ============================================================
+    const fetchFeed = useCallback(async (pageNum = page, tab = activeTab, isCancelled = () => false) => {
         setLoading(true);
         setError('');
 
         try {
             const isValid = await getVerifyToken(token);
+            if (isCancelled() || !isMountedRef.current) return;
             if (!isValid) {
                 window.location.href = "/";
                 return;
@@ -575,43 +605,49 @@ export default function ProfilePage() {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
-            if (isMounted) {
-                const newData = response.data?.data || [];
-                if (pageNum === 1) {
-                    setFeed(newData);
+            if (isCancelled() || !isMountedRef.current) return;
 
-                    if (shouldScrollToTabBarRef.current) {
-                        shouldScrollToTabBarRef.current = false;
-                        setScrollToTabBarTrigger(prev => prev + 1);
-                    }
-                } else if (newData.length > 0) {
-                    setFeed(prev => {
-                        const existingIds = new Set(prev.map(post => post.post_id));
-                        const newPosts = newData.filter(post => !existingIds.has(post.post_id));
-                        return [...prev, ...newPosts];
-                    });
-                }
+            const newData = response.data?.data || [];
+            if (pageNum === 1) {
+                setFeed(newData);
 
-                if (pageNum >= response.data.last_page) {
-                    setHasMore(false);
+                if (shouldScrollToTabBarRef.current) {
+                    shouldScrollToTabBarRef.current = false;
+                    setScrollToTabBarTrigger(prev => prev + 1);
                 }
+            } else if (newData.length > 0) {
+                setFeed(prev => {
+                    const existingIds = new Set(prev.map(post => post.post_id));
+                    const newPosts = newData.filter(post => !existingIds.has(post.post_id));
+                    return [...prev, ...newPosts];
+                });
+            }
+
+            if (pageNum >= response.data.last_page) {
+                setHasMore(false);
             }
         } catch (err) {
-            if (isMounted) setError('Failed to load feed');
+            if (!isCancelled() && isMountedRef.current) setError('Failed to load feed');
             shouldScrollToTabBarRef.current = false;
         } finally {
-            if (isMounted) setLoading(false);
+            if (!isCancelled() && isMountedRef.current) setLoading(false);
         }
-
-        return () => {
-            isMounted = false;
-        };
     }, [token, id, userId, activeTab, page]);
 
+    // ============================================================
+    // useEffect que consome fetchFeed — retorna cleanup REAL
+    // ============================================================
     useEffect(() => {
-        if (hasMore) {
-            fetchFeed(page);
-        }
+        if (!hasMore) return;
+
+        let cancelled = false;
+        const isCancelled = () => cancelled;
+
+        fetchFeed(page, activeTab, isCancelled);
+
+        return () => {
+            cancelled = true;
+        };
     }, [fetchFeed, hasMore, resetFeedTrigger, page, activeTab]);
 
     const changeTab = useCallback((tab) => {
@@ -640,8 +676,6 @@ export default function ProfilePage() {
         setBlockLoading(false);
         window.scrollTo(0, 0);
         setActiveTab('posts');
-        // ⚠️ NÃO resetamos isBlocked aqui para não sobrescrever
-        // o valor que a API vai devolver logo abaixo.
     }, [id]);
 
     // ============================================================
@@ -689,15 +723,20 @@ export default function ProfilePage() {
                     'Content-Type': 'application/json'
                 }
             });
+
+            if (!isMountedRef.current) return;
+
             if (response.data.status === 401) {
                 setError('Failed to delete a post');
             } else {
                 setFeed(prevFeed => prevFeed.filter(post => post.post_id !== postId));
             }
         } catch (err) {
-            setError('Failed to delete post');
+            if (isMountedRef.current) setError('Failed to delete post');
         } finally {
-            setDeletingPosts(prev => ({ ...prev, [postId]: false }));
+            if (isMountedRef.current) {
+                setDeletingPosts(prev => ({ ...prev, [postId]: false }));
+            }
         }
     }, [token, deletingPosts]);
 
@@ -717,6 +756,8 @@ export default function ProfilePage() {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
+            if (!isMountedRef.current) return;
+
             setCommentsData(prev => ({
                 ...prev,
                 [postId]: {
@@ -729,9 +770,11 @@ export default function ProfilePage() {
                 }
             }));
         } catch (err) {
-            setError('Failed to load comments');
+            if (isMountedRef.current) setError('Failed to load comments');
         } finally {
-            setCommentsLoading(prev => ({ ...prev, [postId]: false }));
+            if (isMountedRef.current) {
+                setCommentsLoading(prev => ({ ...prev, [postId]: false }));
+            }
         }
     }, [token, commentsLoading]);
 
@@ -792,6 +835,7 @@ export default function ProfilePage() {
 
             const reader = new FileReader();
             reader.onloadend = () => {
+                if (!isMountedRef.current) return;
                 setCommentMediaPreviews(prev => ({
                     ...prev,
                     [postId]: { url: reader.result, type: file.type }
@@ -844,6 +888,8 @@ export default function ProfilePage() {
                 }
             });
 
+            if (!isMountedRef.current) return;
+
             if (response.data.status === 401) {
                 setError(`Failed to comment a post`);
             } else {
@@ -859,9 +905,11 @@ export default function ProfilePage() {
                 );
             }
         } catch (err) {
-            setError('Failed to comment a post');
+            if (isMountedRef.current) setError('Failed to comment a post');
         } finally {
-            setCommentingPosts(prev => ({ ...prev, [postId]: false }));
+            if (isMountedRef.current) {
+                setCommentingPosts(prev => ({ ...prev, [postId]: false }));
+            }
         }
     }, [token, commentTexts, commentMediaFiles, fetchComments, userId, removeCommentMedia]);
 
@@ -879,6 +927,9 @@ export default function ProfilePage() {
                     'Content-Type': 'application/json'
                 }
             });
+
+            if (!isMountedRef.current) return;
+
             if (response.data.status === 401) {
                 setError(`Failed to delete comment`);
             } else {
@@ -898,7 +949,7 @@ export default function ProfilePage() {
                 );
             }
         } catch (err) {
-            setError('Failed to delete comment');
+            if (isMountedRef.current) setError('Failed to delete comment');
         }
     }, [token, userId]);
 
@@ -919,6 +970,9 @@ export default function ProfilePage() {
                     'Content-Type': 'application/json'
                 }
             });
+
+            if (!isMountedRef.current) return;
+
             if (response.data.status === 401) {
                 setError(`Failed to ${isCurrentlyLiked ? 'unlike' : 'like'} post`);
             } else {
@@ -935,9 +989,13 @@ export default function ProfilePage() {
                 );
             }
         } catch (err) {
-            setError(`Failed to ${isCurrentlyLiked ? 'unlike' : 'like'} post`);
+            if (isMountedRef.current) {
+                setError(`Failed to ${isCurrentlyLiked ? 'unlike' : 'like'} post`);
+            }
         } finally {
-            setLikingPosts(prev => ({ ...prev, [postId]: false }));
+            if (isMountedRef.current) {
+                setLikingPosts(prev => ({ ...prev, [postId]: false }));
+            }
         }
     }, [token, likingPosts, userId]);
 

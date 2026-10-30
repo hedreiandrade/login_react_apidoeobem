@@ -10,6 +10,7 @@ import { getInitialsImage } from "../../ultils/initialsImage";
 import { useHistory, Link } from 'react-router-dom';
 import { getVerifyToken } from "../../ultils/verifyToken";
 import { RiVerifiedBadgeFill } from "react-icons/ri";
+import { ImBlocked } from "react-icons/im";
 
 export default function BlockedUsersList() {
     const history = useHistory();
@@ -24,10 +25,13 @@ export default function BlockedUsersList() {
     const [loading, setLoading] = useState(false);
     const [hasMore, setHasMore] = useState(true);
     const [error, setError] = useState('');
+    const [unblockLoading, setUnblockLoading] = useState({});
     const observer = useRef();
 
     const name = localStorage.getItem('name') || 'User';
     const rawPhoto = localStorage.getItem('photo');
+    const userId = parseInt(localStorage.getItem('user_id'));
+    const token = localStorage.getItem('login_token');
 
     const isValidPhoto = (photo) => {
         return photo && photo.trim() !== '' && photo !== 'null' && photo !== 'undefined';
@@ -58,8 +62,6 @@ export default function BlockedUsersList() {
             setLoading(true);
             setError('');
             try {
-                const userId = localStorage.getItem('user_id');
-                const token = localStorage.getItem('login_token');
                 const isValid = await getVerifyToken(token);
                 if (!isValid) {
                     window.location.href = "/";
@@ -92,7 +94,49 @@ export default function BlockedUsersList() {
         return () => {
             isMounted = false;
         };
-    }, [page, hasMore]);
+    }, [page, hasMore, token, userId]);
+
+    // ============================================================
+    // Unblock — segue o mesmo padrão do ProfilePage
+    // ============================================================
+    const handleUnblockUser = useCallback(async (blockedUserId) => {
+        if (unblockLoading[blockedUserId]) return;
+
+        setUnblockLoading(prev => ({ ...prev, [blockedUserId]: true }));
+        setError('');
+
+        try {
+            const isValid = await getVerifyToken(token);
+            if (!isValid) {
+                window.location.href = "/";
+                return;
+            }
+
+            const response = await apiFeed.post('/unBlockUser', {
+                user_id_bu: userId,
+                user_block_id_bu: blockedUserId
+            }, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            if (response.data.status === 401) {
+                setError('Failed to unblock user');
+            } else {
+                // Remove da listagem sem recarregar a página
+                setBlockUsers(prev =>
+                    prev.filter(u => u.user_block_id_bu !== blockedUserId)
+                );
+            }
+        } catch (err) {
+            setError('Failed to unblock user');
+        } finally {
+            setUnblockLoading(prev => {
+                const next = { ...prev };
+                delete next[blockedUserId];
+                return next;
+            });
+        }
+    }, [unblockLoading, token, userId]);
 
     return (
         <div>
@@ -106,6 +150,8 @@ export default function BlockedUsersList() {
                         const blockeUserPhoto = isValidPhoto(blockUser.photo)
                             ? blockUser.photo
                             : getInitialsImage(blockUser.name);
+                        const isUnblocking = unblockLoading[blockUser.user_block_id_bu] || false;
+
                         return (
                             <div
                                 key={blockUser.user_block_id_bu}
@@ -129,13 +175,42 @@ export default function BlockedUsersList() {
                                         />
                                     )}
                                 </span>
+                                <button
+                                    type="button"
+                                    className="btn btn-outline-danger btn-sm block-users-unblock-btn"
+                                    onClick={() => handleUnblockUser(blockUser.user_block_id_bu)}
+                                    disabled={isUnblocking}
+                                    title="Unblock user"
+                                >
+                                    {isUnblocking ? (
+                                        <span
+                                            className="spinner-border spinner-border-sm"
+                                            role="status"
+                                            aria-hidden="true"
+                                        />
+                                    ) : (
+                                        <>
+                                            <ImBlocked size={16} style={{ marginRight: '5px' }} />
+                                            Unblock
+                                        </>
+                                    )}
+                                </button>
                             </div>
                         );
                     })}
-                    {error && <Alert color="danger" fade={false} className="text-center">{error}</Alert>}
+                    {error && (
+                        <Alert color="danger" fade={false} className="text-center">
+                            {error}
+                        </Alert>
+                    )}
                     <br />
                     <br />
-                    {!hasMore && <p className="text-center text-muted">No more blocked users</p>}
+                    {!hasMore && blockUsers.length > 0 && (
+                        <p className="text-center text-muted">No more blocked users</p>
+                    )}
+                    {!hasMore && blockUsers.length === 0 && !loading && (
+                        <p className="text-center text-muted">No blocked users</p>
+                    )}
                     <br />
                 </div>
             </div>

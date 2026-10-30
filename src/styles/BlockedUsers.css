@@ -57,7 +57,7 @@ html {
 .block-users-container {
     max-width: 600px;
     margin: 30px auto;
-    padding: 0 15px;
+    padding: 0 15px 80px; /* espaço extra por causa do Footer fixo */
 }
 
 .block-users-item {
@@ -78,9 +78,40 @@ html {
 .block-users-name {
     font-weight: 500;
     font-size: 1.1rem;
-    display: inline-flex;        
+    display: inline-flex;
     align-items: center;
     gap: 4px;
+    flex: 1;
+    min-width: 0;
+    word-break: break-word;
+}
+
+/* ============================================================
+   Botão Unblock
+   ============================================================ */
+.block-users-unblock-btn {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 110px;
+    height: 34px;
+    padding: 0 12px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.block-users-unblock-btn:hover:not(:disabled) {
+    background-color: #dc3545;
+    color: #fff;
+    border-color: #dc3545;
+}
+
+.block-users-unblock-btn:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
 }
 
 /* 👇 Selo de verificado (mesmo estilo usado no Feed) */

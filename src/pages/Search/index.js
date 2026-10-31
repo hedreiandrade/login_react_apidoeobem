@@ -59,8 +59,8 @@ export default function Search() {
                 window.location.href = "/";
                 return;
             }
-
-            const response = await apiFeed.get(`/search/${encodeURIComponent(term)}/${pageNum}/5`, {
+            const userId = parseInt(localStorage.getItem('user_id'));
+            const response = await apiFeed.get(`/search/${userId}/${encodeURIComponent(term)}/${pageNum}/5`, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }

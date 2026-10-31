@@ -752,7 +752,7 @@ export default function ProfilePage() {
                 return;
             }
 
-            const response = await apiFeed.get(`/comments/${postId}/${pageNum}/5`, {
+            const response = await apiFeed.get(`/comments/${userId}/${postId}/${pageNum}/5`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
@@ -776,7 +776,7 @@ export default function ProfilePage() {
                 setCommentsLoading(prev => ({ ...prev, [postId]: false }));
             }
         }
-    }, [token, commentsLoading]);
+    }, [token, commentsLoading, userId]);
 
     const toggleComments = useCallback(async (postId) => {
         if (expandedComments[postId]) {

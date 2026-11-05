@@ -999,6 +999,24 @@ export default function ProfilePage() {
         }
     }, [token, likingPosts, userId]);
 
+    // 👇 NOVO: observa o vídeo e dá play quando entra na viewport / pause quando sai
+    const handleVideoRef = useCallback((el) => {
+        if (!el || el.__io) return;
+        const io = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                const v = entry.target;
+                if (entry.isIntersecting) {
+                    const p = v.play();
+                    if (p && typeof p.catch === 'function') p.catch(() => {});
+                } else {
+                    v.pause();
+                }
+            });
+        }, { threshold: 0.5 });
+        io.observe(el);
+        el.__io = io;
+    }, []);
+
     const renderMedia = useCallback((url) => {
         if (!url || typeof url !== 'string') return null;
 
@@ -1008,7 +1026,14 @@ export default function ProfilePage() {
         if (isVideo) {
             return (
                 <div className="media-container">
-                    <video src={url} controls className="post-media" />
+                    <video
+                        src={url}
+                        controls
+                        className="post-media"
+                        playsInline
+                        muted
+                        ref={handleVideoRef}
+                    />
                 </div>
             );
         } else if (isImage) {
@@ -1019,7 +1044,7 @@ export default function ProfilePage() {
             );
         }
         return null;
-    }, [openImageModal]);
+    }, [openImageModal, handleVideoRef]);
 
     const renderCommentMedia = useCallback((url) => {
         if (!url || typeof url !== 'string') return null;

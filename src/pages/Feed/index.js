@@ -938,6 +938,24 @@ export default function FeedPage() {
         }
     }, [token, likingPosts, userId]);
 
+    // 👇 NOVO: observa o vídeo e dá play quando entra na viewport / pause quando sai
+    const handleVideoRef = useCallback((el) => {
+        if (!el || el.__io) return;
+        const io = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                const v = entry.target;
+                if (entry.isIntersecting) {
+                    const p = v.play();
+                    if (p && typeof p.catch === 'function') p.catch(() => {});
+                } else {
+                    v.pause();
+                }
+            });
+        }, { threshold: 0.5 });
+        io.observe(el);
+        el.__io = io;
+    }, []);
+
     const renderMedia = useCallback((url, isPreview = false) => {
         if (!url || typeof url !== 'string') return null;
 
@@ -954,6 +972,8 @@ export default function FeedPage() {
                         playsInline
                         webkit-playsinline="true"
                         preload="metadata"
+                        muted
+                        ref={handleVideoRef}
                         style={{
                             width: '100%',
                             height: 'auto',
@@ -1008,7 +1028,7 @@ export default function FeedPage() {
             );
         }
         return null;
-    }, []);
+    }, [handleVideoRef]);
 
     const userHasLiked = useCallback((post) => {
         return post.user_has_liked === 1 || post.user_has_liked === true;

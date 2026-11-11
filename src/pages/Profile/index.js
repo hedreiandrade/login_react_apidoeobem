@@ -4,7 +4,6 @@ import SocialHeader from '../../components/SocialHeader';
 import { Alert, Button } from 'reactstrap';
 import { apiFeed, api } from '../../services/api';
 import '../../styles/Profile.css';
-import { useExpireToken } from "../../hooks/expireToken";
 import { getInitialsImage } from "../../ultils/initialsImage";
 import { getVerifyToken } from "../../ultils/verifyToken";
 import { useParams, Link } from 'react-router-dom';
@@ -13,9 +12,15 @@ import { FaTrash, FaCommentDots, FaCamera, FaImage } from "react-icons/fa";
 import { BiRepost } from "react-icons/bi";
 import { RiVerifiedBadgeFill } from "react-icons/ri";
 import { ImBlocked } from "react-icons/im";
+import { FaHeading } from "react-icons/fa6";
+
+const PUBLIC_API_BASE = 'http://localhost:8015';
 
 export default function ProfilePage() {
-    useExpireToken();
+    const [tokenStatus, setTokenStatus] = useState('checking');
+    const [publicProfile, setPublicProfile] = useState(null);
+    const [publicLoading, setPublicLoading] = useState(false);
+    const [publicError, setPublicError] = useState(false);
 
     const [feed, setFeed] = useState([]);
     const [page, setPage] = useState(1);
@@ -78,6 +83,55 @@ export default function ProfilePage() {
             isMountedRef.current = false;
         };
     }, []);
+
+    // ============================================================
+    // NOVO: Checa token (vazio ou inválido) ao carregar a página
+    // ============================================================
+    useEffect(() => {
+        let cancelled = false;
+        async function checkToken() {
+            if (!token || !token.trim()) {
+                if (!cancelled) setTokenStatus('invalid');
+                return;
+            }
+            try {
+                const isValid = await getVerifyToken(token);
+                if (!cancelled) setTokenStatus(isValid ? 'valid' : 'invalid');
+            } catch {
+                if (!cancelled) setTokenStatus('invalid');
+            }
+        }
+        checkToken();
+        return () => { cancelled = true; };
+    }, [token]);
+
+    // ============================================================
+    // NOVO: Busca perfil público quando token inválido/vazio
+    // ============================================================
+    useEffect(() => {
+        if (tokenStatus !== 'invalid' || !id) return;
+
+        let cancelled = false;
+        async function fetchPublicProfile() {
+            setPublicLoading(true);
+            setPublicError(false);
+            try {
+                const response = await fetch(`${PUBLIC_API_BASE}/public/profile/${id}`);
+                if (!response.ok) throw new Error('Not found');
+                const data = await response.json();
+                if (!cancelled) setPublicProfile(data);
+            } catch (err) {
+                if (!cancelled) {
+                    setPublicProfile(null);
+                    setPublicError(true);
+                }
+            } finally {
+                if (!cancelled) setPublicLoading(false);
+            }
+        }
+        fetchPublicProfile();
+        return () => { cancelled = true; };
+    }, [tokenStatus, id]);
 
     const verifiedUsersCacheRef = useRef(null);
     if (verifiedUsersCacheRef.current === null) {
@@ -575,9 +629,6 @@ export default function ProfilePage() {
         }
     }, [blockLoading, token, userId, id, checkIsBlocked]);
 
-    // ============================================================
-    // fetchFeed: NÃO retorna cleanup — recebe isCancelled externo
-    // ============================================================
     const fetchFeed = useCallback(async (pageNum = page, tab = activeTab, isCancelled = () => false) => {
         setLoading(true);
         setError('');
@@ -634,10 +685,8 @@ export default function ProfilePage() {
         }
     }, [token, id, userId, activeTab, page]);
 
-    // ============================================================
-    // useEffect que consome fetchFeed — retorna cleanup REAL
-    // ============================================================
     useEffect(() => {
+        if (tokenStatus !== 'valid') return;
         if (!hasMore) return;
 
         let cancelled = false;
@@ -648,7 +697,7 @@ export default function ProfilePage() {
         return () => {
             cancelled = true;
         };
-    }, [fetchFeed, hasMore, resetFeedTrigger, page, activeTab]);
+    }, [fetchFeed, hasMore, resetFeedTrigger, page, activeTab, tokenStatus]);
 
     const changeTab = useCallback((tab) => {
         if (tab === activeTab) return;
@@ -659,9 +708,6 @@ export default function ProfilePage() {
         setResetFeedTrigger(prev => prev + 1);
     }, [activeTab]);
 
-    // ============================================================
-    // 1) RESET ao trocar de perfil (SEM resetar isBlocked)
-    // ============================================================
     useEffect(() => {
         shouldScrollToTabBarRef.current = false;
         setFeed([]);
@@ -678,22 +724,21 @@ export default function ProfilePage() {
         setActiveTab('posts');
     }, [id]);
 
-    // ============================================================
-    // 2) CHECK de bloqueio — DEPOIS do reset, só reage a `id`
-    // ============================================================
     useEffect(() => {
+        if (tokenStatus !== 'valid') return;
         if (!id || !userId || !token) return;
         checkIsBlocked();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [id]);
+    }, [id, tokenStatus]);
 
     useEffect(() => {
+        if (tokenStatus !== 'valid') return;
         if (id && userId && token) {
             checkIsFollowed();
             fetchProfileUser();
             fetchFollowCounts();
         }
-    }, [id, userId, token, checkIsFollowed, fetchProfileUser, fetchFollowCounts]);
+    }, [id, userId, token, tokenStatus, checkIsFollowed, fetchProfileUser, fetchFollowCounts]);
 
     const lastPostRef = useCallback(node => {
         if (loading) return;
@@ -999,7 +1044,6 @@ export default function ProfilePage() {
         }
     }, [token, likingPosts, userId]);
 
-    // 👇 NOVO: observa o vídeo e dá play quando entra na viewport / pause quando sai
     const handleVideoRef = useCallback((el) => {
         if (!el || el.__io) return;
         const io = new IntersectionObserver((entries) => {
@@ -1186,6 +1230,193 @@ export default function ProfilePage() {
         return null;
     };
 
+    // ============================================================
+    // NOVO: Tela de carregamento (enquanto checa token)
+    // ============================================================
+    if (tokenStatus === 'checking') {
+        return (
+            <div
+                style={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    minHeight: '100vh',
+                    background: '#fff'
+                }}
+            >
+                <div className="spinner-border text-primary" role="status">
+                    <span className="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        );
+    }
+
+    // ============================================================
+    // NOVO: Tela pública (token inválido ou vazio)
+    // Header replicado de SocialHeader, sem chamadas de auth.
+    // Qualquer clique redireciona para a raiz.
+    // ============================================================
+    if (tokenStatus === 'invalid') {
+        const goHome = () => { window.location.href = '/'; };
+
+        return (
+            <div onClick={goHome} style={{ minHeight: '100vh' }}>
+                {/* Header visual igual ao SocialHeader (sem chamadas de token) */}
+                <header
+                    style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        padding: "10px",
+                        background: "#007bff",
+                        color: "#fff",
+                        position: "relative"
+                    }}
+                >
+                    <div style={{ color: "#fff", textDecoration: "none", cursor: 'pointer' }}>
+                        <h4>
+                            &nbsp;&nbsp;
+                            <FaHeading size={28} style={{ marginRight: '8px', marginBottom: '5px' }} />
+                            Media
+                        </h4>
+                    </div>
+                </header>
+
+                <div className="col-md-8 App-profile">
+                    <div className="profile-container">
+                        {publicLoading ? (
+                            <div style={{ padding: '60px', textAlign: 'center' }}>
+                                <div className="spinner-border text-primary" role="status">
+                                    <span className="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                        ) : publicError || !publicProfile ? (
+                            <div style={{ padding: '60px', textAlign: 'center' }}>
+                                <p className="text-muted">Profile not found</p>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="profile-cover">
+                                    <div
+                                        className={`cover-image ${!publicProfile.cover_photo ? 'default-cover' : ''}`}
+                                        style={
+                                            publicProfile.cover_photo
+                                                ? { backgroundImage: `url(${publicProfile.cover_photo})` }
+                                                : {}
+                                        }
+                                    />
+                                    <div className="profile-info-section">
+                                        <div className="profile-avatar-container">
+                                            <img
+                                                src={
+                                                    isValidPhoto(publicProfile.photo)
+                                                        ? publicProfile.photo
+                                                        : getInitialsImage(publicProfile.name)
+                                                }
+                                                alt="Profile"
+                                                className="profile-avatar"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="profile-details">
+                                    <div className="profile-name-section">
+                                        <div className="profile-name-row">
+                                            <h2 className="profile-name">{publicProfile.name}</h2>
+                                            {checkVerified(publicProfile.verified_profile) && (
+                                                <RiVerifiedBadgeFill
+                                                    className="verified-badge"
+                                                    title="Verified"
+                                                    size={25}
+                                                />
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {publicProfile.bio && (
+                                        <div className="profile-bio">
+                                            <p className="bio-text">
+                                                {formatTextWithLinks(publicProfile.bio)}
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    <div className="profile-meta">
+                                        {(publicProfile.city || publicProfile.country || publicProfile.website) && (
+                                            <div className="location-website-container">
+                                                {publicProfile.city && publicProfile.country && (
+                                                    <span className="location-info">
+                                                        {publicProfile.city}, {publicProfile.country}
+                                                    </span>
+                                                )}
+                                                {publicProfile.city && !publicProfile.country && (
+                                                    <span className="location-info">{publicProfile.city}</span>
+                                                )}
+                                                {!publicProfile.city && publicProfile.country && (
+                                                    <span className="location-info">{publicProfile.country}</span>
+                                                )}
+                                                {publicProfile.website && (
+                                                    <span className="website-info">
+                                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginLeft: '4px' }}>
+                                                            🔗 {formatTextWithLinks(publicProfile.website)}
+                                                        </span>
+                                                    </span>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        <div className="joined-date-container">
+                                            <span className="joined-date">
+                                                Joined{' '}
+                                                {publicProfile.created_at
+                                                    ? new Date(publicProfile.created_at).toLocaleDateString('en-US', {
+                                                        month: 'long',
+                                                        year: 'numeric'
+                                                    })
+                                                    : 'recently'}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div className="follow-counts">
+                                        <button
+                                            type="button"
+                                            className="btn btn-primary btn-sm"
+                                            style={{
+                                                marginRight: "10px",
+                                                backgroundColor: '#085f7f',
+                                                borderColor: '#085f7f',
+                                                color: '#fff'
+                                            }}
+                                        >
+                                            {publicProfile.following_count ?? 0} Following
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            className="btn btn-primary btn-sm"
+                                            style={{
+                                                backgroundColor: '#085f7f',
+                                                borderColor: '#085f7f',
+                                                color: '#fff'
+                                            }}
+                                        >
+                                            {publicProfile.followers_count ?? 0} Followers
+                                        </button>
+                                    </div>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // ============================================================
+    // Fluxo original (token válido)
+    // ============================================================
     const profileInfo = getProfileInfo();
     const isLoadingProfile = !profileInfo && !profileUserError;
     const isOwnProfile = userId === parseInt(id);

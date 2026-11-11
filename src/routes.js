@@ -31,7 +31,7 @@ const Routes = () => (
             <PrivateRoute path="/following" component={Following} />
             <PrivateRoute path="/followers-users/:id" component={FollowersUsers} />
             <PrivateRoute path="/following-users/:id" component={FollowingUsers} />
-            <PrivateRoute path="/profile/:id" component={Profile} />
+            <Route path="/profile/:id" component={Profile} />
             <PrivateRoute path="/search" component={Search} />
             <Route path="/forgot-password" component={ForgotPassword} />
             <PrivateRoute path="/verified" component={Verified} />

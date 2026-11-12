@@ -13,6 +13,7 @@ import { BiRepost } from "react-icons/bi";
 import { RiVerifiedBadgeFill } from "react-icons/ri";
 import { ImBlocked } from "react-icons/im";
 import { FaHeading } from "react-icons/fa6";
+import axios from 'axios';
 
 const PUBLIC_API_BASE = 'http://localhost:8015';
 
@@ -116,10 +117,14 @@ export default function ProfilePage() {
             setPublicLoading(true);
             setPublicError(false);
             try {
-                const response = await fetch(`${PUBLIC_API_BASE}/public/profile/${id}`);
-                if (!response.ok) throw new Error('Not found');
-                const data = await response.json();
-                if (!cancelled) setPublicProfile(data);
+                const data  = await axios.get(`${PUBLIC_API_BASE}/public/profile/${id}`);           
+                console.log('hedrei');
+                console.log(data.data.status);
+                if(data.data.status === 401 || data.data.status === 404){
+                    window.location.href = "/";
+                    return;
+                }
+                if (!cancelled) setPublicProfile(data.data);
             } catch (err) {
                 if (!cancelled) {
                     setPublicProfile(null);

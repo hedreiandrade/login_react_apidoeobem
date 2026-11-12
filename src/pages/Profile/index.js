@@ -15,14 +15,11 @@ import { ImBlocked } from "react-icons/im";
 import { FaHeading } from "react-icons/fa6";
 import axios from 'axios';
 
-const PUBLIC_API_BASE = 'http://localhost:8015';
-
 export default function ProfilePage() {
     const [tokenStatus, setTokenStatus] = useState('checking');
     const [publicProfile, setPublicProfile] = useState(null);
     const [publicLoading, setPublicLoading] = useState(false);
     const [publicError, setPublicError] = useState(false);
-
     const [feed, setFeed] = useState([]);
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
@@ -44,27 +41,20 @@ export default function ProfilePage() {
     const [followingCount, setFollowingCount] = useState(0);
     const [countsLoading, setCountsLoading] = useState(true);
     const [repostingPosts, setRepostingPosts] = useState({});
-
     const [isBlocked, setIsBlocked] = useState(false);
     const [blockLoading, setBlockLoading] = useState(false);
-
     const [modalImage, setModalImage] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
-
     const [uploadingCover, setUploadingCover] = useState(false);
     const fileInputRef = useRef(null);
-
     const [activeTab, setActiveTab] = useState('posts');
-
     const [commentMediaFiles, setCommentMediaFiles] = useState({});
     const [commentMediaPreviews, setCommentMediaPreviews] = useState({});
     const commentFileInputRefs = useRef({});
-
     const tabBarAnchorRef = useRef(null);
     const tabBarRef = useRef(null);
     const shouldScrollToTabBarRef = useRef(false);
     const [scrollToTabBarTrigger, setScrollToTabBarTrigger] = useState(0);
-
     const observer = useRef();
     const commentsEndRefs = useRef({});
     const isMountedRef = useRef(true);
@@ -111,15 +101,13 @@ export default function ProfilePage() {
     // ============================================================
     useEffect(() => {
         if (tokenStatus !== 'invalid' || !id) return;
-
         let cancelled = false;
         async function fetchPublicProfile() {
             setPublicLoading(true);
             setPublicError(false);
             try {
-                const data  = await axios.get(`${PUBLIC_API_BASE}/public/profile/${id}`);           
-                console.log('hedrei');
-                console.log(data.data.status);
+                const apiBaseFeed = process.env.REACT_APP_PUBLIC_API_FEED;
+                const data  = await axios.get(`${apiBaseFeed}/public/profile/${id}`);
                 if(data.data.status === 401 || data.data.status === 404){
                     window.location.href = "/";
                     return;

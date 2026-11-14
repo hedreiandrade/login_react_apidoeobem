@@ -120,7 +120,7 @@ export default function Footer({ showOnScroll = true }) {
   // Footer original (não flutuante)
   const OriginalFooter = () => (
     <footer className="footer-original">
-      <p>&copy; 2025 - Hedrei Andrade</p>
+      <p>&copy; {new Date().getFullYear()} - Hedrei Andrade</p>
     </footer>
   );
 

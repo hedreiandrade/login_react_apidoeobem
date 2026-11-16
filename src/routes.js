@@ -17,6 +17,7 @@ import Search from './pages/Search';
 import ForgotPassword from './pages/ForgotPassword';
 import Verified from './pages/Verified';
 import BlockedUsers from './pages/BlockedUsers';
+import ReelsSearch from './pages/ReelsSearch';
 
 const Routes = () => (
     <Router>
@@ -36,6 +37,7 @@ const Routes = () => (
             <Route path="/forgot-password" component={ForgotPassword} />
             <PrivateRoute path="/verified" component={Verified} />
             <PrivateRoute path="/blockedUsers" component={BlockedUsers} />
+            <PrivateRoute path="/reels-search" component={ReelsSearch} />
             <Route exact path="/logout" component={Logout} />
         </Switch>
     </Router>

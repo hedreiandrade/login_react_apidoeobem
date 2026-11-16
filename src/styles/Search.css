@@ -1,70 +1,144 @@
-/* Estilos globais */
-body,
-html {
-    margin: 0;
-    padding: 0;
-    height: 100%;
-    font-family: Arial, sans-serif;
+/* ============================================
+   Wrapper da Página e Top Bar (Busca)
+   ============================================ */
+.search-page-wrapper {
+    width: 100%;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
     background-color: #fff;
 }
 
-.header {
+/* Barra fixa no topo com o campo de busca */
+.search-top-bar {
+    position: sticky;
+    top: 0;
     width: 100%;
-    background-color: #0069D9;
-    padding: 15px;
+    background-color: #fff;
+    padding: 10px 20px;
+    z-index: 100;
+    border-bottom: 1px solid #efefef;
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
+}
+
+.search-input-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 400px;
+    display: flex;
     align-items: center;
-    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-.header h3 {
-    margin: 0;
+.search-icon {
+    position: absolute;
+    left: 12px;
+    color: #8e8e8e;
+    font-size: 14px;
+}
+
+.search-input-custom {
+    width: 100%;
+    background-color: #efefef;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 36px 8px 36px;
+    font-size: 15px;
+    outline: none;
+    color: #262626;
+}
+
+.search-input-custom::placeholder {
+    color: #8e8e8e;
+}
+
+.clear-btn-custom {
+    position: absolute;
+    right: 8px;
+    background: #c7c7c7;
+    border: none;
     color: #fff;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
 }
 
-.search-container {
-    padding: 20px;
+/* Área de Conteúdo (Mural e Resultados) */
+.search-content-area {
+    width: 100%;
+    flex: 1;
+}
+
+/* ============================================
+   Mural de Posts (100% Largura, Sem Bordas)
+   ============================================ */
+.search-mural-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px; /* Espaçamento mínimo entre as fotos */
+    width: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+.mural-item {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1; /* Quadrado perfeito */
+    overflow: hidden;
+    cursor: pointer;
+    background-color: #efefef;
+}
+
+.mural-media {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.2s ease;
+}
+
+.mural-item:hover .mural-media {
+    transform: scale(1.05);
+}
+
+.mural-video-icon {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 2;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+}
+
+/* ============================================
+   Resultados da Busca de Usuários
+   ============================================ */
+.user-search-results {
     max-width: 600px;
     margin: 0 auto;
-}
-
-.search-input-container {
-    margin-bottom: 20px;
-}
-
-.search-input {
-    border-radius: 25px;
-    padding: 12px 20px;
-    font-size: 16px;
-}
-
-.clear-btn {
-    border-radius: 0 25px 25px 0;
-    font-size: 20px;
-    line-height: 1;
-    padding: 0 15px;
-}
-
-.search-info {
-    text-align: center;
-    margin-bottom: 15px;
-    padding: 10px;
+    padding: 10px 0;
 }
 
 .search-result-item {
-    margin-bottom: 10px;
+    margin-bottom: 5px;
     border-radius: 10px;
     transition: background-color 0.2s;
+    animation: fadeIn 0.3s ease-in;
 }
 
 .search-result-link {
     display: flex;
     align-items: center;
-    padding: 15px;
+    padding: 12px 20px;
     text-decoration: none;
     color: inherit;
-    border-radius: 10px;
 }
 
 .search-result-link:hover {
@@ -94,42 +168,43 @@ html {
 }
 
 .search-result-name {
-    font-weight: bold;
-    font-size: 16px;
-    color: #333;
+    font-weight: 600;
+    font-size: 15px;
+    color: #262626;
 }
 
 .verified-badge {
+    color: #1d9bf0 !important;
+    fill: #1d9bf0 !important;
     flex-shrink: 0;
 }
 
 .search-result-email {
-    font-size: 14px;
-    color: #666;
+    font-size: 13px;
+    color: #8e8e8e;
 }
 
-/* Loading animation */
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
-.search-result-item {
-    animation: fadeIn 0.3s ease-in;
-}
-
 /* Responsividade */
 @media (max-width: 768px) {
-    .search-container {
+    .search-top-bar {
         padding: 10px;
     }
     
     .search-result-link {
-        padding: 12px;
+        padding: 10px 15px;
     }
     
     .search-result-photo {
         width: 45px;
         height: 45px;
+    }
+    
+    .search-mural-grid {
+        gap: 1px; /* Ainda mais fino em telas menores */
     }
 }

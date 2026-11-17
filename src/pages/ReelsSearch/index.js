@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import Footer from '../../components/Footer'; // Rodapé adicionado novamente
+import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
+import Footer from '../../components/Footer';
 import { Alert, Button, Input, Spinner } from 'reactstrap';
 import { apiFeed } from '../../services/api';
 import '../../styles/ReelsSearch.css';
@@ -8,7 +8,7 @@ import { getInitialsImage } from "../../ultils/initialsImage";
 import { getVerifyToken } from "../../ultils/verifyToken";
 import { Link, useLocation, useHistory } from 'react-router-dom';
 import { AiFillHeart } from "react-icons/ai";
-import { FaCommentDots, FaTimes, FaPlay} from "react-icons/fa";
+import { FaCommentDots, FaTimes, FaPlay } from "react-icons/fa";
 import { BiRepost } from "react-icons/bi";
 import { RiVerifiedBadgeFill } from "react-icons/ri";
 
@@ -17,20 +17,15 @@ export default function ReelsSearchPage() {
     const location = useLocation();
     const history = useHistory();
 
-    // Recebe os posts do mural e o index clicado para renderização instantânea
     const initialPosts = location.state?.initialPosts || [];
     const startIndex = location.state?.startIndex || 0;
 
-    // Estados Base
     const [reelsPosts, setReelsPosts] = useState(initialPosts);
     const [error, setError] = useState('');
-    
-    // Estados de Paginação/API
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
     const [loading, setLoading] = useState(false);
 
-    // Interaction states
     const [likingPosts, setLikingPosts] = useState({});
     const [commentingPosts, setCommentingPosts] = useState({});
     const [expandedComments, setExpandedComments] = useState({});
@@ -39,21 +34,22 @@ export default function ReelsSearchPage() {
     const [commentsLoading, setCommentsLoading] = useState({});
     const [repostingPosts, setRepostingPosts] = useState({});
 
-    // Follow states
     const [followStatuses, setFollowStatuses] = useState({});
     const [checkingFollowStatuses, setCheckingFollowStatuses] = useState({});
     const [followLoadingStates, setFollowLoadingStates] = useState({});
 
-    // Video states
     const [pausedStates, setPausedStates] = useState({});
     const [mutedStates, setMutedStates] = useState({});
 
     const videoRefs = useRef({});
     const reelItemRefs = useRef({});
+    const containerRef = useRef(null);
     const isMountedRef = useRef(true);
     const reelsObserver = useRef();
 
-    // Comments refs
+    const hasInitialScrolled = useRef(false);
+    const [isReady, setIsReady] = useState(startIndex === 0);
+
     const commentsLoadingRef = useRef({});
     const commentsDataRef = useRef({});
     const commentSentinelRefs = useRef({});
@@ -69,7 +65,6 @@ export default function ReelsSearchPage() {
         commentsDataRef.current = commentsData;
     }, [commentsData]);
 
-    // Verifica se a mídia é vídeo
     const isVideoMedia = (link) => {
         if (!link) return false;
         return link.match(/\.(mp4|webm|ogg|mov)$/i) || link.includes('video');
@@ -105,20 +100,17 @@ export default function ReelsSearchPage() {
         }
     }, [token, loading]);
 
-    // Carrega a próxima página quando o scroll chega ao fim
     useEffect(() => {
         if (initialPosts.length > 0 && page === 1) {
-            setPage(2); 
+            setPage(2);
             return;
         }
-        
         if (hasMore) {
             fetchMuralReels(page);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [page]);
 
-    // Observer para Infinite Scroll dos Reels
     const lastReelRef = useCallback(node => {
         if (loading || !hasMore) return;
         if (reelsObserver.current) reelsObserver.current.disconnect();
@@ -133,20 +125,60 @@ export default function ReelsSearchPage() {
         });
     }, [loading, hasMore]);
 
-    // ======================== LIFECYCLE & PLAYER ========================
+    // ======================== LIFECYCLE ========================
     useEffect(() => {
         isMountedRef.current = true;
         return () => { isMountedRef.current = false; };
     }, []);
 
-    // Função para pular para o post clicado (scroll inicial)
-    useEffect(() => {
-        if (startIndex > 0 && reelItemRefs.current[reelsPosts[startIndex]?.post_id]) {
-            setTimeout(() => {
-                reelItemRefs.current[reelsPosts[startIndex]?.post_id]?.scrollIntoView({ behavior: 'instant' });
-            }, 100);
+    // Scroll inicial: só "pula" ao post clicado, sem animação
+    useLayoutEffect(() => {
+        if (hasInitialScrolled.current) return;
+
+        if (startIndex === 0) {
+            hasInitialScrolled.current = true;
+            if (!isReady) setIsReady(true);
+            return;
         }
-    }, [startIndex, reelsPosts]);
+
+        const targetPost = reelsPosts[startIndex];
+        const targetEl = targetPost && reelItemRefs.current[targetPost.post_id];
+        if (!targetEl) return;
+
+        const parent = containerRef.current;
+        if (!parent) return;
+
+        const prevSnap = parent.style.scrollSnapType;
+        const prevBehavior = parent.style.scrollBehavior;
+
+        parent.style.scrollSnapType = 'none';
+        parent.style.scrollBehavior = 'auto';
+
+        const targetOffset = targetEl.offsetTop;
+        parent.scrollTop = targetOffset;
+
+        hasInitialScrolled.current = true;
+
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                parent.style.scrollSnapType = prevSnap || '';
+                parent.style.scrollBehavior = prevBehavior || '';
+                setIsReady(true);
+            });
+        });
+    }, [startIndex, reelsPosts, isReady]);
+
+    // Fallback: se algo travar, libera o container
+    useEffect(() => {
+        if (isReady) return;
+        const t = setTimeout(() => {
+            if (!hasInitialScrolled.current) {
+                hasInitialScrolled.current = true;
+                setIsReady(true);
+            }
+        }, 2000);
+        return () => clearTimeout(t);
+    }, [isReady]);
 
     // Autoplay on visible
     useEffect(() => {
@@ -211,7 +243,7 @@ export default function ReelsSearchPage() {
         try {
             const response = await apiFeed.post('/follow', { user_id: parseInt(targetUserId), follower_id: userId }, { headers: { Authorization: `Bearer ${token}` } });
             if (isMountedRef.current && response.data.status !== 401) setFollowStatuses(prev => ({ ...prev, [targetUserId]: true }));
-        } catch (err) { if (isMountedRef.current) setError('Failed to follow user'); } 
+        } catch (err) { if (isMountedRef.current) setError('Failed to follow user'); }
         finally { if (isMountedRef.current) setFollowLoadingStates(prev => ({ ...prev, [targetUserId]: false })); }
     }, [token, userId]);
 
@@ -220,7 +252,7 @@ export default function ReelsSearchPage() {
         try {
             const response = await apiFeed.post('/unFollow', { user_id: parseInt(targetUserId), follower_id: userId }, { headers: { Authorization: `Bearer ${token}` } });
             if (isMountedRef.current && response.data.status !== 401) setFollowStatuses(prev => ({ ...prev, [targetUserId]: false }));
-        } catch (err) { if (isMountedRef.current) setError('Failed to unfollow user'); } 
+        } catch (err) { if (isMountedRef.current) setError('Failed to unfollow user'); }
         finally { if (isMountedRef.current) setFollowLoadingStates(prev => ({ ...prev, [targetUserId]: false })); }
     }, [token, userId]);
 
@@ -244,7 +276,7 @@ export default function ReelsSearchPage() {
             if (isMountedRef.current && response.data.status !== 401) {
                 setReelsPosts(prev => prev.map(post => post.post_id === postId ? { ...post, number_likes: isCurrentlyLiked ? currentLikes - 1 : currentLikes + 1, user_has_liked: !isCurrentlyLiked } : post));
             }
-        } catch (err) { if (isMountedRef.current) setError('Failed to like'); } 
+        } catch (err) { if (isMountedRef.current) setError('Failed to like'); }
         finally { if (isMountedRef.current) setLikingPosts(prev => ({ ...prev, [postId]: false })); }
     }, [token, likingPosts, userId]);
 
@@ -257,11 +289,11 @@ export default function ReelsSearchPage() {
             if (isMountedRef.current && response.data.status !== 401) {
                 setReelsPosts(prev => prev.map(post => post.post_id === originalPostId ? { ...post, number_reposts: (post.number_reposts || 0) + 1 } : post));
             }
-        } catch (err) { if (isMountedRef.current) setError('Failed to repost'); } 
+        } catch (err) { if (isMountedRef.current) setError('Failed to repost'); }
         finally { if (isMountedRef.current) setRepostingPosts(prev => ({ ...prev, [originalPostId]: false })); }
     }, [token, repostingPosts, userId]);
 
-    // Comments logic
+    // ======================== COMMENTS ========================
     const fetchComments = useCallback(async (postId, pageNum = 1) => {
         if (commentsLoadingRef.current[postId]) return;
         commentsLoadingRef.current[postId] = true;
@@ -277,7 +309,7 @@ export default function ReelsSearchPage() {
                     }
                 }));
             }
-        } catch (err) { if (isMountedRef.current) setError('Failed to load comments'); } 
+        } catch (err) { if (isMountedRef.current) setError('Failed to load comments'); }
         finally { commentsLoadingRef.current[postId] = false; if (isMountedRef.current) setCommentsLoading(prev => ({ ...prev, [postId]: false })); }
     }, [token, userId]);
 
@@ -297,11 +329,10 @@ export default function ReelsSearchPage() {
                 setCommentTexts(prev => ({ ...prev, [postId]: '' }));
                 setReelsPosts(prev => prev.map(post => post.post_id === postId ? { ...post, number_comments: (post.number_comments || 0) + 1 } : post));
             }
-        } catch (err) { if (isMountedRef.current) setError('Failed to comment'); } 
+        } catch (err) { if (isMountedRef.current) setError('Failed to comment'); }
         finally { if (isMountedRef.current) setCommentingPosts(prev => ({ ...prev, [postId]: false })); }
     }, [token, commentTexts, fetchComments, userId]);
 
-    // ---------- Auto-load próxima página de comentários (Sentinela) ----------
     useEffect(() => {
         if (Object.keys(commentsData).length === 0) return;
 
@@ -358,7 +389,10 @@ export default function ReelsSearchPage() {
                 </Button>
             </div>
 
-            <div className="reels-container">
+            <div
+                ref={containerRef}
+                className={`reels-container${!isReady ? ' reels-not-ready' : ''}`}
+            >
                 {error && <Alert color="danger" fade={false} className="reels-alert">{error}</Alert>}
 
                 {reelsPosts.map((post, index) => {
@@ -381,20 +415,18 @@ export default function ReelsSearchPage() {
                     const isMuted = mutedStates[post.post_id] !== false;
                     const isVerifiedAuthor = isRepost ? (post.original_verified_profile === true) : (post.verified_profile === true);
                     const commentsHasMore = commentsData[post.post_id]?.hasMore || false;
-
                     const isVideo = isVideoMedia(post.media_link);
 
                     return (
                         <div
                             key={post.post_id}
-                            ref={el => { 
-                                reelItemRefs.current[post.post_id] = el; 
+                            ref={el => {
+                                reelItemRefs.current[post.post_id] = el;
                                 if (isLast && lastReelRef) lastReelRef(el);
                             }}
                             className="reel-item"
                             data-post-id={post.post_id}
                         >
-                            {/* Renderização Condicional: Vídeo ou Imagem */}
                             {isVideo ? (
                                 <>
                                     <video
@@ -491,7 +523,7 @@ export default function ReelsSearchPage() {
                                                         </div>
                                                     </div>
                                                 ))}
-                                                
+
                                                 {commentsHasMore && (
                                                     <div
                                                         ref={el => { commentSentinelRefs.current[post.post_id] = el; }}
@@ -524,7 +556,7 @@ export default function ReelsSearchPage() {
                         </div>
                     );
                 })}
-                
+
                 {loading && (
                     <div className="reel-loading-spinner">
                         <Spinner color="light" />
@@ -532,7 +564,6 @@ export default function ReelsSearchPage() {
                 )}
             </div>
 
-            {/* Rodapé adicionado */}
             <Footer showOnScroll={true} />
         </div>
     );

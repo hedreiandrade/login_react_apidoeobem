@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import SocialHeader from '../../components/SocialHeader';
-import Footer from '../../components/Footer'; // Importação mantida
+import Footer from '../../components/Footer';
 import { Alert, Spinner } from 'reactstrap';
 import { apiFeed } from '../../services/api';
 import '../../styles/Search.css';
@@ -15,7 +15,6 @@ export default function Search() {
     const history = useHistory();
     useExpireToken();
 
-    // Estados da busca de usuários
     const [searchTerm, setSearchTerm] = useState('');
     const [searchResults, setSearchResults] = useState([]);
     const [page, setPage] = useState(1);
@@ -25,7 +24,6 @@ export default function Search() {
     const [initialLoad, setInitialLoad] = useState(false);
     const [totalPages, setTotalPages] = useState(0);
     
-    // Estados do Mural (Explore)
     const [muralPosts, setMuralPosts] = useState([]);
     const [muralPage, setMuralPage] = useState(1);
     const [muralHasMore, setMuralHasMore] = useState(true);
@@ -214,7 +212,6 @@ export default function Search() {
         <div className="search-page-wrapper">
             <SocialHeader user={user} />
             
-            {/* Barra de Busca Fixa no Topo */}
             <div className="search-top-bar">
                 <div className="search-input-wrapper">
                     <FaSearch className="search-icon" />
@@ -234,7 +231,6 @@ export default function Search() {
             </div>
 
             <div className="search-content-area">
-                {/* Resultados de busca de usuários */}
                 {searchTerm && (
                     <div className="user-search-results">
                         {error && <Alert color="danger">{error}</Alert>}
@@ -274,7 +270,6 @@ export default function Search() {
                     </div>
                 )}
 
-                {/* Mural de Posts (Explore) - 100% Width */}
                 {!searchTerm && (
                     <div className="search-mural-grid">
                         {muralPosts.map((post, index) => {
@@ -290,11 +285,22 @@ export default function Search() {
                                 >
                                     {isVideo ? (
                                         <>
-                                            <video src={post.media_link} className="mural-media" muted />
+                                            <video 
+                                                src={post.media_link} 
+                                                className="mural-media" 
+                                                muted 
+                                                onError={(e) => e.target.parentElement.classList.add('media-error')}
+                                            />
                                             <div className="mural-video-icon"><FaPlay size={20} color="#fff" /></div>
                                         </>
                                     ) : (
-                                        <img src={post.media_link} className="mural-media" alt="Post" loading="lazy" />
+                                        <img 
+                                            src={post.media_link} 
+                                            className="mural-media" 
+                                            alt="Post" 
+                                            loading="lazy" 
+                                            onError={(e) => e.target.parentElement.classList.add('media-error')}
+                                        />
                                     )}
                                 </div>
                             );
@@ -309,7 +315,6 @@ export default function Search() {
                 )}
             </div>
 
-            {/* RODAPÉ ADICIONADO AQUI */}
             <Footer />
         </div>
     );
